@@ -42,6 +42,9 @@ jobs:
       - name: Test ask-or-default.sh
         run: bash tests/test-ask-or-default.sh
 
+      - name: Test apply-naming.sh
+        run: bash tests/test-apply-naming.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
