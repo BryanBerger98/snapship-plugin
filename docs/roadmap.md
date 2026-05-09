@@ -131,7 +131,7 @@ Ordre dépendances:
 
 ### 6.5 `/qa`
 
-- [ ] step-00 → step-05
+- [x] step-00 → step-05
 - [ ] Régression scope=impacted via code-review-graph (fallback tests-only)
 - [ ] Wireframe check Playwright vs Frame0 PNG (structural-diff)
 - [ ] Subagent code-reviewer-qa + flaky detection
