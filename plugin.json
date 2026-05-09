@@ -1,0 +1,55 @@
+{
+  "name": "artysan",
+  "version": "0.1.0",
+  "description": "Workflow produit Claude Code: 5 skills enchaînables (define → ticket → wireframe → develop → qa). Adaptatif plateformes tickets (GitHub/GitLab/JIRA), docs (AFFiNE/Notion), wireframes (Frame0).",
+  "author": {
+    "name": "Bryan Berger",
+    "email": "contact@bryanberger.dev"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BryanBerger98/artysan-plugin"
+  },
+  "skills_path": "skills/",
+  "agents_path": "agents/",
+  "shared_scripts_path": "skills/_shared/",
+  "schemas_path": "skills/_shared/schemas/",
+  "templates_path": "skills/_shared/templates/",
+  "commands": [
+    {
+      "name": "define",
+      "description": "Définit produit + features. Brainstorm PRD interactif."
+    },
+    {
+      "name": "ticket",
+      "description": "Génère tickets adaptés à plateforme depuis mini-PRD."
+    },
+    {
+      "name": "wireframe",
+      "description": "Wireframes Frame0 multi-écrans liés aux tickets."
+    },
+    {
+      "name": "develop",
+      "description": "Développe ticket(s). Standalone + loop session/daemon."
+    },
+    {
+      "name": "qa",
+      "description": "Validation runtime: régression scope + wireframes Playwright."
+    }
+  ],
+  "mcp_servers": {
+    "required": ["affine-mcp-server"],
+    "optional": ["frame0-mcp-server", "code-review-graph", "playwright-mcp"]
+  },
+  "keywords": [
+    "workflow",
+    "product-management",
+    "tickets",
+    "wireframes",
+    "code-review",
+    "qa",
+    "affine",
+    "frame0"
+  ]
+}

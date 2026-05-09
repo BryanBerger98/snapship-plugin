@@ -1,0 +1,40 @@
+# Telemetry (NDJSON append-only, gitignored)
+skills/_shared/telemetry.log
+skills/_shared/telemetry.log.*
+
+# Config resolution cache (per-project)
+.config-resolved.json
+
+# QA raw outputs (per-cycle)
+.qa-raw-*.json
+
+# Product cache (when used as project plugin)
+.claude/product/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+daemon.log
+
+# Node (if dev tooling added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test artifacts
+.bats-tmp/
+coverage/
+
+# code-review-graph DB (auto-généré par MCP)
+.code-review-graph/
