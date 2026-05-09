@@ -40,7 +40,7 @@ Ordre dépendances:
 5. [x] `ask-or-default.sh` (wrapper auto-mode)
 6. [x] `apply-naming.sh` (render templates branch/commit)
 7. [x] `detect-test-commands.sh` (auto-detect test/lint)
-8. [ ] `check-mcp-required.sh` (validate MCPs + conflict resolution)
+8. [x] `check-mcp-required.sh` (validate MCPs + conflict resolution)
 9. [ ] `detect-platforms.sh` (runtime check auth)
 10. [ ] `setup-config.sh` (interactive wizard initial)
 11. [ ] `run-lifecycle-script.sh` (custom hooks workflow)

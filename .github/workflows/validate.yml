@@ -48,6 +48,9 @@ jobs:
       - name: Test detect-test-commands.sh
         run: bash tests/test-detect-test-commands.sh
 
+      - name: Test check-mcp-required.sh
+        run: bash tests/test-check-mcp-required.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
