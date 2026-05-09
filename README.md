@@ -32,9 +32,18 @@ Setup wizard détecte `.git/config`, MCP servers actifs, test commands → écri
 
 ## Prérequis
 
-**Required:** Claude Code CLI, MCP `affine-mcp-server` (ou Notion équivalent).
+**Required:**
 
-**Optional:** MCP `frame0-mcp-server` (wireframes), MCP `code-review-graph` (régression scope=impacted), MCP `playwright-mcp` (wireframe check), CLIs `gh`/`glab`/`jira` (fallback si MCP plateforme tickets absent).
+- Claude Code CLI
+- MCP `affine-mcp-server` (ou Notion équivalent)
+- Binaire `code-review-graph` sur PATH — bundled via `.mcp.json` (Claude Code démarre le serveur, mais ne l'installe pas):
+  ```bash
+  pipx install code-review-graph
+  ```
+
+**Optional:** MCP `frame0-mcp-server` (wireframes), MCP `playwright-mcp` (wireframe check `/qa`), CLIs `gh`/`glab`/`jira` (fallback si MCP plateforme tickets absent).
+
+`/develop` et `/qa` dégradent gracieusement si `code-review-graph` absent (fallback `tests-only`), mais l'optimisation review (impact radius, affected flows) requiert le binaire.
 
 ## Documentation
 

@@ -16,14 +16,24 @@
 - Templates: pages templates natives (UI-driven). Skill duplique via MCP, remplit variables.
 - Content model: block-based (notion-like) avec markdown import/export
 
-## code-review-graph MCP (déjà installé)
+## code-review-graph MCP (bundled)
 
 - Persistent incremental knowledge graph (Tree-sitter parser, structural graph)
-- Usage `/qa` step-01-collect régression scope=impacted:
-  - `get_impact_radius` (sur diff) → fichiers/symbols touchés
-  - `get_affected_flows` → execution paths impactés → tests à run
-  - `query_graph pattern=tests_for` → couverture
-- Listé dans `mcp_servers_optional`. Fallback `tests-only` si absent (run full `testing.test_command`)
+- **Bundled via `.mcp.json` racine plugin** — auto-démarre quand artysan activé. Pas de `claude mcp add` manuel.
+- **Prérequis binaire (non auto-installé par Claude Code):**
+  ```bash
+  pipx install code-review-graph   # recommandé
+  # ou: pip install --user code-review-graph
+  which code-review-graph          # doit résoudre
+  ```
+- Usage:
+  - `/develop` step-02-prepare: `get_impact_radius` warm-up sur fichiers ticket
+  - `/qa` step-01-collect régression scope=impacted:
+    - `get_impact_radius` (sur diff) → fichiers/symbols touchés
+    - `get_affected_flows` → execution paths impactés → tests à run
+    - `query_graph pattern=tests_for` → couverture
+- **Fallback `tests-only`** si binaire absent (graph unavailable détecté par `check-mcp-required.sh`) — run heuristique imports transitifs sur fichiers diff
+- Repo upstream: github.com/tirth8205/code-review-graph
 
 ## Playwright MCP (optionnel — wireframe check)
 

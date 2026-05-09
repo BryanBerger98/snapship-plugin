@@ -39,8 +39,9 @@
     }
   ],
   "mcp_servers": {
+    "bundled": ["code-review-graph"],
     "required": ["affine-mcp-server"],
-    "optional": ["frame0-mcp-server", "code-review-graph", "playwright-mcp"]
+    "optional": ["frame0-mcp-server", "playwright-mcp"]
   },
   "keywords": [
     "workflow",
