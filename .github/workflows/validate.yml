@@ -30,6 +30,12 @@ jobs:
       - name: Test setup-product-dir.sh
         run: bash tests/test-setup-product-dir.sh
 
+      - name: Test update-index.sh
+        run: bash tests/test-update-index.sh
+
+      - name: Test update-progress.sh
+        run: bash tests/test-update-progress.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
