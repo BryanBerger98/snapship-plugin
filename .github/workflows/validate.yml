@@ -81,6 +81,9 @@ jobs:
       - name: Test define-state.sh
         run: bash tests/test-define-state.sh
 
+      - name: Test resume-state.sh
+        run: bash tests/test-resume-state.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest

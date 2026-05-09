@@ -55,18 +55,25 @@ done
 [ -z "$STEP_NAME" ]  && { echo "ERROR: --step-name required" >&2; exit 1; }
 [ -z "$STATUS" ]     && { echo "ERROR: --status required" >&2; exit 1; }
 
-[[ "$FEATURE_ID" =~ ^[0-9]{2}-[a-z0-9][a-z0-9-]*$ ]] || {
-  echo "ERROR: --feature-id must match NN-kebab" >&2
-  exit 1
-}
+if [ "$FEATURE_ID" != "_global" ]; then
+  [[ "$FEATURE_ID" =~ ^[0-9]{2}-[a-z0-9][a-z0-9-]*$ ]] || {
+    echo "ERROR: --feature-id must be _global or match NN-kebab" >&2
+    exit 1
+  }
+fi
 
 case "$STATUS" in
   ok|fail|skip|retry|started) ;;
   *) echo "ERROR: --status must be ok|fail|skip|retry|started" >&2; exit 1 ;;
 esac
 
-FEATURE_DIR="${PROJECT_ROOT}/.claude/product/features/${FEATURE_ID}"
-PROGRESS="${FEATURE_DIR}/progress.md"
+if [ "$FEATURE_ID" = "_global" ]; then
+  FEATURE_DIR="${PROJECT_ROOT}/.claude/product"
+  PROGRESS="${FEATURE_DIR}/progress.md"
+else
+  FEATURE_DIR="${PROJECT_ROOT}/.claude/product/features/${FEATURE_ID}"
+  PROGRESS="${FEATURE_DIR}/progress.md"
+fi
 
 mkdir -p "$FEATURE_DIR"
 

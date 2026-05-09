@@ -12,9 +12,23 @@ Bootstrap the artysan workspace and decide which path to follow.
 
 1. **Parse args** from the user's `/define` invocation. Recognize `--resume`/`-r`,
    `--lang=fr|en`, `--feature=NN-slug`.
-2. **Resume short-circuit**: if `--resume` and `.claude/product/progress.md` exists,
-   delegate to the resume protocol (see `step-00-resume.md`). Do not continue this
-   step — `step-00-resume.md` will compute the next step and jump there.
+2. **Resume short-circuit**: if `--resume` flag passed, delegate to `resume-state.sh`:
+   ```bash
+   resume_json=$(bash skills/_shared/resume-state.sh next \
+     --skill=define \
+     --project-root="$PWD" \
+     ${feature:+--feature="$feature"})
+   rc=$?
+   ```
+   - `rc=0` → parse `next_step` and `feature_id` from JSON, jump to that step file
+     (e.g. `step-04-render.md`) with `feature_id` pre-loaded. Skip the rest of this step.
+   - `rc=1` → no in-flight run; surface the `reason` and fall through to step-00 init
+     normally (treat as fresh start).
+   - `rc=2` → bad args; abort with the stderr message.
+
+   For partial `--feature` matches, `resume-state.sh` resolves "01" or "auth" to the
+   full `feature_id` and returns it in the JSON; ambiguous matches exit non-zero with
+   a candidate list — surface that to the user and re-prompt.
 3. **Project root detection**: confirm `$PWD` is the project root (presence of
    `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, or `.git`).
    If not found, ask the user to confirm the path before proceeding.

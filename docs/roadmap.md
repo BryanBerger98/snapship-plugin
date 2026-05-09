@@ -91,11 +91,11 @@ Ordre dépendances:
 
 ### 6.1 `/define`
 
-- [ ] step-00 → step-05 (chaque step = 1 fichier MD frontmatter `next_step`)
-- [ ] Détection `has_codebase` + branche green-field
-- [ ] AskUserQuestion progressive vision → features
-- [ ] Push PRD AFFiNE via docs-adapter
-- [ ] Resume `-r` partial-match
+- [x] step-00 → step-05 (chaque step = 1 fichier MD frontmatter `next_step`)
+- [x] Détection `has_codebase` + branche green-field
+- [x] AskUserQuestion progressive vision → features
+- [x] Push PRD AFFiNE via docs-adapter
+- [x] Resume `-r` partial-match
 - [ ] Test E2E: green-field + projet existant
 
 ### 6.2 `/ticket`
