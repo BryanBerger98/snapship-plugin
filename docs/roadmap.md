@@ -80,7 +80,7 @@ Ordre dépendances:
 - [x] `templates/docs-defaults/wireframes-gallery.md`
 - [x] `templates/pr-default.md` (fallback PR template)
 - [x] `templates/daemon.sh.tpl` (loop daemon)
-- [ ] `templates/session-start-hook.sh.tpl` (opt-in pre-load)
+- [x] `templates/session-start-hook.sh.tpl` (opt-in pre-load)
 - [ ] `templates/ticket-{github,gitlab,jira}.md` (format adaptatif)
 
 **Sortie:** templates valides, variables documentées par template.
