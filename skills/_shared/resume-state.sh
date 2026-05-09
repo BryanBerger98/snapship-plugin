@@ -151,9 +151,10 @@ cmd_next() {
   # Find last entry for this skill with status=ok.
   # update-progress.sh writes lines like: "- [TIMESTAMP] skill step-NN name — ok"
   local last_line
+  # Status appears as " — STATUS" optionally followed by ": NOTE".
   last_line=$(grep -E "^\- \[" "$scan_file" 2>/dev/null \
     | grep -E " ${skill} step-[0-9]{2} " \
-    | grep -E " (ok|skip)$" \
+    | grep -E " — (ok|skip)(:|$)" \
     | tail -n 1 || true)
 
   if [ -z "$last_line" ]; then

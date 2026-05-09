@@ -84,6 +84,9 @@ jobs:
       - name: Test resume-state.sh
         run: bash tests/test-resume-state.sh
 
+      - name: E2E /define
+        run: bash tests/test-define-e2e.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest

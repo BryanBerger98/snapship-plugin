@@ -102,7 +102,7 @@
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["affine", "notion"]
+          "enum": ["affine", "notion", "none"]
         },
         "url": { "type": "string", "format": "uri" },
         "workspace": {

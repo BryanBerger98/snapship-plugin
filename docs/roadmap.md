@@ -96,7 +96,7 @@ Ordre dépendances:
 - [x] AskUserQuestion progressive vision → features
 - [x] Push PRD AFFiNE via docs-adapter
 - [x] Resume `-r` partial-match
-- [ ] Test E2E: green-field + projet existant
+- [x] Test E2E: green-field + projet existant
 
 ### 6.2 `/ticket`
 
