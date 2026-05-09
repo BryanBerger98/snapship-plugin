@@ -199,12 +199,15 @@ Ordre dépendances:
 
 - [ ] Créer repo public `bryanberger/claude-plugins` (license MIT, README quickstart)
 - [ ] Arbo:
+
   ```
   claude-plugins/
   └── .claude-plugin/
       └── marketplace.json
   ```
+
 - [ ] `.claude-plugin/marketplace.json`:
+
   ```json
   {
     "name": "bryanberger",
@@ -230,6 +233,7 @@ Ordre dépendances:
     ]
   }
   ```
+
 - [ ] Validation: `claude plugin validate .` passe sans warning
 - [ ] Test local end-to-end:
   - `/plugin marketplace add ./claude-plugins`
@@ -317,40 +321,40 @@ claude
 
 ## Critères Definition of Done (par phase)
 
-| Phase    | DoD                                                                          |
-| -------- | ---------------------------------------------------------------------------- |
-| 0–2      | CI green (lint + schema validation)                                          |
-| 3        | Adapters dry-run + read ops fonctionnent sur 3 platforms                     |
-| 4        | Chaque agent retourne JSON valide sur fixture input                          |
-| 5        | Templates render sans erreur avec vars sample                                |
-| 6        | E2E test suite passe par skill (mock MCP + real MCP)                         |
-| 7        | `claude plugin validate .` passe sur `.claude-plugin/plugin.json`            |
-| 8        | 1 feature complète shipped via artysan en dogfood                            |
-| 9        | User non-impliqué installe + run premier `/define` sans aide                 |
-| 10       | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
-| 11       | 3 méthodes install testées (marketplace bryanberger + clone global + projet) |
-| 12       | Cadence release tenue, telemetry-driven priorities                           |
+| Phase | DoD                                                                          |
+| ----- | ---------------------------------------------------------------------------- |
+| 0–2   | CI green (lint + schema validation)                                          |
+| 3     | Adapters dry-run + read ops fonctionnent sur 3 platforms                     |
+| 4     | Chaque agent retourne JSON valide sur fixture input                          |
+| 5     | Templates render sans erreur avec vars sample                                |
+| 6     | E2E test suite passe par skill (mock MCP + real MCP)                         |
+| 7     | `claude plugin validate .` passe sur `.claude-plugin/plugin.json`            |
+| 8     | 1 feature complète shipped via artysan en dogfood                            |
+| 9     | User non-impliqué installe + run premier `/define` sans aide                 |
+| 10    | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
+| 11    | 3 méthodes install testées (marketplace bryanberger + clone global + projet) |
+| 12    | Cadence release tenue, telemetry-driven priorities                           |
 
 ## Estimation effort (indicatif)
 
-| Phase | Effort         | Bloquants critiques                    |
-| ----- | -------------- | -------------------------------------- |
-| 0     | 0.5j           | -                                      |
-| 1     | 1j             | Schemas exhaustifs                     |
-| 2     | 3j             | load-config robuste                    |
-| 3     | 2j             | MCP adapters fiables                   |
-| 4     | 2j             | Format JSON return strict              |
-| 5     | 1j             | -                                      |
-| 6.1   | 1j             | docs-adapter ready                     |
-| 6.2   | 1.5j           | tickets-adapter ready                  |
-| 6.3   | 1j             | frame0-helper ready                    |
-| 6.4   | 3j             | Phase 2 review cycle complexe          |
-| 6.5   | 2j             | code-review-graph + Playwright tests   |
-| 7     | 0.5j           | Migration `.claude-plugin/` schema     |
-| 8     | 2j             | Bugs prod réels                        |
-| 9     | 1.5j           | Screencast prod                        |
-| 10    | 1j             | Repo `bryanberger/claude-plugins` + CI |
-| 11    | 0.5j           | -                                      |
-| 12    | continu        | Bandwidth maintainer                   |
+| Phase | Effort  | Bloquants critiques                    |
+| ----- | ------- | -------------------------------------- |
+| 0     | 0.5j    | -                                      |
+| 1     | 1j      | Schemas exhaustifs                     |
+| 2     | 3j      | load-config robuste                    |
+| 3     | 2j      | MCP adapters fiables                   |
+| 4     | 2j      | Format JSON return strict              |
+| 5     | 1j      | -                                      |
+| 6.1   | 1j      | docs-adapter ready                     |
+| 6.2   | 1.5j    | tickets-adapter ready                  |
+| 6.3   | 1j      | frame0-helper ready                    |
+| 6.4   | 3j      | Phase 2 review cycle complexe          |
+| 6.5   | 2j      | code-review-graph + Playwright tests   |
+| 7     | 0.5j    | Migration `.claude-plugin/` schema     |
+| 8     | 2j      | Bugs prod réels                        |
+| 9     | 1.5j    | Screencast prod                        |
+| 10    | 1j      | Repo `bryanberger/claude-plugins` + CI |
+| 11    | 0.5j    | -                                      |
+| 12    | continu | Bandwidth maintainer                   |
 
 **Total v0.1.0:** ~22-25j dev focus (≈ +0.5j vs avant pour setup marketplace `bryanberger`).
