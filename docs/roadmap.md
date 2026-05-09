@@ -81,7 +81,7 @@ Ordre dépendances:
 - [x] `templates/pr-default.md` (fallback PR template)
 - [x] `templates/daemon.sh.tpl` (loop daemon)
 - [x] `templates/session-start-hook.sh.tpl` (opt-in pre-load)
-- [ ] `templates/ticket-{github,gitlab,jira}.md` (format adaptatif)
+- [x] `templates/ticket-{github,gitlab,jira}.md` (format adaptatif)
 
 **Sortie:** templates valides, variables documentées par template.
 
