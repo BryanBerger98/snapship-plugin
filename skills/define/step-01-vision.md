@@ -47,18 +47,16 @@ Collect the product's vision and its single tracked metric.
    must be a non-empty string. If validation fails, re-ask with the validation reason
    shown to the user.
 
-6. **Cache** the collected values in `.claude/product/.define-state.json` (working state,
-   discarded after step-04 succeeds):
-   ```json
-   {
-     "step": "01-vision",
-     "vision": "...",
-     "north_star_metric": "...",
-     "north_star_current": "...",
-     "north_star_target": "...",
-     "target_horizon": "..."
-   }
+6. **Cache** the collected values via `define-state.sh`:
+   ```bash
+   bash skills/_shared/define-state.sh set vision "$vision" --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_metric "$nsm" --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_current "$nsc" --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_target "$nst" --project-root="$PWD"
+   bash skills/_shared/define-state.sh set target_horizon "$horizon" --project-root="$PWD"
    ```
+   The state file `.claude/product/.define-state.json` was created by `define-state.sh init`
+   in step-00.
 
 7. **Append progress**:
    ```bash

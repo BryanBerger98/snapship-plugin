@@ -33,20 +33,15 @@ Build the persona list that anchors every feature decision.
 4. **Validate**: at least 1 persona collected. Each persona has non-empty role + at
    least 1 goal + 1 pain point.
 
-5. **Cache** in `.claude/product/.define-state.json`:
-   ```json
-   {
-     "step": "02-personas",
-     "personas": [
-       {
-         "persona_name": "...",
-         "persona_role": "...",
-         "persona_goals": "...",
-         "persona_pains": "...",
-         "persona_tools": "..."
-       }
-     ]
-   }
+5. **Cache** each persona via `define-state.sh`:
+   ```bash
+   bash skills/_shared/define-state.sh add-persona '{
+     "persona_name": "...",
+     "persona_role": "...",
+     "persona_goals": "...",
+     "persona_pains": "...",
+     "persona_tools": "..."
+   }' --project-root="$PWD"
    ```
 
 6. **Append progress**:

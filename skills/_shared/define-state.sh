@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+# define-state.sh — Read/write/validate the /define working state file.
+#
+# Working file: .claude/product/.define-state.json
+# Purpose: cumulative state collected by step-01..03 of /define, consumed by
+# step-04 to render templates. Cleaned up by step-05 on success.
+#
+# Subcommands:
+#   init [--lang=fr|en] [--mode=greenfield|extension] [--feature=NN-slug]
+#                         Create empty state file with frontmatter.
+#   set KEY VALUE         Set a top-level scalar key (vision, north_star_metric,
+#                         north_star_current, north_star_target, target_horizon,
+#                         lang, mode, active_feature_id).
+#   get KEY               Print scalar value (empty if unset).
+#   add-persona JSON      Append a persona object {persona_name, persona_role,
+#                         persona_goals, persona_pains, persona_tools}.
+#   add-feature JSON      Append a feature object (see schema in body).
+#   list-personas         Emit personas as NDJSON.
+#   list-features         Emit features as NDJSON.
+#   validate              Run schema-style checks; exit 0 if OK, 1 if invalid.
+#                         Prints findings on stderr.
+#   path                  Print absolute path to state file.
+#   wipe                  Delete state file (called by step-05 on success).
+#
+# Validation rules (validate subcommand):
+#   - vision present, ≥50 chars, contains a verb (heuristic: at least one word
+#     ending in -s/-es/-ed/-ing/-ize/-ise OR a known small verb list)
+#   - north_star_metric, current, target, horizon all non-empty
+#   - personas array non-empty; each has role + goals + pains
+#   - features array non-empty; ≥1 has priority=must; no duplicate feature_id
+#   - For each "refined" feature: problem_statement ≥30 chars, ≥1 AC,
+#     in_scope/out_of_scope non-empty, solution_overview non-empty
+#
+# Usage: define-state.sh <subcommand> [args] [--project-root=PATH]
+
+set -euo pipefail
+
+PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+
+state_file() { echo "${PROJECT_ROOT}/.claude/product/.define-state.json"; }
+
+usage() {
+  cat <<'EOF'
+Usage: define-state.sh <subcommand> [args] [--project-root=PATH]
+
+Subcommands:
+  init [--lang=…] [--mode=…] [--feature=…]
+  set KEY VALUE
+  get KEY
+  add-persona JSON
+  add-feature JSON
+  list-personas
+  list-features
+  validate
+  path
+  wipe
+  -h, --help
+EOF
+}
+
+# Parse global --project-root from anywhere in args (extracts and removes it).
+parse_project_root() {
+  local out=()
+  for a in "$@"; do
+    case "$a" in
+      --project-root=*) PROJECT_ROOT="${a#--project-root=}" ;;
+      *) out+=("$a") ;;
+    esac
+  done
+  if [ "${#out[@]}" -eq 0 ]; then
+    REMAINING=()
+  else
+    REMAINING=("${out[@]}")
+  fi
+}
+
+ensure_dir() {
+  local dir="${PROJECT_ROOT}/.claude/product"
+  [ -d "$dir" ] || mkdir -p "$dir"
+}
+
+ensure_state() {
+  local f
+  f=$(state_file)
+  [ -f "$f" ] || { echo "ERROR: state file missing: $f" >&2; return 1; }
+}
+
+cmd_init() {
+  ensure_dir
+  local lang="" mode="" feature=""
+  for a in "$@"; do
+    case "$a" in
+      --lang=*)    lang="${a#--lang=}" ;;
+      --mode=*)    mode="${a#--mode=}" ;;
+      --feature=*) feature="${a#--feature=}" ;;
+      *) echo "ERROR: unknown arg: $a" >&2; return 2 ;;
+    esac
+  done
+  local f
+  f=$(state_file)
+  jq -n \
+    --arg lang "$lang" \
+    --arg mode "$mode" \
+    --arg feature "$feature" \
+    --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{
+      created_at: $created,
+      lang: $lang,
+      mode: $mode,
+      active_feature_id: $feature,
+      vision: "",
+      north_star_metric: "",
+      north_star_current: "",
+      north_star_target: "",
+      target_horizon: "",
+      personas: [],
+      features: []
+    }' > "$f"
+}
+
+cmd_set() {
+  ensure_state
+  [ $# -eq 2 ] || { echo "ERROR: set KEY VALUE" >&2; return 2; }
+  local key="$1" val="$2"
+  case "$key" in
+    vision|north_star_metric|north_star_current|north_star_target|target_horizon|\
+lang|mode|active_feature_id) ;;
+    *) echo "ERROR: unsupported key: $key" >&2; return 2 ;;
+  esac
+  local f tmp
+  f=$(state_file)
+  tmp=$(mktemp)
+  jq --arg k "$key" --arg v "$val" '.[$k] = $v' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_get() {
+  ensure_state
+  [ $# -eq 1 ] || { echo "ERROR: get KEY" >&2; return 2; }
+  jq -r --arg k "$1" '.[$k] // ""' "$(state_file)"
+}
+
+cmd_add_persona() {
+  ensure_state
+  [ $# -eq 1 ] || { echo "ERROR: add-persona JSON" >&2; return 2; }
+  echo "$1" | jq empty 2>/dev/null || { echo "ERROR: invalid JSON" >&2; return 1; }
+  local f tmp
+  f=$(state_file)
+  tmp=$(mktemp)
+  jq --argjson p "$1" '.personas += [$p]' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_add_feature() {
+  ensure_state
+  [ $# -eq 1 ] || { echo "ERROR: add-feature JSON" >&2; return 2; }
+  echo "$1" | jq empty 2>/dev/null || { echo "ERROR: invalid JSON" >&2; return 1; }
+  local f tmp
+  f=$(state_file)
+  tmp=$(mktemp)
+  jq --argjson x "$1" '.features += [$x]' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_list_personas() {
+  ensure_state
+  jq -c '.personas[]' "$(state_file)"
+}
+
+cmd_list_features() {
+  ensure_state
+  jq -c '.features[]' "$(state_file)"
+}
+
+cmd_path() {
+  echo "$(state_file)"
+}
+
+cmd_wipe() {
+  local f
+  f=$(state_file)
+  [ -f "$f" ] && rm -f "$f"
+  return 0
+}
+
+cmd_validate() {
+  ensure_state
+  local f
+  f=$(state_file)
+  local errs=()
+
+  # vision
+  local vision
+  vision=$(jq -r '.vision // ""' "$f")
+  if [ "${#vision}" -lt 50 ]; then
+    errs+=("vision: too short (got ${#vision} chars, need ≥50)")
+  fi
+  # crude verb heuristic: presence of a word ending with common suffixes OR small list
+  if ! echo "$vision" | grep -qE '\b([A-Za-z]+(s|es|ed|ing|ize|ise))\b|\b(is|are|be|do|make|build|help|enable|deliver|let|allow|provide)\b'; then
+    errs+=("vision: no verb detected (heuristic)")
+  fi
+
+  # north star scalars
+  for k in north_star_metric north_star_current north_star_target target_horizon; do
+    local v
+    v=$(jq -r --arg k "$k" '.[$k] // ""' "$f")
+    [ -n "$v" ] || errs+=("$k: empty")
+  done
+
+  # personas
+  local pcount
+  pcount=$(jq '.personas | length' "$f")
+  if [ "$pcount" -lt 1 ]; then
+    errs+=("personas: empty")
+  else
+    while IFS= read -r p; do
+      for k in persona_role persona_goals persona_pains; do
+        local v
+        v=$(echo "$p" | jq -r --arg k "$k" '.[$k] // ""')
+        [ -n "$v" ] || errs+=("persona $(echo "$p" | jq -r '.persona_name // "_anon_"'): missing $k")
+      done
+    done < <(jq -c '.personas[]' "$f")
+  fi
+
+  # features
+  local fcount
+  fcount=$(jq '.features | length' "$f")
+  if [ "$fcount" -lt 1 ]; then
+    errs+=("features: empty")
+  else
+    local must_count
+    must_count=$(jq '[.features[] | select(.priority == "must")] | length' "$f")
+    [ "$must_count" -ge 1 ] || errs+=("features: no must-priority feature")
+
+    local dup
+    dup=$(jq -r '[.features[].feature_id] | group_by(.) | map(select(length > 1) | .[0]) | join(",")' "$f")
+    [ -z "$dup" ] || errs+=("features: duplicate feature_id(s): $dup")
+
+    while IFS= read -r feat; do
+      local status fid
+      status=$(echo "$feat" | jq -r '.feature_status // "draft"')
+      fid=$(echo "$feat" | jq -r '.feature_id // "_anon_"')
+      if [ "$status" = "refined" ]; then
+        local ps so isc oos ac
+        ps=$(echo "$feat"  | jq -r '.problem_statement // ""')
+        so=$(echo "$feat"  | jq -r '.solution_overview // ""')
+        isc=$(echo "$feat" | jq -r '.in_scope // ""')
+        oos=$(echo "$feat" | jq -r '.out_of_scope // ""')
+        ac=$(echo "$feat"  | jq '.acceptance_criteria // [] | length')
+        [ "${#ps}" -ge 30 ] || errs+=("feature $fid: problem_statement <30 chars")
+        [ -n "$so" ]        || errs+=("feature $fid: solution_overview empty")
+        [ -n "$isc" ]       || errs+=("feature $fid: in_scope empty")
+        [ -n "$oos" ]       || errs+=("feature $fid: out_of_scope empty")
+        [ "$ac" -ge 1 ]     || errs+=("feature $fid: no acceptance_criteria")
+      fi
+    done < <(jq -c '.features[]' "$f")
+  fi
+
+  if [ "${#errs[@]}" -eq 0 ]; then
+    echo "validate: ok" >&2
+    return 0
+  fi
+  printf 'validate: FAIL\n' >&2
+  printf '  - %s\n' "${errs[@]}" >&2
+  return 1
+}
+
+# Main
+[ $# -ge 1 ] || { usage >&2; exit 2; }
+SUBCMD="$1"; shift
+parse_project_root "$@"
+
+case "$SUBCMD" in
+  init)            cmd_init          ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set)             cmd_set           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  get)             cmd_get           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  add-persona)     cmd_add_persona   ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  add-feature)     cmd_add_feature   ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  list-personas)   cmd_list_personas ;;
+  list-features)   cmd_list_features ;;
+  validate)        cmd_validate      ;;
+  path)            cmd_path          ;;
+  wipe)            cmd_wipe          ;;
+  -h|--help)       usage; exit 0 ;;
+  *) echo "ERROR: unknown subcommand: $SUBCMD" >&2; usage >&2; exit 2 ;;
+esac

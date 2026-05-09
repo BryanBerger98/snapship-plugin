@@ -27,7 +27,16 @@ Bootstrap the artysan workspace and decide which path to follow.
    ```
    Show `signals` to the user when announcing the chosen path so they can override
    the heuristic if needed (e.g., "Detected codebase via: package.json, .git").
-5. **Scaffold** `.claude/product/` if missing:
+5. **Initialize state file**:
+   ```bash
+   bash skills/_shared/define-state.sh init \
+     --project-root="$PWD" \
+     --lang="$lang" \
+     --mode="$mode" \
+     ${feature_id:+--feature="$feature_id"}
+   ```
+
+6. **Scaffold** `.claude/product/` if missing:
    ```
    .claude/product/
      prd-global.md          # rendered later in step-04

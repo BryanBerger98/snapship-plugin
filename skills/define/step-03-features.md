@@ -58,27 +58,28 @@ Drafts skip Phase B; their PRDs are rendered with placeholder sections marked
 
 ### Phase C — cache
 
-Update `.claude/product/.define-state.json`:
-
-```json
-{
-  "step": "03-features",
-  "features": [
-    {
-      "feature_id": "01-auth",
-      "feature_title": "...",
-      "feature_status": "draft",
-      "priority": "must",
-      "problem_statement": "...",
-      "solution_overview": "...",
-      "acceptance_criteria": [{ "ac_id": "1", "ac_text": "..." }],
-      "in_scope": "...",
-      "out_of_scope": "...",
-      "wireframes": []
-    }
-  ]
-}
+For each feature collected in Phase A/B:
+```bash
+bash skills/_shared/define-state.sh add-feature '{
+  "feature_id": "01-auth",
+  "feature_title": "...",
+  "feature_status": "draft",
+  "priority": "must",
+  "problem_statement": "...",
+  "solution_overview": "...",
+  "acceptance_criteria": [{"ac_id":"1","ac_text":"..."}],
+  "in_scope": "...",
+  "out_of_scope": "...",
+  "wireframes": []
+}' --project-root="$PWD"
 ```
+
+After all features added, run:
+```bash
+bash skills/_shared/define-state.sh validate --project-root="$PWD"
+```
+If validation fails, surface the error list to the user and re-enter Phase B for the
+feature(s) flagged. Do not advance to step-04 until validation passes.
 
 ### Phase D — progress
 
