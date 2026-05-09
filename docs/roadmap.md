@@ -101,10 +101,10 @@ Ordre dépendances:
 ### 6.2 `/ticket`
 
 - [ ] step-00 → step-06
-- [ ] Decompose stories atomiques (5-30min, 1-5 fichiers)
-- [ ] Enrich parallel agents (explore-codebase, explore-docs, websearch)
-- [ ] Format adaptatif platform (templates ticket-*.md)
-- [ ] Push via tickets-adapter (MCP > CLI fallback)
+- [x] Decompose stories atomiques (5-30min, 1-5 fichiers)
+- [x] Enrich parallel agents (explore-codebase, explore-docs, websearch)
+- [x] Format adaptatif platform (templates ticket-*.md)
+- [x] Push via tickets-adapter (MCP > CLI fallback)
 - [ ] Test E2E: 3 platforms (gh/glab/jira)
 
 ### 6.3 `/wireframe`
