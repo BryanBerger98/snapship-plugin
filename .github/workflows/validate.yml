@@ -27,6 +27,9 @@ jobs:
       - name: Test load-config.sh
         run: bash tests/test-load-config.sh
 
+      - name: Test setup-product-dir.sh
+        run: bash tests/test-setup-product-dir.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest

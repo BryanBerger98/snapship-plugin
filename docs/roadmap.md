@@ -34,7 +34,7 @@
 Ordre dépendances:
 
 1. [x] `load-config.sh` (lit config + defaults + valide schema)
-2. [ ] `setup-product-dir.sh` (init `.claude/product/`)
+2. [x] `setup-product-dir.sh` (init `.claude/product/`)
 3. [ ] `update-index.sh` + `update-progress.sh` (state tracking)
 4. [ ] `telemetry.sh` (NDJSON append + rotation)
 5. [ ] `ask-or-default.sh` (wrapper auto-mode)
