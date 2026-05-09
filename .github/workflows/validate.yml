@@ -11,12 +11,12 @@ jobs:
     name: JSON Schemas
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install ajv-cli
         run: npm i -g ajv-cli
@@ -28,7 +28,7 @@ jobs:
     name: Shell scripts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run shellcheck
         run: |
@@ -45,7 +45,7 @@ jobs:
     name: JSON syntax
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Validate JSON files parse
         run: |
