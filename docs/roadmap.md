@@ -79,7 +79,7 @@ Ordre dépendances:
 - [x] `templates/docs-defaults/prd-feature.md`
 - [x] `templates/docs-defaults/wireframes-gallery.md`
 - [x] `templates/pr-default.md` (fallback PR template)
-- [ ] `templates/daemon.sh.tpl` (loop daemon)
+- [x] `templates/daemon.sh.tpl` (loop daemon)
 - [ ] `templates/session-start-hook.sh.tpl` (opt-in pre-load)
 - [ ] `templates/ticket-{github,gitlab,jira}.md` (format adaptatif)
 
