@@ -6,12 +6,12 @@
 
 **Objectif:** scaffolding plugin + tooling dev.
 
-- [ ] Init repo `artysan` (git, license MIT, README minimal)
-- [ ] Créer arbo squelette: `skills/`, `agents/`, `skills/_shared/`, `skills/_shared/templates/`, `skills/_shared/schemas/`
-- [ ] `.gitignore`: `_shared/telemetry.log*`, `.config-resolved.json`, `.qa-raw-*.json`
-- [ ] `plugin.json` brouillon (name, version 0.1.0, paths)
-- [ ] CI minimal: lint shell (`shellcheck`), validate JSON Schemas (`ajv-cli`), markdown lint
-- [ ] Structure docs `artysan/` copiée depuis ce dossier (source vérité)
+- [x] Init repo `artysan` (git, license MIT, README minimal)
+- [x] Créer arbo squelette: `skills/`, `agents/`, `skills/_shared/`, `skills/_shared/templates/`, `skills/_shared/schemas/`
+- [x] `.gitignore`: `_shared/telemetry.log*`, `.config-resolved.json`, `.qa-raw-*.json`
+- [x] `plugin.json` brouillon (name, version 0.1.0, paths)
+- [x] CI minimal: lint shell (`shellcheck`), validate JSON Schemas (`ajv-cli`), markdown lint
+- [x] Structure docs `artysan/` copiée depuis ce dossier (source vérité)
 
 **Sortie:** repo public clone-able, structure vide validable CI.
 
@@ -19,11 +19,11 @@
 
 **Objectif:** schemas JSON utilisés par toute config + meta + tickets.
 
-- [ ] `_shared/schemas/config.schema.json` — couvre toutes sections `artysan.config.json` (repository, tickets+jira nested, documentation, wireframes, testing, naming, ai, develop, qa, lifecycle_scripts, defaults)
-- [ ] `_shared/schemas/meta.schema.json` — feature `meta.json` (feature_id, affine_page_id, branch_name, etc.)
-- [ ] `_shared/schemas/tickets.schema.json` — cache `tickets.json`
-- [ ] Tests fixtures valides + invalides par schema
-- [ ] CI exécute validation sur fixtures
+- [x] `_shared/schemas/config.schema.json` — couvre toutes sections `artysan.config.json` (repository, tickets+jira nested, documentation, wireframes, testing, naming, ai, develop, qa, lifecycle_scripts, defaults)
+- [x] `_shared/schemas/meta.schema.json` — feature `meta.json` (feature_id, affine_page_id, branch_name, etc.)
+- [x] `_shared/schemas/tickets.schema.json` — cache `tickets.json`
+- [x] Tests fixtures valides + invalides par schema
+- [x] CI exécute validation sur fixtures
 
 **Sortie:** schemas testés, base solide load-config.
 
