@@ -1,0 +1,32 @@
+{
+  "name": "artysan-local",
+  "owner": {
+    "name": "Bryan Berger",
+    "email": "contact@bryanberger.dev"
+  },
+  "metadata": {
+    "description": "Marketplace locale brouillon — test install artysan avant publication bryanberger/claude-plugins."
+  },
+  "plugins": [
+    {
+      "name": "artysan",
+      "source": "./",
+      "description": "Workflow produit Claude Code: 5 skills enchaînables (define → ticket → wireframe → develop → qa).",
+      "version": "0.1.0",
+      "homepage": "https://github.com/BryanBerger98/artysan-plugin",
+      "license": "MIT",
+      "keywords": [
+        "workflow",
+        "product-management",
+        "tickets",
+        "wireframes",
+        "code-review",
+        "qa",
+        "affine",
+        "frame0"
+      ],
+      "category": "workflow",
+      "strict": false
+    }
+  ]
+}

@@ -168,9 +168,10 @@ Ordre dépendances:
 
 ### 7.3 Validation + test install
 
-- [x] `claude plugin validate .` passe sans warning
-- [ ] `/plugin validate .` passe sans warning (in-session)
-- [ ] Test install local: créer `.claude-plugin/marketplace.json` brouillon, `/plugin marketplace add ./` puis `/plugin install artysan@<marketplace-name>` (le `name` du marketplace.json, pas le nom du dir)
+- [x] `claude plugin validate .` passe sans warning (plugin + marketplace)
+- [x] `.claude-plugin/marketplace.json` brouillon créé (name `artysan-local`, source `./`)
+- [ ] `/plugin validate .` passe sans warning (in-session, manuel)
+- [ ] Test install local: `/plugin marketplace add ./` puis `/plugin install artysan@artysan-local`
 - [ ] Vérifier 5 skills disponibles dans session + 4 agents listables
 
 ### 7.4 Distribution metadata
