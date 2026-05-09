@@ -76,7 +76,7 @@ Ordre dépendances:
 **Objectif:** templates markdown + bash bundlés dans plugin.
 
 - [x] `templates/docs-defaults/prd-global.md`
-- [ ] `templates/docs-defaults/prd-feature.md`
+- [x] `templates/docs-defaults/prd-feature.md`
 - [ ] `templates/docs-defaults/wireframes-gallery.md`
 - [ ] `templates/pr-default.md` (fallback PR template)
 - [ ] `templates/daemon.sh.tpl` (loop daemon)
