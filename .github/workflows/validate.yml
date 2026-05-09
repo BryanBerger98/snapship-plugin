@@ -21,6 +21,9 @@ jobs:
       - name: Install ajv-cli
         run: npm i -g ajv-cli
 
+      - name: Install trash-cli
+        run: sudo apt-get update -qq && sudo apt-get install -y trash-cli
+
       - name: Validate fixtures vs schemas
         run: bash tests/validate-schemas.sh
 
