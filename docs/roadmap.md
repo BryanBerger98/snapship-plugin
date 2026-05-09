@@ -64,7 +64,7 @@ Ordre dépendances:
 
 - [x] `code-reviewer-technical` (clean code, conventions repo, lint/style)
 - [x] `code-reviewer-functional` (AC, wireframes match, scope conformance)
-- [ ] `code-reviewer-security` (OWASP, secrets, injection, auth, deps)
+- [x] `code-reviewer-security` (OWASP, secrets, injection, auth, deps)
 - [ ] `code-reviewer-qa` (interpret raw outputs, flaky detection, severity)
 - [ ] `developer` (applique aggregated_feedback)
 - [ ] Format retour JSON fence `{ severity, feedback_md }` (parse-able regex+jq)
