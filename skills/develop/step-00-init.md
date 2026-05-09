@@ -1,0 +1,68 @@
+---
+step: 00-init
+next_step: 01-fetch
+description: Parse args, resolve target (ticket-id or feature_id), load config, pre-flight git + reviewers.
+---
+
+# step-00 — init
+
+Bootstrap a `/develop` run. The target may be a single ticket (standalone) or a
+feature (session/daemon loop).
+
+## Tasks
+
+1. **Parse args**: `--resume`/`-r`, positional `<id>`, `--loop=session|daemon`,
+   `--dry-run`, `--allow-dirty`, `--retry-fallback=next-ticket|stop`.
+
+2. **Resume short-circuit**:
+   ```bash
+   resume_json=$(bash skills/_shared/resume-state.sh next \
+     --skill=develop \
+     --project-root="$PWD")
+   ```
+   Same rc=0/1/2 contract as the other skills.
+
+3. **Resolve target**. Three paths from positional `<id>`:
+   - **Empty** → AskUserQuestion: "Which ticket / feature?" enumerating tickets
+     with `status in (todo, in_progress)`.
+   - **Ticket-shaped** (regex: `^[A-Z]+-[0-9]+$|^#[0-9]+$|^t-[0-9]+$`) → standalone
+     mode. Cross-reference `tickets.json` files to locate the parent feature_id.
+   - **Feature-shaped** (`^[0-9]{2}-[a-z0-9-]+$`) → loop mode (ask `--loop=`
+     when missing).
+
+4. **Load config**:
+   ```bash
+   cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   review_cycles_max=$(echo "$cfg" | jq '.develop.review_cycles_max // 3')
+   fail_strategy=$(echo "$cfg" | jq -r '.develop.fail_strategy // "next-ticket"')
+   ```
+
+5. **Pre-flight**:
+   - `git rev-parse --is-inside-work-tree` — abort if not in a repo.
+   - Working tree clean (unless `--allow-dirty`):
+     ```bash
+     [ -z "$(git status --porcelain)" ] || { echo "ERROR: dirty tree"; exit 1; }
+     ```
+   - Branch protection: refuse to commit directly on
+     `repository.protected_branches`. Branch will be created in step-02.
+   - Reviewers reachable: `agents/code-reviewer-{technical,functional,security}.md`
+     and `agents/developer.md` exist (verified once via the `Task` tool dispatch
+     in step-03a; here we only confirm the files are present).
+
+6. **Append progress**:
+   ```bash
+   bash skills/_shared/update-progress.sh \
+     --project-root="$PWD" --feature-id="$feature_id" \
+     --skill=develop --step-num=00 --step-name=init --status=ok
+   ```
+
+## Acceptance check
+
+- `target_kind` set to `ticket | feature`.
+- `feature_id` resolved (always — even in standalone mode, parent feature is
+  known).
+- Config loaded; `review_cycles_max` and `fail_strategy` materialised.
+
+## Next step
+
+→ `step-01-fetch.md`

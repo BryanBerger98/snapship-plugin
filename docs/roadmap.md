@@ -118,9 +118,9 @@ Ordre dépendances:
 
 ### 6.4 `/develop`
 
-- [ ] step-00 → step-05
-- [ ] step-03a Phase 1 (analyze/plan/execute/validate, 4 fichiers)
-- [ ] step-03a Phase 2 (3 reviewers parallèles via 1 message N Agent calls)
+- [x] step-00 → step-05
+- [x] step-03a Phase 1 (analyze/plan/execute/validate, 4 fichiers)
+- [x] step-03a Phase 2 (3 reviewers parallèles via 1 message N Agent calls)
 - [ ] Severity scale + early stop logic
 - [ ] fail_strategy (next-ticket/stop/retry)
 - [ ] Commit atomique (1 ticket = 1 commit, amend fixes)
