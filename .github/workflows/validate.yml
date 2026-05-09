@@ -36,6 +36,9 @@ jobs:
       - name: Test update-progress.sh
         run: bash tests/test-update-progress.sh
 
+      - name: Test telemetry.sh
+        run: bash tests/test-telemetry.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
