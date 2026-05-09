@@ -54,6 +54,9 @@ jobs:
       - name: Test detect-platforms.sh
         run: bash tests/test-detect-platforms.sh
 
+      - name: Test setup-config.sh
+        run: bash tests/test-setup-config.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
