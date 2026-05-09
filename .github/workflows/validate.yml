@@ -68,14 +68,15 @@ jobs:
 
       - name: Run shellcheck
         run: |
-          # Shell files only (skip .tpl templates which use {{vars}} placeholders)
+          # Shell files only (skip .tpl templates which use {{vars}} placeholders).
+          # --severity=warning skips info/style (intentional [ ] && ok || ko in tests).
           shopt -s globstar nullglob
           files=(skills/_shared/**/*.sh tests/**/*.sh)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No shell scripts to check yet."
             exit 0
           fi
-          shellcheck "${files[@]}"
+          shellcheck --severity=warning "${files[@]}"
 
   json-syntax:
     name: JSON syntax
