@@ -42,7 +42,7 @@ Chaining manuel (skill suggère prochain à fin).
 
 ## Décisions clés
 
-- **Distribution:** plugin v1 via `plugin.json` (marketplace CC ou clone manuel)
+- **Distribution:** plugin v1 via `.claude-plugin/plugin.json` (schema CC officiel) — marketplace `bryanberger` ou clone manuel
 - **Config:** `artysan.config.json` racine projet, étend defaults bundlés
 - **Auth:** absente config — MCP/CLI gèrent (`gh auth`, `glab auth`, `$AFFINE_API_TOKEN`)
 - **Sources vérité:** AFFiNE primaire docs / plateforme primaire tickets / cache local minimal

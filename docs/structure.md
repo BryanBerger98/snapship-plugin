@@ -3,8 +3,14 @@
 ## 1. Layout plugin repo
 
 ```
-artysan/  (plugin repo)
-├── plugin.json                             # manifest CC (name, version, components)
+artysan-plugin/  (plugin repo)
+├── .claude-plugin/
+│   └── plugin.json                         # manifest CC (name, version, metadata)
+├── .mcp.json                               # MCP servers bundlés (code-review-graph)
+├── CHANGELOG.md
+├── NOTICE
+├── LICENSE
+├── README.md
 ├── skills/                                 # → installé dans ~/.claude/skills/ ou .claude/skills/
 │   ├── define/
 │   │   ├── SKILL.md

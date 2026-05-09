@@ -143,19 +143,43 @@ Ordre dépendances:
 
 ## Phase 7 — Plugin manifest finalization
 
-**Objectif:** `.claude-plugin/plugin.json` final + structure conforme schema officiel Claude Code.
+**Objectif:** `.claude-plugin/plugin.json` conforme schema officiel CC, validé localement, installable via marketplace locale.
 
-- [ ] Migrer `plugin.json` racine → `.claude-plugin/plugin.json`
-- [ ] Champs requis schema CC: `name` (kebab-case), `version` (semver `MAJOR.MINOR.PATCH`), `description`, `author{name,email}`, `homepage`, `repository`, `license`, `keywords`
-- [ ] Déclarer paths: `skills`, `agents`, `commands` (relatifs racine plugin)
-- [ ] MCP servers: `.mcp.json` racine plugin (required + optional list)
-- [ ] Hooks: `hooks/hooks.json` (si nécessaire)
-- [ ] Validation: `claude plugin validate .` passe sans warning
-- [ ] Test install local: `/plugin marketplace add ./` → `/plugin install artysan@<local-name>`
-- [ ] CHANGELOG.md (Keep-a-Changelog, semver)
-- [ ] LICENSE + NOTICE (attributions community MCPs)
+> Décisions clés (vérifiées via docs CC `code.claude.com/docs/en/plugins-reference.md`):
+>
+> - **Seul `name` est requis** dans le manifest. Tout le reste (`version`, `description`, `author`, `license`, `keywords`, etc.) est metadata optionnel mais recommandé.
+> - **Pas de champs custom paths** (`skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path` — invalides). Schéma CC: `skills`, `commands`, `agents`, `hooks`, `mcpServers`, `outputStyles`, `lspServers`. Auto-discovery depuis dossiers conventionnels (`skills/`, `commands/`, `agents/`, `hooks/`) — déclarations explicites uniquement si paths non-standards.
+> - **`commands` n'est pas un array d'objets** `{name, description}`. C'est un string|array de **paths** (vers `.md` files ou directory). Description vit dans le frontmatter du `.md`. Nos slash commands sont des **skills** (`/define`, `/ticket`, etc.), auto-découverts depuis `skills/` — donc le champ `commands` ne sera pas utilisé.
+> - **`mcp_servers` (snake_case)** n'existe pas. Schéma CC: `mcpServers` (camelCase) inline OU fichier `.mcp.json` séparé à racine plugin. On utilise `.mcp.json` (déjà fait Phase 7.4 amorce).
 
-**Sortie:** plugin valide schema CC, installable manuellement, prêt marketplace.
+### 7.1 Migration manifest
+
+- [x] Créer `.claude-plugin/plugin.json` (clean, schema-conforme)
+- [x] `trash` ancien `plugin.json` racine (legacy, source de confusion)
+- [x] Champs retenus: `name`, `version` (semver), `description`, `author{name,email}`, `homepage`, `repository`, `license`, `keywords`
+- [x] Champs supprimés (custom invalides): `skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path`, `commands` (objet), `mcp_servers`
+
+### 7.2 Components
+
+- [x] Skills: auto-discovery `skills/` (rien à déclarer)
+- [x] Agents: auto-discovery `agents/` (rien à déclarer)
+- [x] MCP: `.mcp.json` racine plugin (déjà fait — code-review-graph bundlé)
+- [x] Hooks: pas de `hooks/hooks.json` pour v0.1.0 (à reconsidérer si besoin lifecycle plugin)
+
+### 7.3 Validation + test install
+
+- [x] `claude plugin validate .` passe sans warning
+- [ ] `/plugin validate .` passe sans warning (in-session)
+- [ ] Test install local: créer `.claude-plugin/marketplace.json` brouillon, `/plugin marketplace add ./` puis `/plugin install artysan@<marketplace-name>` (le `name` du marketplace.json, pas le nom du dir)
+- [ ] Vérifier 5 skills disponibles dans session + 4 agents listables
+
+### 7.4 Distribution metadata
+
+- [x] `CHANGELOG.md` (Keep-a-Changelog, semver)
+- [x] `NOTICE` (attributions community MCPs: code-review-graph, affine-mcp-server, frame0-mcp-server, playwright-mcp)
+- [x] Sync `docs/plugin.md` + `docs/structure.md` + `docs/decisions.md` + `docs/README.md` avec nouveau path `.claude-plugin/plugin.json`
+
+**Sortie:** plugin valide schema CC, installable localement, prêt marketplace.
 
 ## Phase 8 — Dogfooding
 
@@ -187,7 +211,9 @@ Ordre dépendances:
 
 **Objectif:** héberger artysan (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add bryanberger/claude-plugins`.
 
-> Claude Code n'a pas de marketplace centrale Anthropic — chaque créateur publie via un repo GitHub contenant `.claude-plugin/marketplace.json`. Nom `bryanberger` libre (pas dans la liste réservée: `claude-plugins-official`, `claude-code-marketplace`, `anthropic-marketplace`, `agent-skills`).
+> Claude Code n'a pas de marketplace centrale Anthropic — chaque créateur publie via un repo GitHub contenant `.claude-plugin/marketplace.json`. Nom `bryanberger` libre (liste réservée complète: `claude-code-marketplace`, `claude-code-plugins`, `claude-plugins-official`, `anthropic-marketplace`, `anthropic-plugins`, `agent-skills`, `knowledge-work-plugins`, `life-sciences`).
+>
+> Source types acceptés: relative path (string), `github` (`{source:"github", repo, ref|sha}`), `url` (git URL), `git-subdir` (sous-dossier d'un repo git), `npm`. On utilise `github` avec `ref` = tag release.
 
 ### 10.1 Préparation plugin
 

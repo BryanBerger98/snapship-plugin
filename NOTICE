@@ -1,0 +1,48 @@
+artysan-plugin
+Copyright (c) 2026 Bryan Berger
+Licensed under the MIT License (see LICENSE).
+
+This plugin integrates with several community Model Context Protocol (MCP)
+servers. Each MCP is an independent third-party project owned by its
+respective authors. artysan does not redistribute their binaries; users
+install them themselves following the upstream instructions.
+
+  code-review-graph
+    Repository: https://github.com/tirth8205/code-review-graph
+    Role:       Persistent incremental knowledge graph used by /develop
+                (impact_radius warm-up) and /qa (regression scope=impacted,
+                affected flows, test coverage).
+    Bundling:   Declared in `.mcp.json` so Claude Code auto-starts it when
+                this plugin is enabled. Binary itself must be installed by
+                the user (`pipx install code-review-graph`).
+    Fallback:   /develop and /qa degrade to `tests-only` when the binary
+                is unavailable on PATH.
+
+  affine-mcp-server
+    Repository: https://github.com/DAWNCR0W/affine-mcp-server
+    Role:       Primary documentation storage (AFFiNE Cloud / self-hosted)
+                used by /define (PRD authoring) and /ticket (ticket bodies
+                referenced from feature pages).
+    Bundling:   NOT bundled. Required for /define and /ticket to write to
+                AFFiNE; users install + auth separately.
+    Fallback:   `setup-config.sh` can fall back to Notion (community MCP)
+                or local-only mode (markdown files in `.claude/product/`).
+
+  frame0-mcp-server
+    Repository: https://github.com/niklauslee/frame0-mcp-server
+    Role:       Wireframe authoring (shapes, pages, export PNG) used by
+                /wireframe.
+    Bundling:   NOT bundled. Optional — required only when running
+                /wireframe; install separately.
+
+  playwright-mcp
+    Repository: https://github.com/microsoft/playwright-mcp
+    Role:       Headless browser navigation + screenshot used by /qa
+                step-01-collect for wireframe drift detection.
+    Bundling:   NOT bundled. Optional — required only when
+                `qa.wireframe_check.enabled=true` in `artysan.config.json`;
+                install separately.
+
+This NOTICE file is provided for attribution and to clarify which third-party
+projects this plugin depends on. It does not grant any rights to those
+projects' trademarks or code beyond what their own licenses provide.

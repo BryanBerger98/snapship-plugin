@@ -15,10 +15,11 @@ Plugin Claude Code — workflow produit autonome, 5 skills enchaînables: défin
 ## Quickstart
 
 ```bash
-# Install (méthode marketplace, recommandée)
-/plugin install artysan
+# Install (marketplace bryanberger, Phase 10)
+/plugin marketplace add bryanberger/claude-plugins
+/plugin install artysan@bryanberger
 
-# Ou clone manuel global
+# Ou clone manuel global (auto-loaded au prochain démarrage CC)
 git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
 
 # Premier projet

@@ -61,7 +61,7 @@
 
 **Issue:** symlink convention `~/.agents/` non-officielle.
 
-**Choix:** plugin v1 packagé via `plugin.json`. Install marketplace CC ou clone manuel → paths officiels `~/.claude/skills/` + `~/.claude/agents/` (ou projet `.claude/`). Pas de symlink custom.
+**Choix:** plugin v1 packagé via `.claude-plugin/plugin.json` (schema CC officiel). Install marketplace CC ou clone manuel → paths officiels `~/.claude/skills/` + `~/.claude/agents/` (ou projet `.claude/`). Pas de symlink custom.
 
 ### `merge_method` config
 
@@ -89,7 +89,7 @@
 
 1. **Plan validé** ✅
 2. **Order build:** `/define` → `/ticket` → `/wireframe` → `/develop` → `/qa`
-3. **Skills/agents location:** plugin v1 packagé via `plugin.json`. Install marketplace CC ou clone manuel → paths officiels `~/.claude/skills/` + `~/.claude/agents/` (ou projet `.claude/`). Pas de symlink custom.
+3. **Skills/agents location:** plugin v1 packagé via `.claude-plugin/plugin.json` (schema CC officiel). Install marketplace CC ou clone manuel → paths officiels `~/.claude/skills/` + `~/.claude/agents/` (ou projet `.claude/`). Pas de symlink custom.
 4. **Templates docs-defaults:** bundlés dans `_shared/templates/docs-defaults/` (push opt-in via setup)
 
 ## Drop list (non retenu v1)
