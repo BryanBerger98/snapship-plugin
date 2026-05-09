@@ -254,8 +254,10 @@ MERGED=$(jq -n \
   deepmerge(deepmerge($base; $answers); $overrides)
 ')
 
-# Add version + $schema
-FINAL=$(echo "$MERGED" | jq '. + {version: "1.0"} | {"$schema": "./skills/_shared/schemas/config.schema.json"} + .')
+# Add version + $schema (github raw URL — portable across install locations,
+# resolvable by IDEs once plugin published; relative paths break since the plugin
+# lives in CC cache dir, not in the user's project root)
+FINAL=$(echo "$MERGED" | jq '. + {version: "1.0"} | {"$schema": "https://raw.githubusercontent.com/BryanBerger98/artysan-plugin/main/skills/_shared/schemas/config.schema.json"} + .')
 
 # In auto-mode=true, ensure every required field resolved
 required_check_msg=""
