@@ -109,8 +109,8 @@ Ordre dépendances:
 
 ### 6.3 `/wireframe`
 
-- [ ] step-00 → step-04
-- [ ] Filter tickets UI (heuristique mots-clés)
+- [x] step-00 → step-04
+- [x] Filter tickets UI (heuristique mots-clés)
 - [ ] Loop design Frame0 MCP (shapes + export PNG)
 - [ ] Page AFFiNE Gallery (embed images via blob upload)
 - [ ] Update tickets liens gallery

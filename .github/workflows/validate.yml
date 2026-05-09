@@ -87,6 +87,9 @@ jobs:
       - name: Test render-template.sh
         run: bash tests/test-render-template.sh
 
+      - name: Test filter-ui-tickets.sh
+        run: bash tests/test-filter-ui-tickets.sh
+
       - name: E2E /define
         run: bash tests/test-define-e2e.sh
 
