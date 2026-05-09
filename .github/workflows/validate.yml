@@ -66,6 +66,9 @@ jobs:
       - name: Test docs-adapter.sh
         run: bash tests/test-docs-adapter.sh
 
+      - name: Test frame0-helper.sh
+        run: bash tests/test-frame0-helper.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
