@@ -15,11 +15,13 @@ feature (session/daemon loop).
    `--dry-run`, `--allow-dirty`, `--retry-fallback=next-ticket|stop`.
 
 2. **Resume short-circuit**:
+
    ```bash
    resume_json=$(bash skills/_shared/resume-state.sh next \
      --skill=develop \
      --project-root="$PWD")
    ```
+
    Same rc=0/1/2 contract as the other skills.
 
 3. **Resolve target**. Three paths from positional `<id>`:
@@ -30,8 +32,13 @@ feature (session/daemon loop).
    - **Feature-shaped** (`^[0-9]{2}-[a-z0-9-]+$`) → loop mode (ask `--loop=`
      when missing).
 
-4. **Load config**:
+4. **Require config + load**:
+
    ```bash
+   [ -f "$PWD/artysan.config.json" ] || {
+     echo "ERROR: artysan.config.json not found. Run /artysan:init first." >&2
+     exit 1
+   }
    cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
    review_cycles_max=$(echo "$cfg" | jq '.develop.review_cycles_max // 3')
    fail_strategy=$(echo "$cfg" | jq -r '.develop.fail_strategy // "next-ticket"')
@@ -40,9 +47,11 @@ feature (session/daemon loop).
 5. **Pre-flight**:
    - `git rev-parse --is-inside-work-tree` — abort if not in a repo.
    - Working tree clean (unless `--allow-dirty`):
+
      ```bash
      [ -z "$(git status --porcelain)" ] || { echo "ERROR: dirty tree"; exit 1; }
      ```
+
    - Branch protection: refuse to commit directly on
      `repository.protected_branches`. Branch will be created in step-02.
    - Reviewers reachable: `agents/code-reviewer-{technical,functional,security}.md`
@@ -50,6 +59,7 @@ feature (session/daemon loop).
      in step-03a; here we only confirm the files are present).
 
 6. **Append progress**:
+
    ```bash
    bash skills/_shared/update-progress.sh \
      --project-root="$PWD" --feature-id="$feature_id" \

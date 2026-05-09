@@ -12,6 +12,12 @@ artysan-plugin/  (plugin repo)
 ├── LICENSE
 ├── README.md
 ├── skills/                                 # → installé dans ~/.claude/skills/ ou .claude/skills/
+│   ├── init/                               # /artysan:init — bootstrap workspace (config + scaffold)
+│   │   ├── SKILL.md
+│   │   └── steps/
+│   │       ├── step-00-detect.md
+│   │       └── step-01-write.md
+│   │
 │   ├── define/
 │   │   ├── SKILL.md
 │   │   ├── steps/

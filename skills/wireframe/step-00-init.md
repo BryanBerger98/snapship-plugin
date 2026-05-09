@@ -24,8 +24,12 @@ Bootstrap a `/wireframe` run for a single feature.
 3. **Resolve `feature_id`**: same precedence as `/ticket` (single → use it; multi →
    AskUserQuestion; zero → abort with "Run `/define` first").
 
-4. **Load config + check Frame0**:
+4. **Require config + load + check Frame0**:
    ```bash
+   [ -f "$PWD/artysan.config.json" ] || {
+     echo "ERROR: artysan.config.json not found. Run /artysan:init first." >&2
+     exit 1
+   }
    bash skills/_shared/load-config.sh --project-root="$PWD" > /tmp/cfg.json
    wf_platform=$(jq -r '.wireframes.platform // "none"' /tmp/cfg.json)
    ```

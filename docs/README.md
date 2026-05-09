@@ -8,15 +8,16 @@ Workflow propre, autonome, packagé en plugin CC v1. Patterns réécrits inline,
 
 ## Skills
 
-| Slash        | Rôle                                                          | Stockage primaire             |
-| ------------ | ------------------------------------------------------------- | ----------------------------- |
-| `/define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature) |
-| `/ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets            |
-| `/wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery       |
-| `/develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques      |
-| `/qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0  |
+| Slash                | Rôle                                                          | Stockage primaire                     |
+| -------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `/artysan:init`      | Bootstrap workspace (config + `.claude/product/`). 1× par projet. | `artysan.config.json` + `.claude/product/` |
+| `/artysan:define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature)         |
+| `/artysan:ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets                    |
+| `/artysan:wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery               |
+| `/artysan:develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques              |
+| `/artysan:qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0          |
 
-Chaining manuel (skill suggère prochain à fin).
+Chaining manuel (skill suggère prochain à fin). `/artysan:init` est obligatoire avant tout autre skill — les autres skills exit early si `artysan.config.json` absent.
 
 ## Sommaire documentation
 
@@ -34,7 +35,8 @@ Chaining manuel (skill suggère prochain à fin).
 | [roadmap.md](roadmap.md)                   | Étapes développement → publication marketplace → install user-side                 |
 | [templates.md](templates.md)               | Templates docs bundlés (PRD global/feature, wireframes gallery)                    |
 | [decisions.md](decisions.md)               | Décisions validées + history + validation pré-build                                |
-| [skills/define.md](skills/define.md)       | Skill `/define` — frontmatter, flags, steps                                        |
+| [skills/init.md](skills/init.md)           | Skill `/artysan:init` — bootstrap workspace                                        |
+| [skills/define.md](skills/define.md)       | Skill `/artysan:define` — frontmatter, flags, steps                                |
 | [skills/ticket.md](skills/ticket.md)       | Skill `/ticket` — frontmatter, flags, steps                                        |
 | [skills/wireframe.md](skills/wireframe.md) | Skill `/wireframe` — frontmatter, flags, steps                                     |
 | [skills/develop.md](skills/develop.md)     | Skill `/develop` — frontmatter, flags, steps + loop modes                          |
@@ -58,10 +60,11 @@ Chaining manuel (skill suggère prochain à fin).
 
 ## Build order
 
-1. `/define` (entry workflow)
-2. `/ticket`
-3. `/wireframe`
-4. `/develop`
-5. `/qa`
+1. `/artysan:init` (bootstrap, 1× par projet)
+2. `/artysan:define` (entry workflow)
+3. `/artysan:ticket`
+4. `/artysan:wireframe`
+5. `/artysan:develop`
+6. `/artysan:qa`
 
 Voir [decisions.md](decisions.md) pour rationale ordre + alternatives écartées.

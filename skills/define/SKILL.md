@@ -8,9 +8,14 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 
 Run this skill to **bootstrap or extend a product's PRD** before any ticket exists.
 
+## Prerequisite
+
+Run `/artysan:init` once per project first. This skill exits early if
+`artysan.config.json` is missing.
+
 ## When to use
 
-- Greenfield project: no `.claude/product/` directory yet → full PRD walkthrough.
+- Greenfield project after init: no `prd-global.md` yet → full PRD walkthrough.
 - Existing project: `.claude/product/prd-global.md` exists → extend with new feature(s).
 - Resume: `--resume` (`-r`) restarts from the last successful step recorded in `progress.md`.
 
@@ -22,7 +27,7 @@ order; when blocked the model reads only the active step's body.
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md` | Parse args, detect codebase, set up `.claude/product/`, branch greenfield vs extension |
+| 00 | `step-00-init.md` | Parse args, require `artysan.config.json`, detect codebase, branch greenfield vs extension |
 | 01 | `step-01-vision.md` | Ask vision + north star metric |
 | 02 | `step-02-personas.md` | Ask 1-N personas |
 | 03 | `step-03-features.md` | Ask features list with priorities |

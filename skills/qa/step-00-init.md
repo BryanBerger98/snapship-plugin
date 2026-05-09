@@ -26,8 +26,12 @@ feature.
    - **Ticket-shaped** → single-ticket mode.
    - **Feature-shaped** → multi-ticket mode (every `in_review` ticket).
 
-4. **Load config**:
+4. **Require config + load**:
    ```bash
+   [ -f "$PWD/artysan.config.json" ] || {
+     echo "ERROR: artysan.config.json not found. Run /artysan:init first." >&2
+     exit 1
+   }
    cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
    qa_cycles_max=$(echo "$cfg" | jq '.qa.qa_cycles_max // 2')
    sev_thr=$(echo "$cfg" | jq -r '.qa.severity_threshold // "minor"')

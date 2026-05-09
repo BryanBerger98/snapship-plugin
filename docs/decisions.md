@@ -31,6 +31,24 @@
 
 ## Décisions design (history résolution issues)
 
+### Bootstrap config: skill dédié `/artysan:init`
+
+**Issue:** `/define` portait à la fois la création de `artysan.config.json` et la définition produit. Conséquences: step-00 surchargé, échec silencieux quand `load-config.sh` traitait config absente comme `{}` (pas de fail-fast), couplage init ↔ entrée workflow PRD.
+
+**Choix:** extraction dans skill dédié `/artysan:init` (steps `step-00-detect.md` + `step-01-write.md`). Toutes les autres skills (define/ticket/wireframe/develop/qa) exit early avec `ERROR: artysan.config.json not found. Run /artysan:init first.` si config absente.
+
+**Why:** séparation responsabilités, fail-fast loud > silent fallback, init explicite (1× par projet).
+
+**How to apply:** ajouter un nouveau skill = ajouter le guard `[ -f "$PWD/artysan.config.json" ] || exit 1` au début de step-00.
+
+### `$schema` config: github raw URL
+
+**Issue:** `setup-config.sh --write` injectait `"$schema": "./skills/_shared/schemas/config.schema.json"` (chemin relatif au project root). Une fois le plugin installé via marketplace, le fichier schéma vit dans le cache CC, pas dans le projet → IDE schema validation cassée.
+
+**Choix:** URL github raw `https://raw.githubusercontent.com/BryanBerger98/artysan-plugin/main/skills/_shared/schemas/config.schema.json` (résolu par tout IDE une fois le repo public).
+
+**Why:** portabilité cross-install. Runtime `load-config.sh` lit toujours le schema depuis le bundle plugin (pas via le champ `$schema`), donc validation ajv non impactée.
+
 ### feature_id_pattern
 
 **Issue:** `/define` crée feature avant tickets exister → pattern `{ticket_id}-{feature_slug}` impossible.

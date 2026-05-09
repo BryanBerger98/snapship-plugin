@@ -4,13 +4,14 @@ Plugin Claude Code — workflow produit autonome, 5 skills enchaînables: défin
 
 ## Skills
 
-| Slash        | Rôle                                                          | Stockage primaire             |
-| ------------ | ------------------------------------------------------------- | ----------------------------- |
-| `/define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature) |
-| `/ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets            |
-| `/wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery       |
-| `/develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques      |
-| `/qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0  |
+| Slash                | Rôle                                                          | Stockage primaire             |
+| -------------------- | ------------------------------------------------------------- | ----------------------------- |
+| `/artysan:init`      | Bootstrap workspace (config + `.claude/product/`). À lancer 1× par projet. | `artysan.config.json` racine projet |
+| `/artysan:define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature) |
+| `/artysan:ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets            |
+| `/artysan:wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery       |
+| `/artysan:develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques      |
+| `/artysan:qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0  |
 
 ## Quickstart
 
@@ -25,11 +26,13 @@ git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/arty
 # Premier projet
 cd <mon-projet>
 claude
-# Dans session:
-/define "feature description"
+# Dans session — bootstrap once:
+/artysan:init
+# Puis première feature:
+/artysan:define "feature description"
 ```
 
-Setup wizard détecte `.git/config`, MCP servers actifs, test commands → écrit `artysan.config.json` racine projet.
+`/artysan:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `artysan.config.json` racine projet + scaffold `.claude/product/`. Toutes les autres commandes (`/artysan:define`, `/artysan:ticket`, `/artysan:wireframe`, `/artysan:develop`, `/artysan:qa`) refusent de s'exécuter sans config et pointent vers `/artysan:init`.
 
 ## Prérequis
 

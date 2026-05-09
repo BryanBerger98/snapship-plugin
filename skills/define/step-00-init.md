@@ -1,12 +1,15 @@
 ---
 step: 00-init
 next_step: 01-vision
-description: Parse args, detect codebase, scaffold .claude/product/, branch greenfield vs extension.
+description: Parse args, require artysan.config.json, detect codebase, branch greenfield vs extension.
 ---
 
 # step-00 — init
 
-Bootstrap the artysan workspace and decide which path to follow.
+Validate that the workspace was bootstrapped (`/artysan:init`) and decide which
+path to follow. **Config bootstrap is not handled here** — if
+`artysan.config.json` is missing, this step exits early and points the user back
+to `/artysan:init`.
 
 ## Tasks
 
@@ -29,10 +32,18 @@ Bootstrap the artysan workspace and decide which path to follow.
    For partial `--feature` matches, `resume-state.sh` resolves "01" or "auth" to the
    full `feature_id` and returns it in the JSON; ambiguous matches exit non-zero with
    a candidate list — surface that to the user and re-prompt.
-3. **Project root detection**: confirm `$PWD` is the project root (presence of
+3. **Require config**: `artysan.config.json` must exist at `$PWD`. If absent,
+   abort early with:
+   ```
+   ERROR: artysan.config.json not found at <PWD>.
+   Run /artysan:init first to bootstrap the workspace.
+   ```
+   Do not scaffold, do not write progress. Just exit.
+
+4. **Project root detection**: confirm `$PWD` is the project root (presence of
    `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, or `.git`).
    If not found, ask the user to confirm the path before proceeding.
-4. **Codebase detection**: run `bash skills/_shared/detect-codebase.sh --project-root="$PWD"`
+5. **Codebase detection**: run `bash skills/_shared/detect-codebase.sh --project-root="$PWD"`
    and parse the JSON verdict:
    ```bash
    verdict=$(bash skills/_shared/detect-codebase.sh --project-root="$PWD")
@@ -41,7 +52,7 @@ Bootstrap the artysan workspace and decide which path to follow.
    ```
    Show `signals` to the user when announcing the chosen path so they can override
    the heuristic if needed (e.g., "Detected codebase via: package.json, .git").
-5. **Initialize state file**:
+6. **Initialize state file**:
    ```bash
    bash skills/_shared/define-state.sh init \
      --project-root="$PWD" \
@@ -50,36 +61,13 @@ Bootstrap the artysan workspace and decide which path to follow.
      ${feature_id:+--feature="$feature_id"}
    ```
 
-6. **Scaffold** `.claude/product/` if missing:
-   ```
-   .claude/product/
-     prd-global.md          # rendered later in step-04
-     features/              # one dir per feature
-     progress.md            # append-only run log
-     telemetry.ndjson       # append via skills/_shared/telemetry.sh
-     .config-resolved.json  # produced by load-config.sh on first run
-   ```
-7. **Bootstrap config** — explicit existence check, do **not** rely on
-   `load-config.sh` to fail (it treats missing config as empty `{}`):
+7. **Reload resolved config**:
    ```bash
-   CONFIG_FILE="$PWD/artysan.config.json"
-   if [ ! -f "$CONFIG_FILE" ]; then
-     # 7a. detect defaults from .git/config + available MCPs + structure
-     detected=$(bash skills/_shared/setup-config.sh --detect \
-       --project-root="$PWD" \
-       ${ARTYSAN_MCP_AVAILABLE:+--available="$ARTYSAN_MCP_AVAILABLE"})
-     # 7b. drive AskUserQuestion to confirm/override fields (repository.platform,
-     #     tickets.platform, documentation.platform, wireframes.platform, lang).
-     #     In `-a` autonomous mode, skip prompts and use detected defaults via
-     #     `--auto-mode=true` instead.
-     # 7c. write config from merged answers
-     bash skills/_shared/setup-config.sh --write \
-       --project-root="$PWD" \
-       --from-answers="$answers_json"
-   fi
-   bash skills/_shared/load-config.sh --project-root="$PWD"
+   bash skills/_shared/load-config.sh --project-root="$PWD" >/dev/null
    ```
-   Materializes `.claude/product/.config-resolved.json` for downstream steps.
+   `.claude/product/` already exists (scaffolded by `/artysan:init`).
+   `load-config.sh` refreshes `.claude/product/.config-resolved.json` from
+   the current `artysan.config.json`. Fail loud on non-zero exit.
 8. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough (steps
      01 → 04 → 05).
