@@ -6,7 +6,7 @@ description: Push rendered PRDs to AFFiNE/Notion via docs-adapter, cache page ID
 # step-05 — publish
 
 Final step. Pushes the local PRDs to the configured docs platform and caches the
-returned page IDs/URLs in each feature's `meta.json`.
+returned page IDs/URLs in each feature's `meta.json` and `.docs-cache.json`.
 
 This step has no `next_step` — it is terminal.
 
@@ -26,39 +26,52 @@ If `documentation.platform = "none"`, log a notice and skip publish. Mark progre
 ### B. Push global PRD
 
 ```bash
-bash skills/_shared/docs-adapter.sh push \
+bash skills/_shared/docs-adapter.sh \
+  --action=create \
   --project-root="$PWD" \
-  --kind=prd-global \
-  --file=.claude/product/prd-global.md
+  --title="PRD — $(jq -r .product_name artysan.config.json)" \
+  --content-file=.claude/product/prd-global.md
 ```
 
-The adapter returns either:
-- **MCP descriptor** (exit code 10): a JSON object on stdout describing the MCP call
-  the model must execute (e.g., `mcp__affine__create_or_update_page` with payload).
-  The model executes the MCP tool, captures `page_id` and `url`, then re-runs the
-  adapter with `--mcp-result=<json>` to record the result.
-- **Direct success** (exit code 0): adapter handled the push (rare — only if a CLI
-  is available; AFFiNE is MCP-only). JSON on stdout: `{ "page_id": "...", "url": "..." }`.
+Both AFFiNE and Notion are MCP-only — the adapter exits 10 with an MCP descriptor on
+stdout. The model:
 
-Cache the returned `page_id` and `url` in `.claude/product/.docs-cache.json` (top-level
-`prd_global` key).
+1. Parses the descriptor (`{"descriptor":{"tool":"mcp__affine__create_page","args":{...}}}`).
+2. Invokes the named MCP tool with the given args.
+3. Captures `page_id` and `url` from the MCP response.
+4. Writes them to `.claude/product/.docs-cache.json` under `prd_global`:
+   ```json
+   { "prd_global": { "page_id": "...", "url": "..." } }
+   ```
 
 ### C. Push per-feature PRDs
 
-For each feature in `.claude/product/features/`:
+For each `feature_id` in `.claude/product/features/`:
 
 ```bash
-bash skills/_shared/docs-adapter.sh push \
+bash skills/_shared/docs-adapter.sh \
+  --action=create \
   --project-root="$PWD" \
-  --kind=prd-feature \
-  --feature-id="$fid" \
-  --file=".claude/product/features/${fid}/prd-feature.md" \
-  --parent-page-id="$(jq -r .prd_global.page_id .claude/product/.docs-cache.json)"
+  --parent-id="$(jq -r .prd_global.page_id .claude/product/.docs-cache.json)" \
+  --title="$(jq -r .feature_name .claude/product/features/${fid}/meta.json)" \
+  --content-file=".claude/product/features/${fid}/prd-feature.md"
 ```
 
-Update `meta.json` with `affine_page_id` + `affine_url` (or `notion_page_id` +
-`notion_url` based on platform). Re-validate `meta.json` against the schema after
-mutation.
+After the MCP call returns, update the feature's `meta.json`:
+```bash
+jq --arg pid "$page_id" --arg url "$url" \
+  '.affine_page_id = $pid | .affine_url = $url | .updated_at = now | strftime("%Y-%m-%dT%H:%M:%SZ")' \
+  ".claude/product/features/${fid}/meta.json" \
+  > "${fid}-meta.tmp" && mv "${fid}-meta.tmp" ".claude/product/features/${fid}/meta.json"
+```
+
+(Use `notion_page_id` / `notion_url` keys when `platform = notion`.)
+
+Re-validate `meta.json` against `meta.schema.json` after every mutation:
+```bash
+ajv validate -s skills/_shared/schemas/meta.schema.json \
+  -d ".claude/product/features/${fid}/meta.json" --spec=draft2020 --strict=false
+```
 
 ### D. Telemetry
 
@@ -85,7 +98,10 @@ bash skills/_shared/update-progress.sh \
 
 ### F. Cleanup
 
-Delete `.claude/product/.define-state.json` (working state — no longer needed).
+```bash
+bash skills/_shared/define-state.sh wipe --project-root="$PWD"
+```
+
 Keep `.claude/product/.docs-cache.json` (read by `/ticket`, `/wireframe`).
 
 ## Failure handling
@@ -96,6 +112,9 @@ Keep `.claude/product/.docs-cache.json` (read by `/ticket`, `/wireframe`).
   retry from step-05.
 - **Schema validation failure on meta.json after mutation**: revert the mutation, log
   the error, mark progress `fail`. Stop.
+- **Mid-loop failure** (some features pushed, others not): the per-feature meta.json
+  already contains `affine_page_id` for those that succeeded, so a re-run skips them
+  (check `meta.affine_page_id != null` before pushing).
 
 ## Acceptance check
 
