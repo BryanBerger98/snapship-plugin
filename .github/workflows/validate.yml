@@ -90,6 +90,9 @@ jobs:
       - name: E2E /define
         run: bash tests/test-define-e2e.sh
 
+      - name: E2E /ticket
+        run: bash tests/test-ticket-e2e.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest

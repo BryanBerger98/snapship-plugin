@@ -105,7 +105,7 @@ Ordre dépendances:
 - [x] Enrich parallel agents (explore-codebase, explore-docs, websearch)
 - [x] Format adaptatif platform (templates ticket-*.md)
 - [x] Push via tickets-adapter (MCP > CLI fallback)
-- [ ] Test E2E: 3 platforms (gh/glab/jira)
+- [x] Test E2E: 3 platforms (gh/glab/jira)
 
 ### 6.3 `/wireframe`
 
