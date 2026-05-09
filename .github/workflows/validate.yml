@@ -69,6 +69,9 @@ jobs:
       - name: Test frame0-helper.sh
         run: bash tests/test-frame0-helper.sh
 
+      - name: Validate agents frontmatter
+        run: bash tests/test-agents.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest

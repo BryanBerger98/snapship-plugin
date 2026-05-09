@@ -62,7 +62,7 @@ Ordre dépendances:
 
 **Objectif:** agents `.claude/agents/` invoqués par skills via Agent tool.
 
-- [ ] `code-reviewer-technical` (clean code, conventions repo, lint/style)
+- [x] `code-reviewer-technical` (clean code, conventions repo, lint/style)
 - [ ] `code-reviewer-functional` (AC, wireframes match, scope conformance)
 - [ ] `code-reviewer-security` (OWASP, secrets, injection, auth, deps)
 - [ ] `code-reviewer-qa` (interpret raw outputs, flaky detection, severity)
