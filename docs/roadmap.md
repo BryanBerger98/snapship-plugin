@@ -121,13 +121,13 @@ Ordre dépendances:
 - [x] step-00 → step-05
 - [x] step-03a Phase 1 (analyze/plan/execute/validate, 4 fichiers)
 - [x] step-03a Phase 2 (3 reviewers parallèles via 1 message N Agent calls)
-- [ ] Severity scale + early stop logic
-- [ ] fail_strategy (next-ticket/stop/retry)
-- [ ] Commit atomique (1 ticket = 1 commit, amend fixes)
-- [ ] step-03b loop session
-- [ ] step-03c daemon setup (génère script, no auto-launch)
-- [ ] Branche idempotente (`git rev-parse --verify`)
-- [ ] Test E2E: standalone + session + daemon dry-run
+- [x] Severity scale + early stop logic
+- [x] fail_strategy (next-ticket/stop/retry)
+- [x] Commit atomique (1 ticket = 1 commit, amend fixes)
+- [x] step-03b loop session
+- [x] step-03c daemon setup (génère script, no auto-launch)
+- [x] Branche idempotente (`git rev-parse --verify`)
+- [x] Test E2E: standalone + session + daemon dry-run
 
 ### 6.5 `/qa`
 

@@ -17,7 +17,7 @@ sessions).
 
 ### A. Render template
 
-Template at `skills/_shared/templates/daemon.sh.tpl`. Variables:
+Template at `skills/_shared/templates/develop-daemon.sh.tpl`. Variables:
 
 - `{feature_id}`
 - `{queue_path}` — absolute path to `.develop-queue.json`
@@ -26,7 +26,7 @@ Template at `skills/_shared/templates/daemon.sh.tpl`. Variables:
 
 ```bash
 bash skills/_shared/render-template.sh \
-  --template=skills/_shared/templates/daemon.sh.tpl \
+  --template=skills/_shared/templates/develop-daemon.sh.tpl \
   --vars="$ctx" \
   > .claude/product/features/${feature_id}/daemon.sh
 chmod +x .claude/product/features/${feature_id}/daemon.sh

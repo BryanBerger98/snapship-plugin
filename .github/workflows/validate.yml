@@ -99,6 +99,9 @@ jobs:
       - name: E2E /wireframe
         run: bash tests/test-wireframe-e2e.sh
 
+      - name: E2E /develop
+        run: bash tests/test-develop-e2e.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
