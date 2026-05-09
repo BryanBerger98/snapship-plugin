@@ -1,0 +1,11 @@
+{
+  "feature_id": "01-auth",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "title": "Login",
+      "status": "completed"
+    }
+  ]
+}

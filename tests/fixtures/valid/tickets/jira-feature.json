@@ -1,0 +1,39 @@
+{
+  "feature_id": "01-auth",
+  "platform": "jira",
+  "synced_at": "2026-05-09T11:00:00Z",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "platform_id": "PROJ-12",
+      "url": "https://company.atlassian.net/browse/PROJ-12",
+      "title": "Implement login form",
+      "description": "Email + password form with validation",
+      "type": "feat",
+      "priority": "P0",
+      "status": "in_progress",
+      "labels": ["auth", "ui"],
+      "assignees": ["alice"],
+      "story_points": 3,
+      "acceptance_criteria": [
+        { "text": "Form renders with email/password fields", "checked": true },
+        { "text": "Validation errors display inline", "checked": false }
+      ],
+      "tech_notes": "Use react-hook-form. Reuse existing FormField primitive.",
+      "files": ["src/auth/LoginForm.tsx", "src/auth/validation.ts"],
+      "edge_cases": ["Empty submit", "Server error 500"],
+      "wireframe_screen": "login",
+      "wireframe_url": "https://app.frame0.com/page/login-abc",
+      "estimated_size": "M"
+    },
+    {
+      "local_id": "t-002",
+      "title": "Add session persistence",
+      "type": "feat",
+      "priority": "P1",
+      "status": "draft",
+      "depends_on": ["t-001"],
+      "estimated_size": "S"
+    }
+  ]
+}

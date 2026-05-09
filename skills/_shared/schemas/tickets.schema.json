@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/tickets.schema.json",
+  "title": "feature tickets.json",
+  "description": "Cache tickets feature — .claude/product/features/{feature_id}/tickets.json. Source vérité = plateforme, cache local pour resume + offline reads.",
+  "type": "object",
+  "required": ["feature_id", "platform", "tickets"],
+  "additionalProperties": false,
+  "properties": {
+    "feature_id": {
+      "type": "string",
+      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["github", "gitlab", "jira"]
+    },
+    "synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Dernière sync plateforme"
+    },
+    "tickets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ticket" }
+    }
+  },
+  "$defs": {
+    "ticket": {
+      "type": "object",
+      "required": ["local_id", "title", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "local_id": {
+          "type": "string",
+          "description": "ID local stable (ex: t-001) — généré avant push plateforme"
+        },
+        "platform_id": {
+          "type": "string",
+          "description": "ID plateforme après push (ex: PROJ-123, #42, !17). Absent = draft local."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL ticket plateforme après push"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "description": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["feat", "fix", "chore", "refactor", "docs", "test", "perf", "build", "ci"],
+          "description": "Type conventional commit (utilisé par naming.commit_pattern)"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["P0", "P1", "P2", "P3"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "todo", "in_progress", "in_review", "done", "blocked", "skipped"]
+        },
+        "labels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "assignees": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "milestone": { "type": "string" },
+        "story_points": {
+          "type": "number",
+          "minimum": 0
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string" },
+              "checked": { "type": "boolean", "default": false }
+            }
+          }
+        },
+        "tech_notes": { "type": "string" },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Fichiers impactés (depuis explore-codebase enrich)"
+        },
+        "edge_cases": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "wireframe_screen": {
+          "type": "string",
+          "description": "Nom écran wireframe lié (si feature UI)"
+        },
+        "wireframe_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Lien Frame0 page ou AFFiNE gallery section"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "local_id ou platform_id tickets bloquants"
+        },
+        "estimated_size": {
+          "type": "string",
+          "enum": ["XS", "S", "M", "L", "XL"]
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "SHA commit atomique produit par /develop"
+        },
+        "developed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "qa_validated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

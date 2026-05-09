@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/config.schema.json",
+  "title": "artysan.config.json",
+  "description": "Configuration projet artysan — racine projet, committable, partagée équipe.",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Schema version (semver). Major bump = breaking change."
+    },
+    "repository": { "$ref": "#/$defs/repository" },
+    "tickets": { "$ref": "#/$defs/tickets" },
+    "documentation": { "$ref": "#/$defs/documentation" },
+    "wireframes": { "$ref": "#/$defs/wireframes" },
+    "testing": { "$ref": "#/$defs/testing" },
+    "naming": { "$ref": "#/$defs/naming" },
+    "ai": { "$ref": "#/$defs/ai" },
+    "develop": { "$ref": "#/$defs/develop" },
+    "qa": { "$ref": "#/$defs/qa" },
+    "lifecycle_scripts": { "$ref": "#/$defs/lifecycle_scripts" },
+    "defaults": { "$ref": "#/$defs/defaults" }
+  },
+  "$defs": {
+    "severity": {
+      "type": "string",
+      "enum": ["info", "minor", "major", "critical"]
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["github", "gitlab"]
+        },
+        "http_url": { "type": "string", "format": "uri" },
+        "ssh_url": { "type": "string" },
+        "default_branch": { "type": "string", "default": "main" },
+        "protected_branches": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["main"]
+        },
+        "pr_template_path": { "type": "string" }
+      }
+    },
+    "tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["github", "gitlab", "jira", "inherit"]
+        },
+        "url": { "type": "string", "format": "uri" },
+        "default_labels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "jira": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=jira",
+          "properties": {
+            "project_key": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "default_issue_type": {
+              "type": "string",
+              "default": "Story"
+            },
+            "workflow_states": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "properties": {
+                "todo": { "type": "string" },
+                "in_progress": { "type": "string" },
+                "review": { "type": "string" },
+                "done": { "type": "string" }
+              }
+            },
+            "transitions": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "documentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["affine", "notion"]
+        },
+        "url": { "type": "string", "format": "uri" },
+        "workspace": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string" },
+            "root_page_id": { "type": "string" }
+          }
+        },
+        "templates": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "properties": {
+            "prd_global": { "type": "string" },
+            "prd_feature": { "type": "string" },
+            "wireframes_gallery": { "type": "string" }
+          }
+        },
+        "auto_publish": { "type": "boolean", "default": true },
+        "page_naming": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "properties": {
+            "prd_global": { "type": "string" },
+            "prd_feature": { "type": "string" },
+            "wireframes_gallery": { "type": "string" }
+          }
+        }
+      }
+    },
+    "wireframes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["frame0"],
+          "default": "frame0"
+        },
+        "export_format": {
+          "type": "string",
+          "enum": ["png", "svg", "pdf"],
+          "default": "png"
+        },
+        "export_scale": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "default": 2
+        },
+        "naming_pattern": {
+          "type": "string",
+          "default": "{feature_id}-{screen_name}"
+        }
+      }
+    },
+    "testing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "test_command": { "type": "string" },
+        "typecheck_command": { "type": "string" },
+        "lint_command": { "type": "string" },
+        "format_command": { "type": "string" }
+      }
+    },
+    "naming": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "feature_slug_max_length": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 100,
+          "default": 40
+        },
+        "branch_pattern": {
+          "type": "string",
+          "default": "{type}/{ticket_id}-{slug}"
+        },
+        "commit_pattern": {
+          "type": "string",
+          "default": "{type}({scope}): {message}"
+        },
+        "ticket_id_regex": { "type": "string" }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_parallel_agents": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 5
+        },
+        "mcp_servers_required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "mcp_servers_optional": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "develop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review_cycles_max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3
+        },
+        "auto_apply_review_feedback": {
+          "type": "boolean",
+          "default": true
+        },
+        "fail_strategy": {
+          "type": "string",
+          "enum": ["next-ticket", "stop", "retry"],
+          "default": "next-ticket"
+        },
+        "reviews": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "technical": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "severity_threshold": { "$ref": "#/$defs/severity" }
+              }
+            },
+            "functional": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "severity_threshold": { "$ref": "#/$defs/severity" }
+              }
+            },
+            "security": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "severity_threshold": { "$ref": "#/$defs/severity" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "qa_cycles_max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 2
+        },
+        "auto_apply_qa_feedback": {
+          "type": "boolean",
+          "default": true
+        },
+        "severity_threshold": { "$ref": "#/$defs/severity" },
+        "retrigger_review": {
+          "type": "boolean",
+          "default": false
+        },
+        "regression": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "scope": {
+              "type": "string",
+              "enum": ["impacted", "full", "tests-only"],
+              "default": "impacted"
+            }
+          }
+        },
+        "wireframe_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "mode": {
+              "type": "string",
+              "enum": ["playwright"],
+              "default": "playwright"
+            },
+            "diff_threshold_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 5
+            },
+            "severity_on_mismatch": { "$ref": "#/$defs/severity" }
+          }
+        }
+      }
+    },
+    "lifecycle_scripts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Scripts custom workflow (≠ hooks Claude Code natifs). Path script exécutable.",
+      "properties": {
+        "pre_define": { "type": "string" },
+        "post_define": { "type": "string" },
+        "pre_ticket": { "type": "string" },
+        "post_ticket": { "type": "string" },
+        "pre_wireframe": { "type": "string" },
+        "post_wireframe": { "type": "string" },
+        "pre_develop": { "type": "string" },
+        "post_develop": { "type": "string" },
+        "pre_qa": { "type": "string" },
+        "post_qa": { "type": "string" }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lang": {
+          "type": "string",
+          "enum": ["fr", "en"],
+          "default": "fr"
+        },
+        "auto_mode": { "type": "boolean", "default": false },
+        "save_mode": { "type": "boolean", "default": true },
+        "branch_mode": { "type": "boolean", "default": true },
+        "economy_mode": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

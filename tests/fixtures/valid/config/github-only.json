@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "repository": {
+    "platform": "github",
+    "http_url": "https://github.com/org/repo.git",
+    "default_branch": "main"
+  },
+  "tickets": {
+    "platform": "inherit"
+  },
+  "documentation": {
+    "platform": "affine",
+    "workspace": { "id": "ws-1", "root_page_id": "p-1" }
+  },
+  "testing": {
+    "test_command": "npm test"
+  },
+  "develop": {
+    "review_cycles_max": 1,
+    "fail_strategy": "stop"
+  },
+  "defaults": {
+    "lang": "en"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/meta.schema.json",
+  "title": "feature meta.json",
+  "description": "Métadonnées feature — .claude/product/features/{feature_id}/meta.json. Cache local IDs externes (AFFiNE, plateforme tickets, branche git).",
+  "type": "object",
+  "required": ["feature_id", "feature_name", "state", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "feature_id": {
+      "type": "string",
+      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$",
+      "description": "Format NN-kebab (ex: 01-auth)"
+    },
+    "feature_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "string",
+      "enum": ["defined", "ticketed", "wireframed", "developed", "qa-validated"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["must", "should", "could", "wont"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lang": {
+      "type": "string",
+      "enum": ["fr", "en"]
+    },
+    "green_field": {
+      "type": "boolean",
+      "description": "True si feature créée projet vide (pas de codebase existant)"
+    },
+    "affine_page_id": {
+      "type": "string",
+      "description": "ID page mini-PRD AFFiNE feature"
+    },
+    "affine_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "affine_wireframes_page_id": {
+      "type": "string",
+      "description": "ID page Wireframes Gallery (sub-page PRD feature)"
+    },
+    "notion_page_id": {
+      "type": "string",
+      "description": "Alternative AFFiNE — si documentation.platform=notion"
+    },
+    "notion_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "branch_name": {
+      "type": "string",
+      "description": "Branche git créée par /develop step-02 (idempotent)"
+    },
+    "preview_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL preview pour /qa wireframe_check Playwright"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["github", "gitlab", "jira"],
+      "description": "Plateforme tickets pour cette feature (cache pour résolution rapide)"
+    },
+    "epic_link": {
+      "type": "string",
+      "description": "Optionnel — lien parent epic (JIRA epic key, GH milestone, etc.)"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Compteur retries fail_strategy=retry sur cette feature"
+    }
+  }
+}
