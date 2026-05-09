@@ -111,10 +111,10 @@ Ordre dépendances:
 
 - [x] step-00 → step-04
 - [x] Filter tickets UI (heuristique mots-clés)
-- [ ] Loop design Frame0 MCP (shapes + export PNG)
-- [ ] Page AFFiNE Gallery (embed images via blob upload)
-- [ ] Update tickets liens gallery
-- [ ] Test E2E: 3 écrans avec états
+- [x] Loop design Frame0 MCP (shapes + export PNG)
+- [x] Page AFFiNE Gallery (embed images via blob upload)
+- [x] Update tickets liens gallery
+- [x] Test E2E: 3 écrans avec états
 
 ### 6.4 `/develop`
 
