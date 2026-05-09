@@ -63,6 +63,9 @@ jobs:
       - name: Test tickets-adapter.sh
         run: bash tests/test-tickets-adapter.sh
 
+      - name: Test docs-adapter.sh
+        run: bash tests/test-docs-adapter.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
