@@ -24,6 +24,9 @@ jobs:
       - name: Validate fixtures vs schemas
         run: bash tests/validate-schemas.sh
 
+      - name: Test load-config.sh
+        run: bash tests/test-load-config.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
