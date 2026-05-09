@@ -19,7 +19,7 @@ Plugin Claude Code — workflow produit autonome, 5 skills enchaînables: défin
 /plugin install artysan
 
 # Ou clone manuel global
-git clone https://github.com/bryanberger/artysan-plugin ~/.claude/plugins/artysan
+git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
 
 # Premier projet
 cd <mon-projet>
@@ -38,7 +38,17 @@ Setup wizard détecte `.git/config`, MCP servers actifs, test commands → écri
 
 ## Documentation
 
-Specs complètes: voir `docs/` (sommaire, config, scripts, workflow, modes, MCP refs, decisions, roadmap, diagrammes).
+Specs complètes dans [`docs/`](docs/README.md):
+
+- [docs/structure.md](docs/structure.md) — file tree + storage projet
+- [docs/config.md](docs/config.md) — schema `artysan.config.json`
+- [docs/workflow.md](docs/workflow.md) — détection plateformes + intégration
+- [docs/modes.md](docs/modes.md) — flags `-a`, telemetry, `--dry-run`, hooks
+- [docs/mcp-refs.md](docs/mcp-refs.md) — Frame0, AFFiNE, code-review-graph, Playwright
+- [docs/decisions.md](docs/decisions.md) — décisions validées + history
+- [docs/roadmap.md](docs/roadmap.md) — étapes dev → publication → install
+- [docs/diagram.md](docs/diagram.md) — schémas Mermaid workflow
+- [docs/skills/](docs/skills/) — specs détaillées par skill
 
 ## License
 
