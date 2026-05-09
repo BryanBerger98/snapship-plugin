@@ -61,7 +61,7 @@
         },
         "status": {
           "type": "string",
-          "enum": ["draft", "todo", "in_progress", "in_review", "done", "blocked", "skipped"]
+          "enum": ["draft", "todo", "in_progress", "in_review", "qa-validated", "done", "blocked", "skipped"]
         },
         "labels": {
           "type": "array",
@@ -83,6 +83,7 @@
             "required": ["text"],
             "additionalProperties": false,
             "properties": {
+              "ac_id": { "type": "string" },
               "text": { "type": "string" },
               "checked": { "type": "boolean", "default": false }
             }
@@ -126,8 +127,50 @@
           "format": "date-time"
         },
         "qa_validated_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "updated_at": {
           "type": "string",
           "format": "date-time"
+        },
+        "qa_cycles_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Compteur cycles dev↔qa (step-03)"
+        },
+        "qa_last_severity": {
+          "type": "string",
+          "enum": ["none", "info", "minor", "major", "critical"]
+        },
+        "qa_last_flaky_verdict": {
+          "type": "string",
+          "enum": ["real", "flaky", "inconclusive"]
+        },
+        "qa_blocked": {
+          "type": "boolean",
+          "description": "Vrai si step-03/04 a échoué (cycles épuisés ou retrigger fail)"
+        },
+        "qa_retriggered": {
+          "type": "boolean"
+        },
+        "qa_retrigger_severity": {
+          "type": "string",
+          "enum": ["none", "info", "minor", "major", "critical"]
+        },
+        "qa_retrigger_verdicts": {
+          "type": "object",
+          "description": "Verdicts des 3 reviewers post-QA (technical/functional/security)",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": ["none", "info", "minor", "major", "critical"]
+              },
+              "feedback_md": { "type": "string" }
+            }
+          }
         }
       }
     }

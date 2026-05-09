@@ -132,12 +132,12 @@ Ordre dépendances:
 ### 6.5 `/qa`
 
 - [x] step-00 → step-05
-- [ ] Régression scope=impacted via code-review-graph (fallback tests-only)
-- [ ] Wireframe check Playwright vs Frame0 PNG (structural-diff)
-- [ ] Subagent code-reviewer-qa + flaky detection
-- [ ] Cycle dev↔qa avec amend commit
-- [ ] Retrigger reviews opt-in (1 retrigger max)
-- [ ] Test E2E: ticket avec régression + wireframe gap
+- [x] Régression scope=impacted via code-review-graph (fallback tests-only)
+- [x] Wireframe check Playwright vs Frame0 PNG (structural-diff)
+- [x] Subagent code-reviewer-qa + flaky detection
+- [x] Cycle dev↔qa avec amend commit
+- [x] Retrigger reviews opt-in (1 retrigger max)
+- [x] Test E2E: ticket avec régression + wireframe gap
 
 **Sortie:** 5 skills passent E2E sur fixture project.
 
