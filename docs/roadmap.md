@@ -37,7 +37,7 @@ Ordre dépendances:
 2. [x] `setup-product-dir.sh` (init `.claude/product/`)
 3. [x] `update-index.sh` + `update-progress.sh` (state tracking)
 4. [x] `telemetry.sh` (NDJSON append + rotation)
-5. [ ] `ask-or-default.sh` (wrapper auto-mode)
+5. [x] `ask-or-default.sh` (wrapper auto-mode)
 6. [ ] `apply-naming.sh` (render templates branch/commit)
 7. [ ] `detect-test-commands.sh` (auto-detect test/lint)
 8. [ ] `check-mcp-required.sh` (validate MCPs + conflict resolution)
