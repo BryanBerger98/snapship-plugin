@@ -66,7 +66,7 @@ Ordre dépendances:
 - [x] `code-reviewer-functional` (AC, wireframes match, scope conformance)
 - [x] `code-reviewer-security` (OWASP, secrets, injection, auth, deps)
 - [x] `code-reviewer-qa` (interpret raw outputs, flaky detection, severity)
-- [ ] `developer` (applique aggregated_feedback)
+- [x] `developer` (applique aggregated_feedback)
 - [ ] Format retour JSON fence `{ severity, feedback_md }` (parse-able regex+jq)
 
 **Sortie:** agents testables isolément (input fixture → output JSON valide).
