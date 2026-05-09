@@ -52,7 +52,7 @@ Ordre dépendances:
 **Objectif:** abstraction MCP/CLI plateformes externes.
 
 - [ ] `docs-adapter.sh` — AFFiNE + Notion (get/create/apply-template/upload-blob/update/search)
-- [ ] `tickets-adapter.sh` — GitHub/GitLab/JIRA (create/get/update/comment/list)
+- [x] `tickets-adapter.sh` — GitHub/GitLab/JIRA (create/get/update/comment/list)
 - [ ] `frame0-helper.sh` — wrapper batch ops Frame0 MCP
 - [ ] Mode `--dry-run` env var respecté par tous adapters (write ops → log skip)
 

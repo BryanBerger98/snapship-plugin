@@ -60,6 +60,9 @@ jobs:
       - name: Test run-lifecycle-script.sh
         run: bash tests/test-run-lifecycle-script.sh
 
+      - name: Test tickets-adapter.sh
+        run: bash tests/test-tickets-adapter.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
