@@ -18,9 +18,15 @@ Bootstrap the artysan workspace and decide which path to follow.
 3. **Project root detection**: confirm `$PWD` is the project root (presence of
    `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, or `.git`).
    If not found, ask the user to confirm the path before proceeding.
-4. **Codebase detection**: set `has_codebase = true` if any of the manifest files above
-   exist OR `git rev-parse --is-inside-work-tree` succeeds AND there is at least one
-   tracked source file. Otherwise `has_codebase = false` (greenfield).
+4. **Codebase detection**: run `bash skills/_shared/detect-codebase.sh --project-root="$PWD"`
+   and parse the JSON verdict:
+   ```bash
+   verdict=$(bash skills/_shared/detect-codebase.sh --project-root="$PWD")
+   has_codebase=$(echo "$verdict" | jq -r '.has_codebase')
+   signals=$(echo "$verdict" | jq -r '.signals | join(", ")')
+   ```
+   Show `signals` to the user when announcing the chosen path so they can override
+   the heuristic if needed (e.g., "Detected codebase via: package.json, .git").
 5. **Scaffold** `.claude/product/` if missing:
    ```
    .claude/product/

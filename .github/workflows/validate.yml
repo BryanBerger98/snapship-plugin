@@ -75,6 +75,9 @@ jobs:
       - name: Test parse-agent-output.sh
         run: bash tests/test-parse-agent-output.sh
 
+      - name: Test detect-codebase.sh
+        run: bash tests/test-detect-codebase.sh
+
   shellcheck:
     name: Shell scripts
     runs-on: ubuntu-latest
