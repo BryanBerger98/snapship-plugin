@@ -9,7 +9,7 @@
 - [x] Init repo `artysan` (git, license MIT, README minimal)
 - [x] Créer arbo squelette: `skills/`, `agents/`, `skills/_shared/`, `skills/_shared/templates/`, `skills/_shared/schemas/`
 - [x] `.gitignore`: `_shared/telemetry.log*`, `.config-resolved.json`, `.qa-raw-*.json`
-- [x] `plugin.json` brouillon (name, version 0.1.0, paths)
+- [x] `plugin.json` brouillon (name, version 0.1.0, paths) — migration vers `.claude-plugin/plugin.json` en Phase 7 (schema officiel CC)
 - [x] CI minimal: lint shell (`shellcheck`), validate JSON Schemas (`ajv-cli`), markdown lint
 - [x] Structure docs `artysan/` copiée depuis ce dossier (source vérité)
 
@@ -143,20 +143,23 @@ Ordre dépendances:
 
 ## Phase 7 — Plugin manifest finalization
 
-**Objectif:** `plugin.json` final + métadonnées marketplace.
+**Objectif:** `.claude-plugin/plugin.json` final + structure conforme schema officiel Claude Code.
 
-- [ ] `plugin.json`: name, version, description, author, license, repo URL
-- [ ] Paths: `skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path`
-- [ ] Section `mcp_servers` (required + optional list)
-- [ ] Section `commands` (5 slash commands déclarés)
-- [ ] CHANGELOG.md (semver)
+- [ ] Migrer `plugin.json` racine → `.claude-plugin/plugin.json`
+- [ ] Champs requis schema CC: `name` (kebab-case), `version` (semver `MAJOR.MINOR.PATCH`), `description`, `author{name,email}`, `homepage`, `repository`, `license`, `keywords`
+- [ ] Déclarer paths: `skills`, `agents`, `commands` (relatifs racine plugin)
+- [ ] MCP servers: `.mcp.json` racine plugin (required + optional list)
+- [ ] Hooks: `hooks/hooks.json` (si nécessaire)
+- [ ] Validation: `claude plugin validate .` passe sans warning
+- [ ] Test install local: `/plugin marketplace add ./` → `/plugin install artysan@<local-name>`
+- [ ] CHANGELOG.md (Keep-a-Changelog, semver)
 - [ ] LICENSE + NOTICE (attributions community MCPs)
 
-**Sortie:** plugin chargeable via clone manuel `.claude/plugins/`.
+**Sortie:** plugin valide schema CC, installable manuellement, prêt marketplace.
 
 ## Phase 8 — Dogfooding
 
-**Objectif:** valider sur projet réel avant marketplace.
+**Objectif:** valider sur projet réel avant publication marketplace.
 
 - [ ] Choisir projet pilote (green-field idéal: app side-project user)
 - [ ] Run cycle complet `/define` → `/qa` sur 1-2 features réelles
@@ -171,7 +174,7 @@ Ordre dépendances:
 **Objectif:** docs install + usage public.
 
 - [ ] README.md repo (quickstart 5 min)
-- [ ] `docs/install.md` (marketplace + manuel + projet-scoped)
+- [ ] `docs/install.md` (marketplace `bryanberger` + clone manuel + projet-scoped)
 - [ ] `docs/getting-started.md` (premier `/define` walkthrough)
 - [ ] `docs/troubleshooting.md` (auth MCP, conflicts, resume)
 - [ ] `docs/configuration.md` (référence `artysan.config.json` complète)
@@ -180,43 +183,105 @@ Ordre dépendances:
 
 **Sortie:** user autonome install + premier run sans support.
 
-## Phase 10 — Publication marketplace
+## Phase 10 — Marketplace `bryanberger`
 
-**Objectif:** plugin discoverable via Claude Code marketplace officiel.
+**Objectif:** héberger artysan (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add bryanberger/claude-plugins`.
 
-- [ ] Submit plugin marketplace (process officiel CC)
-  - Repo public + tags semver
-  - `plugin.json` valide
-  - License OSI-approved
-- [ ] Tag release v0.1.0 (`git tag -a v0.1.0 -m "..."` + push)
-- [ ] GitHub Release notes (CHANGELOG.md extrait)
-- [ ] Annonce: README badge, social, communauté CC
-- [ ] Setup issue templates (bug, feature, question)
+> Claude Code n'a pas de marketplace centrale Anthropic — chaque créateur publie via un repo GitHub contenant `.claude-plugin/marketplace.json`. Nom `bryanberger` libre (pas dans la liste réservée: `claude-plugins-official`, `claude-code-marketplace`, `anthropic-marketplace`, `agent-skills`).
 
-**Sortie:** `/plugin install artysan` fonctionne sur CC user.
+### 10.1 Préparation plugin
+
+- [ ] Tag release `v0.1.0` sur repo plugin (`git tag -a v0.1.0 -m "..." && git push --tags`)
+- [ ] GitHub Release notes (extrait CHANGELOG.md)
+- [ ] Setup issue templates (`bug.yml`, `feature.yml`, `question.yml`) dans `.github/ISSUE_TEMPLATE/`
+
+### 10.2 Création marketplace repo
+
+- [ ] Créer repo public `bryanberger/claude-plugins` (license MIT, README quickstart)
+- [ ] Arbo:
+  ```
+  claude-plugins/
+  └── .claude-plugin/
+      └── marketplace.json
+  ```
+- [ ] `.claude-plugin/marketplace.json`:
+  ```json
+  {
+    "name": "bryanberger",
+    "owner": { "name": "Bryan Berger", "email": "contact@bryanberger.dev" },
+    "description": "Personal Claude Code plugins by Bryan Berger",
+    "version": "1.0.0",
+    "plugins": [
+      {
+        "name": "artysan",
+        "description": "Workflow produit 5 skills (define→ticket→wireframe→develop→qa)",
+        "source": {
+          "source": "github",
+          "repo": "BryanBerger98/artysan-plugin",
+          "ref": "v0.1.0"
+        },
+        "version": "0.1.0",
+        "author": { "name": "Bryan Berger", "email": "contact@bryanberger.dev" },
+        "homepage": "https://github.com/BryanBerger98/artysan-plugin",
+        "repository": "https://github.com/BryanBerger98/artysan-plugin",
+        "license": "MIT",
+        "keywords": ["workflow", "product-management", "tickets", "wireframes", "qa"]
+      }
+    ]
+  }
+  ```
+- [ ] Validation: `claude plugin validate .` passe sans warning
+- [ ] Test local end-to-end:
+  - `/plugin marketplace add ./claude-plugins`
+  - `/plugin install artysan@bryanberger`
+  - Vérifier 5 skills disponibles dans session Claude Code
+
+### 10.3 Publication
+
+- [ ] Push GitHub `bryanberger/claude-plugins` (public)
+- [ ] Test depuis machine vierge: `/plugin marketplace add bryanberger/claude-plugins`
+- [ ] README marketplace: badge install, lien artysan, instructions ajout marketplaces additionnels
+- [ ] CI workflow `validate-marketplace.yml`: `claude plugin validate .` sur push/PR
+- [ ] Auto-bump `marketplace.json` `ref`/`version` à chaque release artysan (script `bump-marketplace.sh` ou GitHub Action workflow_dispatch)
+
+### 10.4 Annonce
+
+- [ ] README artysan-plugin: badge install + lien marketplace
+- [ ] Annonce communauté CC (Discord / Reddit r/ClaudeAI / X)
+
+**Sortie:** `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install artysan@bryanberger` fonctionne sur n'importe quelle session Claude Code.
 
 ## Phase 11 — Install user-side (3 méthodes)
 
-### 11.1 Marketplace (recommandé)
+### 11.1 Marketplace `bryanberger` (recommandé)
 
 ```bash
 # Dans Claude Code session
-/plugin install artysan
+/plugin marketplace add bryanberger/claude-plugins
+/plugin install artysan@bryanberger
 # Skills + agents + scripts + schemas + templates copiés ~/.claude/
 ```
+
+Auto-update opt-in via `/plugin` → onglet Marketplaces.
 
 ### 11.2 Clone manuel global
 
 ```bash
-git clone https://github.com/<org>/artysan ~/.claude/plugins/artysan
+git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
 # Plugin auto-loaded au prochain démarrage CC
 ```
 
-### 11.3 Projet-scoped
+### 11.3 Projet-scoped (équipe)
 
 ```bash
-git clone https://github.com/<org>/artysan .claude/plugins/artysan
-# Activé uniquement dans ce projet
+# Dans repo projet, ajouter à .claude/settings.json:
+{
+  "extraKnownMarketplaces": {
+    "bryanberger": { "source": { "source": "github", "repo": "bryanberger/claude-plugins" } }
+  },
+  "enabledPlugins": { "artysan@bryanberger": true }
+}
+# Membres équipe: prompt install au prochain démarrage CC dans le projet
 ```
 
 ### 11.4 Setup premier projet
@@ -246,6 +311,7 @@ claude
 - [ ] Minor releases (v0.2+) — nouvelles features (templates additionnels, nouveaux adapters platforms)
 - [ ] Major release (v1.0) — API stable, breaking changes documentés
 - [ ] Compatibilité MCP versions (track upstream changes affine/frame0/playwright)
+- [ ] Sync `bryanberger/claude-plugins` `marketplace.json` à chaque release artysan (`ref` → nouveau tag, `version` bumpée)
 
 **Sortie:** plugin maintenu, communauté contribue (PRs).
 
@@ -258,11 +324,11 @@ claude
 | 4        | Chaque agent retourne JSON valide sur fixture input                          |
 | 5        | Templates render sans erreur avec vars sample                                |
 | 6        | E2E test suite passe par skill (mock MCP + real MCP)                         |
-| 7        | `plugin.json` valide CC marketplace schema                                   |
+| 7        | `claude plugin validate .` passe sur `.claude-plugin/plugin.json`            |
 | 8        | 1 feature complète shipped via artysan en dogfood                            |
 | 9        | User non-impliqué installe + run premier `/define` sans aide                 |
-| 10       | Plugin listé marketplace, install command fonctionne                         |
-| 11       | 3 méthodes install testées (marketplace + clone global + projet)             |
+| 10       | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
+| 11       | 3 méthodes install testées (marketplace bryanberger + clone global + projet) |
 | 12       | Cadence release tenue, telemetry-driven priorities                           |
 
 ## Estimation effort (indicatif)
@@ -280,11 +346,11 @@ claude
 | 6.3   | 1j             | frame0-helper ready                    |
 | 6.4   | 3j             | Phase 2 review cycle complexe          |
 | 6.5   | 2j             | code-review-graph + Playwright tests   |
-| 7     | 0.5j           | -                                      |
+| 7     | 0.5j           | Migration `.claude-plugin/` schema     |
 | 8     | 2j             | Bugs prod réels                        |
 | 9     | 1.5j           | Screencast prod                        |
-| 10    | 0.5j           | Process marketplace CC                 |
+| 10    | 1j             | Repo `bryanberger/claude-plugins` + CI |
 | 11    | 0.5j           | -                                      |
 | 12    | continu        | Bandwidth maintainer                   |
 
-**Total v0.1.0:** ~22-25j dev focus.
+**Total v0.1.0:** ~22-25j dev focus (≈ +0.5j vs avant pour setup marketplace `bryanberger`).
