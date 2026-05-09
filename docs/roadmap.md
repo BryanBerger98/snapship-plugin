@@ -43,7 +43,7 @@ Ordre dépendances:
 8. [x] `check-mcp-required.sh` (validate MCPs + conflict resolution)
 9. [x] `detect-platforms.sh` (runtime check auth)
 10. [x] `setup-config.sh` (interactive wizard initial)
-11. [ ] `run-lifecycle-script.sh` (custom hooks workflow)
+11. [x] `run-lifecycle-script.sh` (custom hooks workflow)
 
 **Sortie:** scripts unitaires testables (`bats` shell tests recommandé).
 
