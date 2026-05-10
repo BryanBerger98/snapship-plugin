@@ -17,9 +17,9 @@
     "http_url": "https://github.com/org/repo.git",
     "ssh_url": "git@github.com:org/repo.git",
     "default_branch": "main",
-    "protected_branches": ["main", "develop"],   // refuse commit/push direct
-    "pr_template_path": ".github/pull_request_template.md"
+    "protected_branches": ["main", "develop"]   // refuse commit/push direct
     // merge_method dropé v1 — user merge PR manuellement post-création
+    // `pr_template_path` retiré — utiliser `templates.pr` (cf. section `templates`)
   },
   "tickets": {
     "platform": "jira",                    // github | gitlab | jira | inherit
@@ -135,6 +135,19 @@
     // Valeur = path script exécutable (recoit context JSON sur stdin).
     // Exemple:
     // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
+  },
+  "templates": {                           // override par catégorie (cf. docs/templates.md)
+    "tickets": {
+      "user_story": null,                  // ex: ".claude/templates/my-user-story.md"
+      "bug":         null,
+      "epic":        null
+    },
+    "pr":                  null,           // ex: ".claude/templates/my-pr.md"
+    "review_thread":       null,           // commentaire posté sur PR/MR (best-effort)
+    "aggregated_feedback": null            // blob interne fix-loop /develop
+    // Tous null par défaut → fallback bundlé `_shared/templates/...`
+    // Chemin relatif → résolu depuis project root. Absolu → tel quel.
+    // Override pointant vers fichier inexistant → resolve-template.sh exit 2.
   },
   "defaults": {
     "lang": "fr",                          // fr | en

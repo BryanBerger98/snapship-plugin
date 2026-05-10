@@ -97,6 +97,16 @@ DEFAULTS=$(cat <<'JSON'
     }
   },
   "lifecycle_scripts": {},
+  "templates": {
+    "tickets": {
+      "user_story": null,
+      "bug": null,
+      "epic": null
+    },
+    "pr": null,
+    "review_thread": null,
+    "aggregated_feedback": null
+  },
   "defaults": {
     "lang": "fr",
     "auto_mode": false,

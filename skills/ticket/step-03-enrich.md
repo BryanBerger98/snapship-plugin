@@ -74,10 +74,24 @@ Return: <≤ 200 words, the specific format>
    }
    ```
 
-4. **Update draft file** in-place:
+4. **Classify ticket type** — for each story, set `type ∈ {user-story, bug, epic}`
+   based on title + AC + scope. Default `user-story`. Heuristic prompt for the
+   enrichment agent (or local rule-based classifier):
+
+   - **bug** — title contains "fix"/"bug"/"regression"/"crash"/"broken"; AC reads
+     like "should no longer …" / "stops failing when …"; story restores prior
+     behavior rather than adding capability.
+   - **epic** — story aggregates ≥ 3 child stories explicitly listed; spans ≥ 2
+     domains; `expected_files` empty or extremely broad ("multiple modules").
+   - **user-story** — anything else (default).
+
+   Persist `type` on each story before format step. step-04 reads it to pick the
+   right template.
+
+5. **Update draft file** in-place:
    `.claude/product/features/${feature_id}/.tickets-draft.json`.
 
-5. **Append progress**:
+6. **Append progress**:
    ```bash
    bash skills/_shared/update-progress.sh \
      --project-root="$PWD" \
@@ -98,6 +112,7 @@ Return: <≤ 200 words, the specific format>
 ## Acceptance check
 
 - Every story has a `context` block (possibly with empty fields).
+- Every story has `type ∈ {user-story, bug, epic}`.
 
 ## Next step
 

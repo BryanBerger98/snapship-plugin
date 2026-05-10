@@ -27,7 +27,7 @@ mk_gh_stub() {
   mkdir -p "$(dirname "$path")"
   cat > "$path" <<'STUB'
 #!/usr/bin/env bash
-# arg0 = issue, arg1 = subcommand
+# arg0 = issue|pr, arg1 = subcommand
 case "${1:-}-${2:-}" in
   issue-create)
     echo "https://github.com/o/r/issues/42"
@@ -42,6 +42,9 @@ JSON
     ;;
   issue-comment)
     echo "https://github.com/o/r/issues/42#issuecomment-1"
+    ;;
+  pr-comment)
+    echo "https://github.com/o/r/pull/99#issuecomment-7"
     ;;
   issue-close|issue-reopen)
     echo "ok"
@@ -78,6 +81,9 @@ JSON
     ;;
   issue-note)
     echo "noted"
+    ;;
+  mr-note)
+    echo "mr-noted"
     ;;
   issue-close|issue-reopen)
     echo "ok"
@@ -356,6 +362,85 @@ echo ""
 echo "[28] update requires --ticket-id"
 bash "$SCRIPT" --action=update --platform=github --title="x" >/dev/null 2>&1
 [ $? -eq 2 ] && ok "28.1 missing ticket-id exit 2" || ko "28.1"
+
+# --- comment-pr ----------------------------------------------------------
+
+echo ""
+echo "[29] dry-run comment-pr github"
+out=$(bash "$SCRIPT" --action=comment-pr --platform=github --pr-id=99 --comment="hi" --dry-run)
+[ $? -eq 0 ]                                                  && ok "29.1 exit 0"            || ko "29.1"
+[ "$(echo "$out" | jq -r '.mode')" = "dry-run" ]              && ok "29.2 mode dry-run"      || ko "29.2"
+[ "$(echo "$out" | jq -r '.action')" = "comment-pr" ]         && ok "29.3 action"            || ko "29.3"
+[ "$(echo "$out" | jq -r '.result.pr_id')" = "99" ]           && ok "29.4 pr_id"             || ko "29.4"
+[ "$(echo "$out" | jq -r '.result.comment')" = "hi" ]         && ok "29.5 comment text"      || ko "29.5"
+
+echo ""
+echo "[30] github comment-pr via mock gh"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment-pr --platform=github --pr-id=99 --comment="hi")
+rc=$?
+[ $rc -eq 0 ]                                                                              && ok "30.1 exit 0"     || ko "30.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.mode')" = "cli" ]                                               && ok "30.2 mode cli"   || ko "30.2"
+[ "$(echo "$out" | jq -r '.result.pr_id')" = "99" ]                                        && ok "30.3 pr_id"      || ko "30.3"
+[ "$(echo "$out" | jq -r '.result.comment_url')" = "https://github.com/o/r/pull/99#issuecomment-7" ] \
+                                                                                           && ok "30.4 comment_url" || ko "30.4"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[31] gitlab comment-pr via mock glab (mr note)"
+TMP=$(mktemp -d)
+mk_glab_stub "$TMP/glab"
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=comment-pr --platform=gitlab --pr-id=99 --comment="hi")
+rc=$?
+[ $rc -eq 0 ]                                              && ok "31.1 exit 0"      || ko "31.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.result.pr_id')" = "99" ]        && ok "31.2 pr_id"       || ko "31.2"
+[ "$(echo "$out" | jq -r '.result.comment')" = "true" ]    && ok "31.3 comment ok"  || ko "31.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[32] jira comment-pr → not_supported (exit 1)"
+out=$(bash "$SCRIPT" --action=comment-pr --platform=jira --pr-id=99 --comment="hi" 2>&1)
+rc=$?
+[ $rc -eq 1 ]                                                                && ok "32.1 exit 1"            || ko "32.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.ok')" = "false" ]                                 && ok "32.2 ok=false"          || ko "32.2"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ]                      && ok "32.3 error"             || ko "32.3"
+echo "$out" | jq -r '.reason' | grep -q "jira platform has no PR concept"    && ok "32.4 reason mentions PR" || ko "32.4"
+
+echo ""
+echo "[33] comment-pr requires --pr-id"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment-pr --platform=github --comment="hi" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "33.1 missing pr-id exit 2" || ko "33.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[34] comment-pr requires comment text or --body-file"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment-pr --platform=github --pr-id=99 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "34.1 missing comment text exit 2" || ko "34.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[35] comment-pr --body-file resolution"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+echo "review verdict here" > "$TMP/body.md"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment-pr --platform=github --pr-id=99 --body-file="$TMP/body.md" --dry-run)
+[ "$(echo "$out" | jq -r '.result.comment')" = "review verdict here" ] && ok "35.1 body-file → comment" || ko "35.1"
+
+# missing body-file → exit 2
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment-pr --platform=github --pr-id=99 --body-file="$TMP/missing.md" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "35.2 missing body-file exit 2" || ko "35.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[36] jira comment-pr — MCP descriptor path NOT taken (early reject)"
+out=$(bash "$SCRIPT" --action=comment-pr --platform=jira --pr-id=99 --comment="hi" 2>&1)
+echo "$out" | jq -e '.descriptor' >/dev/null 2>&1
+[ $? -ne 0 ] && ok "36.1 no descriptor field" || ko "36.1 descriptor leaked"
 
 unset TMP
 

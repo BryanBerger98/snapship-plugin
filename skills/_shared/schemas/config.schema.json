@@ -23,6 +23,7 @@
     "develop": { "$ref": "#/$defs/develop" },
     "qa": { "$ref": "#/$defs/qa" },
     "lifecycle_scripts": { "$ref": "#/$defs/lifecycle_scripts" },
+    "templates": { "$ref": "#/$defs/templates" },
     "defaults": { "$ref": "#/$defs/defaults" }
   },
   "$defs": {
@@ -46,8 +47,7 @@
           "type": "array",
           "items": { "type": "string" },
           "default": ["main"]
-        },
-        "pr_template_path": { "type": "string" }
+        }
       }
     },
     "tickets": {
@@ -144,8 +144,8 @@
         "templates": {
           "type": "object",
           "additionalProperties": { "type": "string" },
+          "description": "Page IDs (AFFiNE/Notion) of pre-pushed doc templates. Distinct from top-level `templates` which override bundled markdown.",
           "properties": {
-            "prd_global": { "type": "string" },
             "prd_feature": { "type": "string" },
             "wireframes_gallery": { "type": "string" }
           }
@@ -155,7 +155,6 @@
           "type": "object",
           "additionalProperties": { "type": "string" },
           "properties": {
-            "prd_global": { "type": "string" },
             "prd_feature": { "type": "string" },
             "wireframes_gallery": { "type": "string" }
           }
@@ -355,6 +354,38 @@
         "post_develop": { "type": "string" },
         "pre_qa": { "type": "string" },
         "post_qa": { "type": "string" }
+      }
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Override paths to user-customized markdown templates. Path is relative to project root (or absolute). Null/absent = bundled default in skills/_shared/templates/.",
+      "properties": {
+        "tickets": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Per-ticket-type overrides. Each key resolves against `tickets.platform` to pick the file.",
+          "properties": {
+            "user_story": { "type": ["string", "null"], "default": null },
+            "bug":        { "type": ["string", "null"], "default": null },
+            "epic":       { "type": ["string", "null"], "default": null }
+          }
+        },
+        "pr": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Override PR/MR body template. Resolved against `repository.platform` (github|gitlab) when null. Replaces legacy `repository.pr_template_path`."
+        },
+        "review_thread": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Override template posted as PR/MR/ticket comment by /develop after each review cycle."
+        },
+        "aggregated_feedback": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Override internal markdown blob consumed by the dev agent during /develop Phase 2 fix loop."
+        }
       }
     },
     "defaults": {

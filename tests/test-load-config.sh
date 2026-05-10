@@ -227,6 +227,50 @@ assert_eq "12.3 auto_update_mode user" "rewrite" "$(echo "$out" | jq -r '.docume
 assert_eq "12.4 auto_update_on_qa_success user" "false" "$(echo "$out" | jq -r '.documentation.auto_update_on_qa_success')"
 trash "$DIR" 2>/dev/null || true
 
+# 13. templates defaults — null when not set
+echo ""
+echo "[13] templates defaults injection"
+DIR=$(setup_dir)
+cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+assert_eq "13.1 templates.tickets.user_story default null" "null" "$(echo "$out" | jq '.templates.tickets.user_story')"
+assert_eq "13.2 templates.tickets.bug default null"        "null" "$(echo "$out" | jq '.templates.tickets.bug')"
+assert_eq "13.3 templates.tickets.epic default null"       "null" "$(echo "$out" | jq '.templates.tickets.epic')"
+assert_eq "13.4 templates.pr default null"                 "null" "$(echo "$out" | jq '.templates.pr')"
+assert_eq "13.5 templates.review_thread default null"      "null" "$(echo "$out" | jq '.templates.review_thread')"
+assert_eq "13.6 templates.aggregated_feedback default null" "null" "$(echo "$out" | jq '.templates.aggregated_feedback')"
+trash "$DIR" 2>/dev/null || true
+
+# 14. templates user override preserved
+echo ""
+echo "[14] templates user override preserved"
+DIR=$(setup_dir)
+cat > "${DIR}/snapship.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "templates": {
+    "tickets": { "user_story": "custom/us.md", "bug": "custom/bug.md" },
+    "pr": "custom/pr.md"
+  }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+assert_eq "14.1 user_story override"   "custom/us.md"  "$(echo "$out" | jq -r '.templates.tickets.user_story')"
+assert_eq "14.2 bug override"          "custom/bug.md" "$(echo "$out" | jq -r '.templates.tickets.bug')"
+assert_eq "14.3 epic still null"       "null"          "$(echo "$out" | jq '.templates.tickets.epic')"
+assert_eq "14.4 pr override"           "custom/pr.md"  "$(echo "$out" | jq -r '.templates.pr')"
+assert_eq "14.5 review_thread null"    "null"          "$(echo "$out" | jq '.templates.review_thread')"
+trash "$DIR" 2>/dev/null || true
+
+# 15. invalid templates → schema rejection
+echo ""
+echo "[15] invalid templates rejected"
+DIR=$(setup_dir)
+cp "${INVALID}/bad-templates.json" "${DIR}/snapship.config.json"
+bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
+assert_exit "15.1 bad-templates exit 1" 1 $?
+trash "$DIR" 2>/dev/null || true
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

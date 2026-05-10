@@ -224,12 +224,41 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #   - create <ticket_json>                 → id + url
 #   - get <id>                             → ticket_json
 #   - update <id> <fields_json>
-#   - comment <id> <text>
+#   - comment <id> <text>                          (commente un ticket/issue)
+#   - comment-pr --pr-id=N (--comment | --body-file=PATH) (github/gitlab uniquement —
+#                                                  jira renvoie not_supported exit 1)
 #   - list <feature_query>                 → array
+#   - list-prs --branch=<name>             → existant PR pour la branche (idempotent push)
+#   - update-pr / create-pr                → CRUD PR
 # Implémentations:
 #   - github: gh CLI ou MCP github
 #   - gitlab: glab CLI ou MCP gitlab
 #   - jira: jira CLI ou MCP atlassian
+# --body-file: lu dans COMMENT_TEXT si --comment vide (utile pour rendered review-thread).
+```
+
+## resolve-template.sh
+
+```bash
+# Résout chemin template (user override > bundlé). Sortie: chemin absolu sur stdout.
+# args:
+#   --kind=ticket|pr|review-thread|aggregated-feedback (REQUIS)
+#   --type=user-story|bug|epic                          (REQUIS si kind=ticket)
+#   --platform=github|gitlab|jira|default               (REQUIS pour ticket / pr / review-thread;
+#                                                        pr accepte aussi 'default')
+#   --project-root=PATH                                 (défaut: $PWD ou $SNAP_PROJECT_ROOT)
+# Lecture: load-config.sh (--no-validate) → templates.<key> selon kind.
+#   ticket           → templates.tickets.<type>     (user_story|bug|epic)
+#   pr               → templates.pr
+#   review-thread    → templates.review_thread
+#   aggregated-feedback → templates.aggregated_feedback
+# Override:
+#   - non-null + chemin relatif → résolu depuis project-root
+#   - non-null + chemin absolu  → tel quel
+#   - non-null + fichier absent → exit 2 (échec explicite)
+#   - null/absent               → fallback bundlé `_shared/templates/...`
+#   - bundlé absent             → exit 2
+# Exit codes: 0 succès | 1 args invalides | 2 fichier introuvable
 ```
 
 ## telemetry.sh

@@ -1,0 +1,2 @@
+## Review thread override
+{{verdict}}

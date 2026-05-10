@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 # tickets-adapter.sh — abstraction over GitHub / GitLab / JIRA tickets.
 #
-# Actions: create | get | update | comment | list
+# Actions: create | get | update | comment | comment-pr | list
 #
 # Platform routing:
 #   - github → shells out to `gh` CLI
 #   - gitlab → shells out to `glab` CLI
 #   - jira   → emits MCP descriptor on stdout, exits 10 (skill executes call)
 #
-# Dry-run: write actions (create/update/comment) skip the underlying call,
-# log to telemetry, and return a mock success result. Reads (get/list) run
-# normally even with dry-run set.
+# Dry-run: write actions (create/update/comment/comment-pr) skip the underlying
+# call, log to telemetry, and return a mock success result. Reads (get/list)
+# run normally even with dry-run set.
+#
+# `comment-pr` semantics:
+#   - github: `gh pr comment <PR-ID>`. Plain comment (not a code review).
+#   - gitlab: `glab mr note <MR-ID>`. MR-level comment.
+#   - jira:   no PR concept — caller must redirect to `comment` on the parent
+#             ticket. Adapter exits 1 with `not_supported` for jira; the skill
+#             handles that by falling back to per-ticket comments.
 #
 # Output JSON shapes:
 #   ok:   {"ok":true, "mode":"cli|mcp|dry-run", "action":..., "platform":..., "result":{...}}
@@ -33,6 +40,8 @@ ASSIGNEES_CSV=""
 STATE=""
 LIMIT="50"
 COMMENT_TEXT=""
+PR_ID=""
+BODY_FILE=""
 DRY_RUN="${SNAP_DRY_RUN:-false}"
 MODE="auto"
 
@@ -40,26 +49,29 @@ usage() {
   cat <<EOF
 Usage: tickets-adapter.sh --action=ACTION [OPTIONS]
 
-Actions: create | get | update | comment | list
+Actions: create | get | update | comment | comment-pr | list
 
 Required per action:
-  create   --title (--body, --labels, --assignees optional)
-  get      --ticket-id
-  update   --ticket-id (any of --title/--body/--labels/--state)
-  comment  --ticket-id --comment
-  list     (--state, --labels, --assignees, --limit optional)
+  create      --title (--body, --labels, --assignees optional)
+  get         --ticket-id
+  update      --ticket-id (any of --title/--body/--labels/--state)
+  comment     --ticket-id (--comment | --body-file)
+  comment-pr  --pr-id (--comment | --body-file)   github/gitlab only
+  list        (--state, --labels, --assignees, --limit optional)
 
 Options:
   --platform=github|gitlab|jira  Override config.tickets.platform
   --project-root=PATH            Project root (default: \$PWD)
   --ticket-id=ID                 Platform ID (e.g., 42, PROJ-3)
+  --pr-id=ID                     PR/MR number for comment-pr
   --title=TEXT
   --body=TEXT
+  --body-file=PATH               Read body/comment from file (mutually exclusive with --comment)
   --labels=CSV
   --assignees=CSV
   --state=open|closed
   --limit=N                      For list (default 50)
-  --comment=TEXT                 For comment action
+  --comment=TEXT                 For comment / comment-pr actions
   --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   --mode=auto|cli|mcp            Force routing (default auto)
   -h, --help                     Show this help
@@ -79,6 +91,8 @@ while [ $# -gt 0 ]; do
     --state=*)         STATE="${1#--state=}" ;;
     --limit=*)         LIMIT="${1#--limit=}" ;;
     --comment=*)       COMMENT_TEXT="${1#--comment=}" ;;
+    --pr-id=*)         PR_ID="${1#--pr-id=}" ;;
+    --body-file=*)     BODY_FILE="${1#--body-file=}" ;;
     --dry-run)         DRY_RUN="true" ;;
     --mode=*)          MODE="${1#--mode=}" ;;
     -h|--help)         usage; exit 0 ;;
@@ -91,9 +105,15 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 [ -z "$ACTION" ] && { echo "ERROR: --action required" >&2; exit 2; }
 
 case "$ACTION" in
-  create|get|update|comment|list) ;;
+  create|get|update|comment|comment-pr|list) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
+
+# Resolve --body-file → COMMENT_TEXT for comment / comment-pr
+if [ -n "$BODY_FILE" ] && [ -z "$COMMENT_TEXT" ]; then
+  [ -f "$BODY_FILE" ] || { echo "ERROR: --body-file not found: $BODY_FILE" >&2; exit 2; }
+  COMMENT_TEXT=$(cat "$BODY_FILE")
+fi
 
 case "$MODE" in auto|cli|mcp) ;; *) echo "ERROR: bad --mode: $MODE" >&2; exit 2 ;; esac
 
@@ -138,13 +158,14 @@ if [ "$DRY_RUN" = "true" ] && [ "$ACTION" != "get" ] && [ "$ACTION" != "list" ];
   MOCK=$(jq -nc \
     --arg act "$ACTION" \
     --arg pid "${TICKET_ID:-DRY-0}" \
+    --arg pr_id "${PR_ID:-}" \
     --arg title "$TITLE" \
     --arg body "$BODY" \
     --arg state "${STATE:-open}" \
     --arg comment "$COMMENT_TEXT" \
     --argjson labels    "$(csv_to_array "$LABELS_CSV")" \
     --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" '
-    {dry_run:true, action:$act, platform_id:$pid, title:$title, body:$body, state:$state,
+    {dry_run:true, action:$act, platform_id:$pid, pr_id:$pr_id, title:$title, body:$body, state:$state,
      comment:$comment, labels:$labels, assignees:$assignees}')
   ok_result "dry-run" "$MOCK"
   exit 0
@@ -157,6 +178,7 @@ emit_mcp_descriptor() {
     --arg act "$ACTION" \
     --arg plat "$PLATFORM" \
     --arg pid  "$TICKET_ID" \
+    --arg pr_id "$PR_ID" \
     --arg title "$TITLE" \
     --arg body  "$BODY" \
     --arg state "$STATE" \
@@ -171,6 +193,7 @@ emit_mcp_descriptor() {
         params: (
           {}
           | if $pid     != "" then .ticket_id = $pid     else . end
+          | if $pr_id   != "" then .pr_id     = $pr_id   else . end
           | if $title   != "" then .title     = $title   else . end
           | if $body    != "" then .body      = $body    else . end
           | if $state   != "" then .state     = $state   else . end
@@ -184,6 +207,11 @@ emit_mcp_descriptor() {
   echo "$result"
   exit 10
 }
+
+if [ "$ACTION" = "comment-pr" ] && [ "$PLATFORM" = "jira" ]; then
+  jq -nc '{ok:false, error:"not_supported", reason:"jira platform has no PR concept; use action=comment on the parent ticket instead"}'
+  exit 1
+fi
 
 if [ "$MODE" = "mcp" ] || [ "$PLATFORM" = "jira" ]; then
   emit_mcp_descriptor
@@ -272,6 +300,14 @@ run_github() {
       jq -nc --arg pid "$TICKET_ID" --arg url "$out" '{platform_id:$pid, comment_url:$url}' \
         | { read -r r; ok_result "cli" "$r"; }
       ;;
+    comment-pr)
+      need "$PR_ID" "pr-id required for comment-pr"
+      need "$COMMENT_TEXT" "comment text or --body-file required"
+      local out; out=$("$bin" pr comment "$PR_ID" --body "$COMMENT_TEXT" 2>&1) \
+        || { err_out "gh pr comment failed: $out"; exit 1; }
+      jq -nc --arg pid "$PR_ID" --arg url "$out" '{pr_id:$pid, comment_url:$url}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
     list)
       local fields="number,url,title,body,state,labels,assignees"
       local args=(issue list --json "$fields" --limit "$LIMIT")
@@ -336,6 +372,14 @@ run_gitlab() {
       local out; out=$("$bin" issue note "$TICKET_ID" --message "$COMMENT_TEXT" 2>&1) \
         || { err_out "glab comment failed: $out"; exit 1; }
       jq -nc --arg pid "$TICKET_ID" '{platform_id:$pid, comment:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    comment-pr)
+      need "$PR_ID" "pr-id required for comment-pr"
+      need "$COMMENT_TEXT" "comment text or --body-file required"
+      local out; out=$("$bin" mr note "$PR_ID" --message "$COMMENT_TEXT" 2>&1) \
+        || { err_out "glab mr note failed: $out"; exit 1; }
+      jq -nc --arg pid "$PR_ID" '{pr_id:$pid, comment:true}' \
         | { read -r r; ok_result "cli" "$r"; }
       ;;
     list)

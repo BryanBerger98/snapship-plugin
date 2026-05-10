@@ -124,17 +124,19 @@ JSON
   [ "$draft_count" = "2" ] && ok "${platform}.02 decompose drafted 2 stories" || ko "${platform}.02" "got $draft_count"
   bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=02 --step-name=decompose --status=ok --skill=ticket >/dev/null
 
-  # step-03: enrich — stub a context block on each story
-  jq 'map(. + {context: {codebase: "auth/index.ts:42 has createUser", docs: "", web: []}})' \
+  # step-03: enrich — stub context block + ticket type on each story
+  jq 'map(. + {context: {codebase: "auth/index.ts:42 has createUser", docs: "", web: []}, type: "user-story"})' \
     "$DIR/.claude/product/features/01-auth/.tickets-draft.json" \
     > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$DIR/.claude/product/features/01-auth/.tickets-draft.json"
-  enriched=$(jq '[.[] | select(.context != null)] | length' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
+  enriched=$(jq '[.[] | select(.context != null and .type != null)] | length' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
   [ "$enriched" = "2" ] && ok "${platform}.03 enrichment populated context" || ko "${platform}.03" "got $enriched"
   bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=03 --step-name=enrich --status=ok --skill=ticket >/dev/null
 
-  # step-04: format using ticket-${platform}.md
-  local tpl="${ROOT}/skills/_shared/templates/ticket-${platform}.md"
-  if [ ! -f "$tpl" ]; then
+  # step-04: format — resolve template via resolve-template.sh (kind=ticket type=user-story)
+  local tpl
+  tpl=$(SNAP_PROJECT_ROOT="$DIR" bash "${ROOT}/skills/_shared/resolve-template.sh" \
+    --kind=ticket --type=user-story --platform="${platform}" --project-root="$DIR" 2>/dev/null) || tpl=""
+  if [ -z "$tpl" ] || [ ! -f "$tpl" ]; then
     ko "${platform}.04 template missing" "$tpl"
     return
   fi

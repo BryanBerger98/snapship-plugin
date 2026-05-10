@@ -180,8 +180,12 @@ Variables injectées par step-03c: `{{FEATURE_ID}}`. User edit `MAX` ou ajoute c
 
 - Push branch (commits atomiques par ticket déjà créés step-03a/b)
 - Update ticket plateforme: `tickets-adapter.sh update <id> {status: done}` + `comment <id> "Resolved by {pr_url}"`
-- Crée PR/MR via `tickets-adapter.sh` (gh/glab) avec template `repository.pr_template_path`
-  - Fallback: si fichier absent → utilise `_shared/templates/pr-default.md` bundlé (sections Summary / Test plan / Tickets liés). Log warning.
+- Crée PR/MR via `tickets-adapter.sh` (gh/glab) avec template résolu via
+  `_shared/resolve-template.sh --kind=pr --platform=$repository.platform`
+  (override `templates.pr` > bundlé `_shared/templates/pr/{platform}.md`).
+- Post review-thread (best-effort) — rendu via `templates.review_thread` resolved,
+  posté via `tickets-adapter.sh comment-pr` (github/gitlab uniquement;
+  jira renvoie not_supported, log warn et continue).
 - Pas d'auto-merge configuré côté skill (v1) — user merge PR manuellement après review humaine
 - Update `index.md` état: `developed`
 

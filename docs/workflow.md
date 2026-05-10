@@ -96,7 +96,8 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
   │              · early stop si TOUS types < seuil (premier batch clean accepté)
   │  → 1 commit atomique par ticket (amend si fixes Phase 2)
   └─ step-04: push commits + sync ticket + crée PR/MR
-              (template `repository.pr_template_path` ou fallback `_shared/templates/pr-default.md`)
+              (template `templates.pr` user override > bundlé `_shared/templates/pr/{platform}.md`)
+              + post review-thread (commentaire PR rendu via `templates.review_thread`)
 
 /qa  (skill séparée — validation runtime)
   ├─ step-00: charge meta.json + tickets.json + détermine diff scope (commits ticket/feature)

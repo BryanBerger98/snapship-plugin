@@ -57,9 +57,20 @@ blocked = any(reviewer.severity >= reviewer.severity_threshold)
 
 ### Cycle loop
 
-1. If `blocked == false` → Phase 2 OK, proceed to commit.
+1. If `blocked == false` → Phase 2 OK, proceed to commit (also save the rendered
+   review-thread payload for step-04 to post on the PR).
 2. If `blocked == true` and cycles_used < `review_cycles_max`:
-   - Concatenate `feedback_md` from blocking reviewers → `aggregated_feedback`.
+   - Build the review context JSON (per-reviewer severity + threshold +
+     blocking + findings grouped by file + cross-cutting + suggested fix
+     order) from the three reviewer outputs.
+   - Render `aggregated_feedback` via the resolved template (user override >
+     bundled `aggregated-feedback.md`):
+     ```bash
+     agg_tpl=$(bash skills/_shared/resolve-template.sh \
+       --kind=aggregated-feedback --project-root="$PWD")
+     aggregated_feedback=$(bash skills/_shared/render-template.sh \
+       --template="$agg_tpl" --vars="$review_context_json")
+     ```
    - Spawn `developer` agent (write tools enabled) with
      `{aggregated_feedback, diff, ticket, conventions, repo_root}`.
    - Re-run Phase 2 (3 reviewers parallel, fresh).

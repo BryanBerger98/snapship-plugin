@@ -5,8 +5,7 @@
     "http_url": "https://github.com/org/repo.git",
     "ssh_url": "git@github.com:org/repo.git",
     "default_branch": "main",
-    "protected_branches": ["main", "develop"],
-    "pr_template_path": ".github/pull_request_template.md"
+    "protected_branches": ["main", "develop"]
   },
   "tickets": {
     "platform": "jira",
@@ -36,13 +35,11 @@
       "root_page_id": "page-xyz"
     },
     "templates": {
-      "prd_global": "tpl-1",
       "prd_feature": "tpl-2",
       "wireframes_gallery": "tpl-3"
     },
     "auto_publish": true,
     "page_naming": {
-      "prd_global": "PRD - {product_name}",
       "prd_feature": "{feature_id} - {feature_name}",
       "wireframes_gallery": "Wireframes - {feature_name}"
     }

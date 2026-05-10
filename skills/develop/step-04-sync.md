@@ -33,12 +33,43 @@ existing_pr=$(bash skills/_shared/tickets-adapter.sh \
   --branch="$branch" --project-root="$PWD")
 ```
 
-- Existing → update body via `--action=update-pr` (re-rendered from
-  `templates/pr-${platform}.md` with current ticket list).
-- None → create via `--action=create-pr` with title from feature_title +
-  body listing every ticket processed.
+Resolve the PR template (user override > bundled, per platform):
 
-### C. Per-ticket platform update
+```bash
+pr_tpl=$(bash skills/_shared/resolve-template.sh \
+  --kind=pr --platform="$platform" --project-root="$PWD")
+pr_body=$(bash skills/_shared/render-template.sh \
+  --template="$pr_tpl" --context=".develop-pr-context-${run_id}.json")
+```
+
+- Existing → update body via `--action=update-pr` with the rendered body.
+- None → create via `--action=create-pr` with title from feature_title +
+  rendered body listing every ticket processed.
+
+### C. Post review thread (best-effort)
+
+After PR exists, post the structured review thread (rendered from the
+`review-thread/${platform}.md` template) as a comment so humans can read the
+review verdict inline:
+
+```bash
+review_tpl=$(bash skills/_shared/resolve-template.sh \
+  --kind=review-thread --platform="$platform" --project-root="$PWD")
+review_body=$(bash skills/_shared/render-template.sh \
+  --template="$review_tpl" --context=".develop-review-context-${run_id}.json")
+
+bash skills/_shared/tickets-adapter.sh \
+  --action=comment-pr --platform="$platform" \
+  --pr-id="$pr_id" --body-file=<(printf '%s' "$review_body") \
+  --project-root="$PWD" || echo "WARN: review thread post failed (best-effort)" >&2
+```
+
+Failure modes (best-effort — never block the run):
+- `comment-pr` adapter exits non-zero → log warning, continue.
+- JIRA platform → adapter posts on the parent ticket instead of a PR (no PR
+  concept on JIRA; see `tickets-adapter.sh` semantics).
+
+### D. Per-ticket platform update
 
 For each ticket that received a commit_sha in this run:
 
@@ -54,7 +85,7 @@ MCP descriptor exits 10 → invoke MCP → record success in
 `.develop-sync-${run_id}.json`. Best-effort; remote failure does not block the
 run (local cache is the working state).
 
-### D. Telemetry + progress
+### E. Telemetry + progress
 
 ```bash
 bash skills/_shared/telemetry.sh emit \

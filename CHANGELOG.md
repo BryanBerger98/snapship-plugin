@@ -7,6 +7,62 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Templates customization
+
+- **Système de templates customisables** — section `templates` dans
+  `snapship.config.json` permet override par catégorie sans toucher au plugin
+  (cf. `docs/templates.md`).
+  - Schémas: `templates.tickets.{user_story,bug,epic}`,
+    `templates.pr`, `templates.review_thread`, `templates.aggregated_feedback`
+    (tous `string|null`, défaut `null` → bundlé).
+  - Override relatif → résolu depuis project root ; absolu → tel quel.
+  - Override pointant vers fichier inexistant → `resolve-template.sh` exit 2
+    (échec explicite, pas de fallback silencieux).
+- `_shared/resolve-template.sh` — helper unique de résolution
+  (kind=ticket|pr|review-thread|aggregated-feedback). User override > bundlé.
+  Exit 0 succès | 1 args invalides | 2 fichier introuvable.
+- `_shared/templates/` — réorganisation **breaking** (anciens chemins retirés) :
+  - `tickets/{user-story,bug,epic}/{github,gitlab,jira}.md` (9 templates,
+    matrice type × plateforme)
+  - `pr/{github,gitlab,default}.md`
+  - `review-thread/{github,gitlab,jira}.md`
+  - `aggregated-feedback.md` (blob interne fix-loop)
+- `tickets-adapter.sh comment-pr` — nouvelle action pour poster un commentaire
+  sur PR/MR (github via `gh pr comment`, gitlab via `glab mr note`). Args
+  `--pr-id` + (`--comment` | `--body-file=PATH`). JIRA renvoie
+  `{ok:false, error:"not_supported"}` exit 1 (pas de PR concept).
+- `/ticket step-03-enrich` — classification heuristique du type ticket
+  (`user-story` par défaut, `bug` si keywords/scope match, `epic` si agrège
+  ≥3 child stories). Persisté sur chaque story pour pickup par step-04-format.
+- `/ticket step-04-format` — résolution template par story via
+  `resolve-template.sh --kind=ticket --type=$story_type --platform=$platform`.
+- `/develop step-04-sync` — section C "Post review thread (best-effort)" :
+  rendu via `templates.review_thread` resolved + posté via `comment-pr`.
+- `/develop step-03a-standalone` — `aggregated_feedback` (injection dev
+  fix-loop) rendu via `templates.aggregated_feedback` resolved.
+- Tests :
+  - `tests/test-resolve-template.sh` (25 assertions, 7 sections — args,
+    bundled fallback × kinds, override ticket/pr/review-thread/agg, absolute
+    path, missing file, null override).
+  - Extension `test-load-config.sh` ([13]-[15] templates defaults injection +
+    user override préservé + schema rejection).
+  - Extension `test-tickets-adapter.sh` ([29]-[36] comment-pr dry-run, github
+    via mock gh `pr comment`, gitlab via mock glab `mr note`, jira
+    not_supported, missing pr-id / comment / body-file, no MCP descriptor
+    leak).
+  - Fixtures `tests/fixtures/valid/templates/` (5 templates custom),
+    `tests/fixtures/invalid/config/bad-templates.json` (rejet schema).
+
+### Removed — Templates customization (breaking)
+
+- Champ `repository.pr_template_path` retiré (remplacé par `templates.pr`).
+- Champs `documentation.templates.prd_global` /
+  `documentation.page_naming.prd_global` retirés (alignés sur removal v0.2 du
+  template `prd-global.md`).
+- Anciens templates plats `_shared/templates/ticket-{platform}.md` et
+  `_shared/templates/pr-default.md` supprimés (remplacés par layout
+  hiérarchique `tickets/{type}/{platform}.md` et `pr/{platform}.md`).
+
 ### Added (v0.2 — breaking)
 
 - **Doc architecture refactor** — PRD = archive immuable, doc fonctionnelle = source vivante (cf. `docs/docs-architecture.md`).

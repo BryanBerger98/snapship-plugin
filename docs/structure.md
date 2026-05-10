@@ -34,18 +34,15 @@ snapship-plugin/  (plugin repo)
 │   │
 │   ├── ticket/
 │   │   ├── SKILL.md
-│   │   ├── steps/
-│   │   │   ├── step-00-init.md
-│   │   │   ├── step-01-decompose.md
-│   │   │   ├── step-02-enrich.md
-│   │   │   ├── step-03-format.md
-│   │   │   ├── step-04-review.md
-│   │   │   ├── step-05-push.md
-│   │   │   └── step-06-finish.md
-│   │   └── templates/
-│   │       ├── ticket-jira.md
-│   │       ├── ticket-github.md
-│   │       └── ticket-gitlab.md
+│   │   └── steps/
+│   │       ├── step-00-init.md
+│   │       ├── step-01-decompose.md
+│   │       ├── step-02-enrich.md
+│   │       ├── step-03-format.md
+│   │       ├── step-04-review.md
+│   │       ├── step-05-push.md
+│   │       └── step-06-finish.md
+│   │   # Templates ticket vivent dans _shared/templates/tickets/{type}/{platform}.md
 │   │
 │   ├── wireframe/
 │   │   ├── SKILL.md
@@ -96,14 +93,29 @@ snapship-plugin/  (plugin repo)
 │       ├── setup-product-dir.sh
 │       ├── update-index.sh
 │       ├── update-progress.sh
+│       ├── resolve-template.sh              # résout user override > bundlé pour ticket/pr/review-thread/aggregated-feedback
+│       ├── render-template.sh               # rendu Mustache-subset {{var}} {{#list}} {{^missing}} {{!comment}} {{&unescaped}}
 │       ├── templates/
-│       │   ├── docs-defaults/              # templates docs partagés (push par /define + /wireframe)
-│       │   │   ├── prd-global.md
+│       │   ├── tickets/                     # par type + plateforme
+│       │   │   ├── user-story/
+│       │   │   │   ├── github.md
+│       │   │   │   ├── gitlab.md
+│       │   │   │   └── jira.md
+│       │   │   ├── bug/{github,gitlab,jira}.md
+│       │   │   └── epic/{github,gitlab,jira}.md
+│       │   ├── pr/                          # par plateforme + 'default' fallback
+│       │   │   ├── github.md
+│       │   │   ├── gitlab.md
+│       │   │   └── default.md
+│       │   ├── review-thread/               # commentaire posté sur PR/MR/JIRA ticket
+│       │   │   └── {github,gitlab,jira}.md
+│       │   ├── aggregated-feedback.md       # blob interne (review feedback → dev fix-loop)
+│       │   ├── docs-defaults/               # templates docs partagés (push par /define + /wireframe)
 │       │   │   ├── prd-feature.md
 │       │   │   └── wireframes-gallery.md
-│       │   ├── pr-default.md               # fallback PR body si repository.pr_template_path absent
-│       │   ├── daemon.sh.tpl               # template loop daemon /develop
-│       │   └── session-start-hook.sh.tpl   # opt-in SessionStart hook (pre-load config)
+│       │   ├── daemon.sh.tpl                # template loop daemon /develop
+│       │   ├── develop-daemon.sh.tpl
+│       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # JSON Schema bundlés validation runtime
 │       │   ├── config.schema.json          # snapship.config.json
 │       │   ├── meta.schema.json            # features/{id}/meta.json

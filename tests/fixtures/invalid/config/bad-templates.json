@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "templates": {
+    "tickets": {
+      "user_story": 42
+    }
+  }
+}
