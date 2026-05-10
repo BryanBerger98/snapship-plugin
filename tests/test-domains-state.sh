@@ -38,8 +38,7 @@ F="${DIR}/.claude/product/domains.json"
 [ "$(jq -r '.auth.title' "$F")" = "Authentication" ] && ok "2.1 title set" || ko "2.1"
 [ "$(jq -r '.auth.domain_page_id' "$F")" = "page-auth-1" ] && ok "2.2 page_id set" || ko "2.2"
 [ "$(jq -r '.auth.domain_url' "$F")" = "https://example.com/p/auth" ] && ok "2.3 url set" || ko "2.3"
-[ "$(jq -r '.auth.created_at' "$F" | head -c 4)" = "20"* ] && ok "2.4 created_at set" \
-  || [ -n "$(jq -r '.auth.created_at' "$F")" ] && ok "2.4 created_at set" || ko "2.4"
+[ "$(jq -r '.auth.created_at' "$F" | head -c 2)" = "20" ] && ok "2.4 created_at set" || ko "2.4"
 trash "$DIR" 2>/dev/null || true
 
 # 3. add-domain idempotent — preserves existing journeys
