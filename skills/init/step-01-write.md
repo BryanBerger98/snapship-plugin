@@ -31,6 +31,9 @@ Terminal step. Persist config + scaffold local cache.
    mkdir -p "$PWD/.claude/product/features"
    touch    "$PWD/.claude/product/progress.md"
    touch    "$PWD/.claude/product/telemetry.ndjson"
+
+   # v0.2 — initialize empty domains cache (idempotent: leaves existing file alone)
+   bash skills/_shared/domains-state.sh init --project-root="$PWD"
    ```
    If `progress.md` is empty, write a header:
    ```
@@ -69,8 +72,11 @@ Terminal step. Persist config + scaffold local cache.
 
 - `snapship.config.json` exists at project root and parses as JSON.
 - `load-config.sh` exits 0.
-- `.claude/product/{features,progress.md,telemetry.ndjson,.config-resolved.json}`
+- `.claude/product/{features,progress.md,telemetry.ndjson,.config-resolved.json,domains.json}`
   all present.
+- If `documentation.platform != "none"`, resolved config has both
+  `documentation.paths.functional_root` and `documentation.paths.prd_root` set
+  (defaults `"Product Docs"` / `"Change Requests"` apply automatically).
 
 ## Next step
 

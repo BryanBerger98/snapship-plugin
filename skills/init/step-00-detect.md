@@ -56,9 +56,20 @@ Probe the environment and resolve answers for every required config field.
      |-------|--------|---------|
      | `repository.platform` | Repo platform | github, gitlab |
      | `tickets.platform` | Tickets | github, gitlab, jira |
-     | `documentation.platform` | Docs | affine, notion |
+     | `documentation.platform` | Docs | affine, notion, none |
      | `wireframes.platform` | Wireframes | frame0 |
      | `defaults.lang` | Lang | fr, en |
+
+     **Doc paths (v0.2)** — only ask if `documentation.platform != "none"`:
+
+     | Field | Header | Default |
+     |-------|--------|---------|
+     | `documentation.paths.functional_root` | Functional root | `Product Docs` |
+     | `documentation.paths.prd_root` | PRD archive root | `Change Requests` |
+
+     Both are root page titles on the doc platform. `functional_root` holds the
+     living domain → user journey hierarchy. `prd_root` archives PRD pages by
+     date (`{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}`).
 
      Build a single JSON object with every answered field, scoped under the
      correct config section:
@@ -66,12 +77,20 @@ Probe the environment and resolve answers for every required config field.
      {
        "repository": { "platform": "github", "url": "https://github.com/..." },
        "tickets":    { "platform": "github" },
-       "documentation": { "platform": "affine" },
+       "documentation": {
+         "platform": "affine",
+         "paths": {
+           "functional_root": "Product Docs",
+           "prd_root": "Change Requests"
+         }
+       },
        "wireframes": { "platform": "frame0" },
        "defaults":   { "lang": "fr" }
      }
      ```
      Save it to a transient `$ANSWERS_JSON` shell variable for step-01.
+
+     Skip the `paths` block entirely when `documentation.platform == "none"`.
 
 6. **Hand off** to step-01-write with:
    - `$ANSWERS_JSON` (or empty if `--auto`)

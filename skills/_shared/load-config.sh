@@ -186,6 +186,25 @@ RESOLVED=$(echo "$MERGED" | jq '
   | (if (.repository // null) != null and (.repository.protected_branches // null) == null then
       .repository.protected_branches = ["main"]
     else . end)
+  # documentation.paths defaults (v0.2) — only when platform != "none"
+  | (if (.documentation // null) != null
+        and (.documentation.platform // "none") != "none" then
+      .documentation.paths = (
+        (.documentation.paths // {})
+        | (if has("functional_root") | not then .functional_root = "Product Docs" else . end)
+        | (if has("prd_root")        | not then .prd_root        = "Change Requests" else . end)
+      )
+    else . end)
+  # documentation.auto_update_mode + auto_update_on_qa_success defaults (v0.2)
+  | (if (.documentation // null) != null
+        and (.documentation.platform // "none") != "none" then
+      (if (.documentation.auto_update_mode // null) == null then
+        .documentation.auto_update_mode = "diff"
+      else . end)
+      | (if (.documentation.auto_update_on_qa_success // null) == null then
+        .documentation.auto_update_on_qa_success = true
+      else . end)
+    else . end)
 ')
 
 # Inherit unresolved → fail

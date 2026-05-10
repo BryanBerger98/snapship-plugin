@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/domains.schema.json",
+  "title": "domains.json",
+  "description": "Cache local mapping domains + user journeys ↔ pages doc plateforme (AFFiNE/Notion). Source vérité ID pour idempotence lookup-or-create. Évite re-lookup à chaque skill run.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/$defs/domain"
+  },
+  "$defs": {
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain_page_id"],
+      "description": "Entrée domain — slug (kebab) en clé. Ex: 'auth', 'dashboard'.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Titre humain page domain (ex: 'Authentication')"
+        },
+        "domain_page_id": {
+          "type": "string",
+          "description": "ID page plateforme doc (AFFiNE/Notion) pour ce domain"
+        },
+        "domain_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "journeys": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/journey"
+          },
+          "description": "User journeys du domain — slug kebab en clé."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "page_id"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Titre humain page journey (ex: 'Login Flow')"
+        },
+        "page_id": {
+          "type": "string",
+          "description": "ID page plateforme doc"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

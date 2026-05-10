@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/meta.schema.json",
   "title": "feature meta.json",
-  "description": "Métadonnées feature — .claude/product/features/{feature_id}/meta.json. Cache local IDs externes (AFFiNE, plateforme tickets, branche git).",
+  "description": "Métadonnées feature — .claude/product/features/{feature_id}/meta.json. v0.2 — référence PRD archive + mapping domains/journeys impactés (doc fonctionnelle vivante).",
   "type": "object",
   "required": ["feature_id", "feature_name", "state", "created_at"],
   "additionalProperties": false,
@@ -40,25 +40,53 @@
       "type": "boolean",
       "description": "True si feature créée projet vide (pas de codebase existant)"
     },
-    "affine_page_id": {
-      "type": "string",
-      "description": "ID page mini-PRD AFFiNE feature"
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "uniqueItems": true,
+      "description": "Slugs domaines impactés par la feature (ex: ['auth', 'dashboard']). Référence domains.json."
     },
-    "affine_url": {
-      "type": "string",
-      "format": "uri"
+    "impacted_journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "journey_slug"],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "journey_slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        }
+      },
+      "uniqueItems": true,
+      "description": "User journeys impactés (cible doc fonctionnelle vivante /snap:doc-update post-ship)."
     },
-    "affine_wireframes_page_id": {
-      "type": "string",
-      "description": "ID page Wireframes Gallery (sub-page PRD feature)"
-    },
-    "notion_page_id": {
-      "type": "string",
-      "description": "Alternative AFFiNE — si documentation.platform=notion"
-    },
-    "notion_url": {
-      "type": "string",
-      "format": "uri"
+    "prd": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Page PRD archive (immuable post-ship). Path: {prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}.",
+      "properties": {
+        "page_id": {
+          "type": "string",
+          "description": "ID page PRD plateforme doc (AFFiNE/Notion)"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "path": {
+          "type": "string",
+          "description": "Chemin date-based ex: 'Change Requests/2026/05-2026/01-bouton-login'"
+        }
+      }
     },
     "branch_name": {
       "type": "string",

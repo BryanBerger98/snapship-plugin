@@ -113,6 +113,34 @@
             "root_page_id": { "type": "string" }
           }
         },
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Racines AFFiNE/Notion pour hiérarchie v0.2 (functional vivante + PRD archive).",
+          "properties": {
+            "functional_root": {
+              "type": "string",
+              "default": "Product Docs",
+              "description": "Page racine doc fonctionnelle vivante (hiérarchie domain → user journey)."
+            },
+            "prd_root": {
+              "type": "string",
+              "default": "Change Requests",
+              "description": "Page racine archive PRD (path date-based: {prd_root}/{YYYY}/{MM-YYYY}/{NN-feature})."
+            }
+          }
+        },
+        "auto_update_mode": {
+          "type": "string",
+          "enum": ["diff", "rewrite"],
+          "default": "diff",
+          "description": "Mode update doc fonctionnelle post-ship via /snap:doc-update. diff=patch sections impactées. rewrite=regenerate full journey."
+        },
+        "auto_update_on_qa_success": {
+          "type": "boolean",
+          "default": true,
+          "description": "Trigger auto /snap:doc-update quand /snap:qa valide une feature (state=qa-validated)."
+        },
         "templates": {
           "type": "object",
           "additionalProperties": { "type": "string" },

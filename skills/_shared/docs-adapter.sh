@@ -2,6 +2,8 @@
 # docs-adapter.sh — abstraction over AFFiNE / Notion docs.
 #
 # Actions: get | create | apply-template | upload-blob | update | search
+#          | lookup-page | lookup-or-create-page | update-page-content
+#          | set-page-tags | create-page-tree
 #
 # Both backends are MCP-only — there is no CLI equivalent. The adapter
 # therefore emits a structured MCP descriptor on stdout and exits 10.
@@ -35,6 +37,8 @@ TEMPLATE_VARS_JSON=""
 BLOB_PATH=""
 QUERY=""
 LIMIT="20"
+TAGS_JSON=""
+PATH_TREE=""
 DRY_RUN="${SNAP_DRY_RUN:-false}"
 
 usage() {
@@ -42,12 +46,23 @@ usage() {
 Usage: docs-adapter.sh --action=ACTION [OPTIONS]
 
 Actions:
-  get             --page-id
-  create          --title  (--parent-id, --content[-file] optional)
-  apply-template  --template-name --page-id|--parent-id (--template-vars JSON)
-  upload-blob     --blob-path
-  update          --page-id (any of --title / --content[-file])
-  search          --query (--limit, default 20)
+  get                    --page-id
+  create                 --title  (--parent-id, --content[-file] optional)
+  apply-template         --template-name --page-id|--parent-id (--template-vars JSON)
+  upload-blob            --blob-path
+  update                 --page-id (any of --title / --content[-file])
+  search                 --query (--limit, default 20)
+  lookup-page            --title (--parent-id|--workspace-id)
+                         Find existing page by title under parent (idempotent helper).
+  lookup-or-create-page  --title (--parent-id|--workspace-id, --content[-file] optional)
+                         Lookup; create with content if missing.
+  update-page-content    --page-id --content[-file]
+                         Replace page body without touching title (used by /snap:doc-update).
+  set-page-tags          --page-id --tags=JSON
+                         JSON = array of tag strings. Replaces existing tags.
+  create-page-tree       --path=A/B/C (--workspace-id|--parent-id root)
+                         Idempotent — creates each segment as nested page if absent.
+                         Returns leaf page id.
 
 Options:
   --platform=affine|notion       Override config.documentation.platform
@@ -63,6 +78,8 @@ Options:
   --blob-path=PATH               File to upload (PNG, etc.)
   --query=TEXT                   Search query
   --limit=N                      Search result cap (default 20)
+  --tags=JSON                    Tag list (JSON array of strings) for set-page-tags
+  --path=A/B/C                   Slash-separated path for create-page-tree
   --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   -h, --help                     Show this help
 EOF
@@ -84,6 +101,8 @@ while [ $# -gt 0 ]; do
     --blob-path=*)      BLOB_PATH="${1#--blob-path=}" ;;
     --query=*)          QUERY="${1#--query=}" ;;
     --limit=*)          LIMIT="${1#--limit=}" ;;
+    --tags=*)           TAGS_JSON="${1#--tags=}" ;;
+    --path=*)           PATH_TREE="${1#--path=}" ;;
     --dry-run)          DRY_RUN="true" ;;
     -h|--help)          usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 2 ;;
@@ -96,6 +115,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 
 case "$ACTION" in
   get|create|apply-template|upload-blob|update|search) ;;
+  lookup-page|lookup-or-create-page|update-page-content|set-page-tags|create-page-tree) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
@@ -130,6 +150,27 @@ case "$ACTION" in
                   [ -n "$TITLE" ] || [ -n "$CONTENT" ] || [ -n "$CONTENT_FILE" ] || \
                     { echo "ERROR: update needs --title or --content[-file]" >&2; exit 2; } ;;
   search)         need "$QUERY"         "--query required for search" ;;
+  lookup-page)    need "$TITLE"         "--title required for lookup-page"
+                  [ -n "$PARENT_ID" ] || [ -n "$WORKSPACE_ID" ] || \
+                    { echo "ERROR: --parent-id or --workspace-id required for lookup-page" >&2; exit 2; } ;;
+  lookup-or-create-page)
+                  need "$TITLE"         "--title required for lookup-or-create-page"
+                  [ -n "$PARENT_ID" ] || [ -n "$WORKSPACE_ID" ] || \
+                    { echo "ERROR: --parent-id or --workspace-id required for lookup-or-create-page" >&2; exit 2; } ;;
+  update-page-content)
+                  need "$PAGE_ID"       "--page-id required for update-page-content"
+                  [ -n "$CONTENT" ] || [ -n "$CONTENT_FILE" ] || \
+                    { echo "ERROR: update-page-content needs --content or --content-file" >&2; exit 2; } ;;
+  set-page-tags)  need "$PAGE_ID"       "--page-id required for set-page-tags"
+                  need "$TAGS_JSON"     "--tags=JSON required for set-page-tags"
+                  echo "$TAGS_JSON" | jq -e 'type == "array" and (all(.[]; type == "string"))' >/dev/null 2>&1 \
+                    || { echo "ERROR: --tags must be JSON array of strings" >&2; exit 2; } ;;
+  create-page-tree)
+                  need "$PATH_TREE"     "--path required for create-page-tree"
+                  [[ "$PATH_TREE" == */* ]] || \
+                    { echo "ERROR: --path must contain at least one '/' segment" >&2; exit 2; }
+                  [ -n "$PARENT_ID" ] || [ -n "$WORKSPACE_ID" ] || \
+                    { echo "ERROR: --parent-id or --workspace-id required for create-page-tree" >&2; exit 2; } ;;
 esac
 
 # Validate template-vars JSON if provided
@@ -154,7 +195,11 @@ ok_dry() {
 
 # --- DRY RUN write shortcut ----------------------------------------------
 is_write_action() {
-  case "$1" in create|apply-template|upload-blob|update) return 0 ;; *) return 1 ;; esac
+  case "$1" in
+    create|apply-template|upload-blob|update) return 0 ;;
+    lookup-or-create-page|update-page-content|set-page-tags|create-page-tree) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 if [ "$DRY_RUN" = "true" ] && is_write_action "$ACTION"; then
@@ -165,13 +210,17 @@ if [ "$DRY_RUN" = "true" ] && is_write_action "$ACTION"; then
     --arg title "${TITLE}" \
     --arg tpl "${TEMPLATE_NAME}" \
     --arg blob "${BLOB_PATH}" \
-    --arg ws "${WORKSPACE_ID}" '
+    --arg ws "${WORKSPACE_ID}" \
+    --arg ptree "${PATH_TREE}" \
+    --argjson tags "${TAGS_JSON:-null}" '
     {dry_run:true, action:$act, page_id:$pid}
     | if $parent != "" then .parent_id = $parent else . end
     | if $title  != "" then .title     = $title  else . end
     | if $tpl    != "" then .template  = $tpl    else . end
     | if $blob   != "" then .blob_path = $blob   else . end
-    | if $ws     != "" then .workspace = $ws     else . end')
+    | if $ws     != "" then .workspace = $ws     else . end
+    | if $ptree  != "" then .path      = $ptree  else . end
+    | if $tags  != null then .tags     = $tags   else . end')
   ok_dry "$MOCK"
   exit 0
 fi
@@ -187,7 +236,9 @@ PARAMS=$(jq -nc \
   --arg blob    "$BLOB_PATH" \
   --arg query   "$QUERY" \
   --arg limit   "$LIMIT" \
-  --argjson tvars "${TEMPLATE_VARS_JSON:-null}" '
+  --arg ptree   "$PATH_TREE" \
+  --argjson tvars "${TEMPLATE_VARS_JSON:-null}" \
+  --argjson tags  "${TAGS_JSON:-null}" '
   {}
   | if $page    != "" then .page_id       = $page                else . end
   | if $parent  != "" then .parent_id     = $parent              else . end
@@ -197,7 +248,9 @@ PARAMS=$(jq -nc \
   | if $tpl     != "" then .template_name = $tpl                 else . end
   | if $blob    != "" then .blob_path     = $blob                else . end
   | if $query   != "" then .query         = $query               else . end
+  | if $ptree   != "" then .path          = $ptree               else . end
   | if $tvars   != null then .template_vars = $tvars             else . end
+  | if $tags    != null then .tags          = $tags              else . end
   | (if . | has("query") then .limit = ($limit | tonumber) else . end)
 ')
 
