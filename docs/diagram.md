@@ -33,13 +33,13 @@ flowchart TB
     end
 
     subgraph EXT["Sources de vérité (externes)"]
-        AFFINE[(AFFiNE<br/>PRD global<br/>PRD feature<br/>Gallery)]
+        AFFINE[(AFFiNE / Notion<br/>v0.2: PRD archive + Functional doc<br/>{domain}/{journey})]
         PLAT[(Plateforme tickets<br/>JIRA/GH/GL)]
         FRAME[(Frame0<br/>shapes + PNG)]
         GIT[(Git repo<br/>branches + commits)]
     end
 
-    META -.affine_page_id.-> AFFINE
+    META -.prd.page_id.-> AFFINE
     TIX -.IDs plateforme.-> PLAT
     WIRES -.frame0_page_id.-> FRAME
     META -.branch_name.-> GIT
@@ -55,8 +55,8 @@ flowchart TB
     S1 --> S2[step-02-vision<br/>AskUserQuestion progressive]
     GREEN --> S2
     S2 --> S3[step-03-features<br/>liste + priorisation MoSCoW]
-    S3 --> S4[step-04-write-prd<br/>AFFiNE: PRD global + feature]
-    S4 --> S5[step-05-finish<br/>propose /ticket]
+    S3 --> S4[step-04-render<br/>v0.2: per-feature PRD only]
+    S4 --> S5[step-05-publish<br/>v0.2: PRD archive page<br/>+ domain/journey lookup-or-create]
 ```
 
 ## 4. `/develop` standalone — 2 phases + cycle review

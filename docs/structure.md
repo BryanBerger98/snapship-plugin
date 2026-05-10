@@ -107,7 +107,9 @@ snapship-plugin/  (plugin repo)
 │       ├── schemas/                        # JSON Schema bundlés validation runtime
 │       │   ├── config.schema.json          # snapship.config.json
 │       │   ├── meta.schema.json            # features/{id}/meta.json
-│       │   └── tickets.schema.json         # features/{id}/tickets.json
+│       │   ├── tickets.schema.json         # features/{id}/tickets.json
+│       │   └── domains.schema.json         # v0.2 — .claude/product/domains.json
+│       ├── domains-state.sh                # v0.2 — CRUD domains.json (cache domain/journey ↔ page ID)
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
 │
 └── agents/                                 # → ~/.claude/agents/ ou .claude/agents/ (paths CC officiels)
@@ -119,20 +121,22 @@ snapship-plugin/  (plugin repo)
 
 ## 2. Stockage projet — `.claude/product/` (minimal)
 
-AFFiNE = source primaire docs. Local = cache + progress uniquement. Config vit racine projet.
+AFFiNE/Notion = source primaire docs. Local = cache + progress uniquement. Config vit racine projet.
 
 ```
 <project_root>/
 ├── snapship.config.json            # Config unifiée (étend defaults bundlés)
 └── .claude/product/
-    ├── index.md                    # Track features (état + AFFiNE page IDs)
+    ├── index.md                    # Track features (état + page IDs)
+    ├── domains.json                # v0.2 — cache domain + journey → page IDs (persistant)
     └── features/
         └── 01-feature-name/
-            ├── meta.json           # affine_page_id, ticket_ids, branch_name
+            ├── meta.json           # v0.2 — prd.{page_id,url,path}, domains[], impacted_journeys[]
             ├── tickets.json        # Cache tickets (id plateforme, AC, status)
+            ├── prd-feature.md      # PRD rendu local (avant push archive {prd_root}/{YYYY}/{MM-YYYY}/)
             ├── wireframes/
             │   ├── manifest.json   # mapping screen ↔ ticket_id ↔ frame0_page_id
-            │   └── *.png           # exports Frame0 (uploadés vers AFFiNE gallery)
+            │   └── *.png           # exports Frame0 (uploadés vers gallery)
             └── progress.md         # Log decisions + learnings
 ```
 

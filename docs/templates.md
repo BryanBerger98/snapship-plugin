@@ -8,11 +8,11 @@ Si user n'a pas créé de pages templates, skill propose pousser depuis markdown
 
 ## Templates disponibles
 
-**`prd-global.md`** — variables `{product_name}`, `{vision}`, `{problem}`, `{users}`, `{features_table}`, `{out_of_scope}`
-
-**`prd-feature.md`** — variables `{feature_name}`, `{vision}`, `{scope}`, `{capabilities}`, `{phases}`, `{out_of_scope}`, `{code_refs}`
+**`prd-feature.md`** — variables `{feature_id}`, `{feature_title}`, `{feature_status}`, `{owner}`, `{target_release}`, `{problem_statement}`, `{solution_overview}`, `{in_scope}`, `{out_of_scope}`, `{user_flow}`, `{updated_at}`, plus blocs `{{#acceptance_criteria}}`, `{{#user_segments}}`, `{{#edge_cases}}`, `{{#error_states}}`, `{{#wireframes}}`, `{{#tickets}}`, `{{#open_questions}}`. Format change-request (v0.2 — figé post-ship, archivé `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}`).
 
 **`wireframes-gallery.md`** — variables `{feature_name}`, `{screens_blocks}` (loop: titre + image embed + liens)
+
+> v0.1 `prd-global.md` retiré : la "global PRD" est remplacée par les domain pages générées idempotemment par `/snap:doc-import` ou `/snap:define` (étape publish).
 
 ## Push initial
 

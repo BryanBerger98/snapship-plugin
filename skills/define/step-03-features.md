@@ -48,6 +48,27 @@ For each feature in priority order (`must` → `should` → `could`), ask:
    rest" are rejected).
 6. **Wireframe references** (optional — list of expected screen IDs; can be filled
    later by `/wireframe`).
+7. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
+   - Read existing domains from cache:
+     ```bash
+     bash skills/_shared/domains-state.sh list-domains --project-root="$PWD"
+     ```
+   - Present them as multi-select options. Allow user to add a new domain (free
+     input → ask title humain, auto-slug kebab). Reject slug if it already
+     exists with a different title.
+   - Persist as `domains: [<slug>, …]` on the feature object. ≥1 domain required.
+
+8. **Journeys impacted** (v0.2 — per domain chosen in step 7):
+   For each domain in `feature.domains`:
+   - List existing journeys via:
+     ```bash
+     bash skills/_shared/domains-state.sh list-journeys "$domain" --project-root="$PWD"
+     ```
+   - Multi-select existing + free input ("create new journey: title → slug auto").
+   - Persist as `impacted_journeys: [{domain, journey_slug}, …]`.
+
+   New (yet-uncreated) journeys are recorded in state file but not pushed to the
+   doc platform until step-05-publish (which calls `lookup-or-create-page`).
 
 After each feature, ask `AskUserQuestion`:
 - "Continue with next feature"
@@ -70,9 +91,17 @@ bash skills/_shared/define-state.sh add-feature '{
   "acceptance_criteria": [{"ac_id":"1","ac_text":"..."}],
   "in_scope": "...",
   "out_of_scope": "...",
-  "wireframes": []
+  "wireframes": [],
+  "domains": ["auth"],
+  "impacted_journeys": [
+    {"domain": "auth", "journey_slug": "login-flow", "journey_title": "Login Flow", "is_new": false}
+  ]
 }' --project-root="$PWD"
 ```
+
+`is_new: true` flags journeys that don't exist yet on the doc platform —
+step-05-publish will create them with an empty body (filled later by the first
+`/snap:doc-update` post-ship).
 
 After all features added, run:
 ```bash
@@ -97,7 +126,8 @@ bash skills/_shared/update-progress.sh \
 
 - `features` array has ≥ 1 entry.
 - Every feature with `feature_status = "refined"` (i.e. enriched in Phase B) has all
-  required fields populated.
+  required fields populated, plus `domains` non-empty and `impacted_journeys`
+  non-empty (v0.2).
 
 ## Next step
 

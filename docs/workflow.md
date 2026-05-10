@@ -18,7 +18,7 @@
      · Liste workspaces AFFiNE/Notion via MCP → AskUserQuestion choix
      · Liste pages templates (heuristique nom contient "Template") → mapping
      · Templates manquants → AskUserQuestion "Créer défauts maintenant ?"
-       Oui: push depuis `templates/docs-defaults/{prd-global,prd-feature,wireframes-gallery}.md`
+       Oui: push depuis `templates/docs-defaults/{prd-feature,wireframes-gallery}.md` (v0.2 — `prd-global` retiré)
        Non: pages from scratch
      · Choix `root_page_id`: page existante ou créer "Produit"
    - wireframes: confirm frame0 ou skip
@@ -56,12 +56,24 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
 ## Flux d'intégration docs/tickets par skill
 
 ```
-/define
-  ├─ step-04: crée PRD global (docs platform) + PRD feature (sub-page)
-  └─ meta.json: { affine_page_id, affine_url } (ou notion_*)
+/define (v0.2)
+  ├─ step-04: render per-feature PRD localement (drop prd-global)
+  ├─ step-05: push PRD page archive `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immuable, taggé domains)
+  │           + lookup-or-create domain + journey pages sous `{functional_root}/`
+  └─ meta.json: { prd: {page_id, url, path}, domains[], impacted_journeys[] }
+     domains.json: { <domain>: {domain_page_id, journeys: { <slug>: {page_id, url} }} }
+
+/snap:doc-import (v0.2 — bootstrap legacy)
+  └─ AI cluster pages doc legacy → restructure (synthesize|copy|move)
+     → populate domains.json one-shot
+
+/snap:doc-update (v0.2 — auto post-QA si auto_update_on_qa_success)
+  ├─ step-01: fetch PRD + journey pages courantes + git diff feature
+  ├─ step-02: AI patch (mode=diff) ou rewrite (mode=rewrite)
+  └─ step-03: push update-page-content (PRD jamais touché)
 
 /ticket
-  ├─ step-00: lit PRD feature depuis docs platform (MCP fetch via meta.json)
+  ├─ step-00: lit PRD feature depuis docs platform (MCP fetch via meta.json.prd.page_id)
   ├─ step-05 (push): lien PRD ajouté en description ticket
   └─ Optionnel: ajoute liens tickets dans page docs feature (section "Tickets")
 
@@ -116,7 +128,7 @@ Tout appel MCP/CLI échoué (timeout, auth, API error):
 
 **Idempotence:** chaque step doit être ré-exécutable sans dupliquer:
 
-- `/define`: avant create page AFFiNE, check `meta.json.affine_page_id` existe
+- `/snap:define`: avant create page PRD, check `meta.json.prd.page_id` existe (v0.2)
 - `/ticket`: avant create ticket, check si déjà push (cache `tickets.json`)
 - `/wireframe`: blob upload checksum-based dedup
 - `/develop`: branch checkout idempotent, commit message diff-based

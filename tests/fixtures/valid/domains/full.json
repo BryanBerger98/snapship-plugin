@@ -1,0 +1,28 @@
+{
+  "auth": {
+    "title": "Authentication",
+    "domain_page_id": "page-auth-id",
+    "domain_url": "https://app.affine.pro/workspace/ws-abc/page-auth-id",
+    "created_at": "2026-05-01T08:00:00Z",
+    "updated_at": "2026-05-09T10:00:00Z",
+    "journeys": {
+      "signup-flow": {
+        "title": "Sign-up Flow",
+        "page_id": "page-signup-id",
+        "url": "https://app.affine.pro/workspace/ws-abc/page-signup-id",
+        "created_at": "2026-05-01T08:05:00Z"
+      },
+      "login-flow": {
+        "title": "Login Flow",
+        "page_id": "page-login-id",
+        "url": "https://app.affine.pro/workspace/ws-abc/page-login-id",
+        "created_at": "2026-05-01T08:10:00Z"
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "domain_page_id": "page-dashboard-id",
+    "journeys": {}
+  }
+}

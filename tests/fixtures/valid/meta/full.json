@@ -7,9 +7,16 @@
   "updated_at": "2026-05-09T14:22:00Z",
   "lang": "fr",
   "green_field": false,
-  "affine_page_id": "page-affine-xyz",
-  "affine_url": "https://app.affine.pro/workspace/ws-abc/page-affine-xyz",
-  "affine_wireframes_page_id": "page-wf-abc",
+  "domains": ["dashboard", "analytics"],
+  "impacted_journeys": [
+    {"domain": "dashboard", "journey_slug": "overview"},
+    {"domain": "analytics", "journey_slug": "kpi-charts"}
+  ],
+  "prd": {
+    "page_id": "page-prd-xyz",
+    "url": "https://app.affine.pro/workspace/ws-abc/page-prd-xyz",
+    "path": "Change Requests/2026/05-2026/02-dashboard"
+  },
   "branch_name": "feat/PROJ-12-dashboard-analytics",
   "preview_url": "https://staging.example.com/dashboard",
   "platform": "jira",

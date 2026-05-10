@@ -210,6 +210,86 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 unset TMP
 
+# --- v0.2 actions ---------------------------------------------------------
+
+echo ""
+echo "[25] lookup-page → MCP descriptor"
+out=$(bash "$SCRIPT" --action=lookup-page --platform=affine --title="Product Docs" --workspace-id=ws-1); rc=$?
+[ $rc -eq 10 ] && ok "25.1 exit 10" || ko "25.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "lookup-page" ] && ok "25.2 action" || ko "25.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.title')" = "Product Docs" ] && ok "25.3 title" || ko "25.3"
+
+echo ""
+echo "[26] lookup-or-create-page accepts --title + --workspace-id"
+out=$(bash "$SCRIPT" --action=lookup-or-create-page --platform=affine --title="Product Docs" --workspace-id=ws-1); rc=$?
+[ $rc -eq 10 ] && ok "26.1 exit 10" || ko "26.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "lookup-or-create-page" ] && ok "26.2 action" || ko "26.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.title')" = "Product Docs" ] && ok "26.3 title" || ko "26.3"
+
+echo ""
+echo "[27] lookup-or-create-page accepts --parent-id"
+out=$(bash "$SCRIPT" --action=lookup-or-create-page --platform=affine --title="Auth" --parent-id=root-1)
+[ "$(echo "$out" | jq -r '.descriptor.params.parent_id')" = "root-1" ] && ok "27.1 parent_id" || ko "27.1"
+
+echo ""
+echo "[28] lookup-or-create-page requires --title"
+bash "$SCRIPT" --action=lookup-or-create-page --platform=affine >/dev/null 2>&1
+[ $? -eq 2 ] && ok "28.1 missing title rejected" || ko "28.1"
+
+echo ""
+echo "[29] update-page-content needs --page-id + content"
+TMP=$(mktemp -d); printf '# Updated\nbody' > "$TMP/c.md"
+out=$(bash "$SCRIPT" --action=update-page-content --platform=affine --page-id=p1 --content-file="$TMP/c.md")
+rc=$?
+[ $rc -eq 10 ] && ok "29.1 exit 10" || ko "29.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "update-page-content" ] && ok "29.2 action" || ko "29.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.content')" = "$(cat "$TMP/c.md")" ] && ok "29.3 body" || ko "29.3"
+bash "$SCRIPT" --action=update-page-content --platform=affine --page-id=p1 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "29.4 missing content rejected" || ko "29.4"
+bash "$SCRIPT" --action=update-page-content --platform=affine --content="x" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "29.5 missing page-id rejected" || ko "29.5"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[30] set-page-tags needs --page-id + --tags JSON array"
+out=$(bash "$SCRIPT" --action=set-page-tags --platform=affine --page-id=p1 --tags='["auth","dashboard"]')
+rc=$?
+[ $rc -eq 10 ] && ok "30.1 exit 10" || ko "30.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "set-page-tags" ] && ok "30.2 action" || ko "30.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.tags | length')" = "2" ] && ok "30.3 tag count" || ko "30.3"
+[ "$(echo "$out" | jq -r '.descriptor.params.tags[0]')" = "auth" ] && ok "30.4 first tag" || ko "30.4"
+bash "$SCRIPT" --action=set-page-tags --platform=affine --page-id=p1 --tags='not json' >/dev/null 2>&1
+[ $? -eq 2 ] && ok "30.5 bad JSON rejected" || ko "30.5"
+bash "$SCRIPT" --action=set-page-tags --platform=affine --page-id=p1 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "30.6 missing tags rejected" || ko "30.6"
+
+echo ""
+echo "[31] create-page-tree needs --path + --workspace-id|--parent-id"
+out=$(bash "$SCRIPT" --action=create-page-tree --platform=affine --path="A/B/C" --workspace-id=ws-1)
+rc=$?
+[ $rc -eq 10 ] && ok "31.1 exit 10" || ko "31.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "create-page-tree" ] && ok "31.2 action" || ko "31.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.path')" = "A/B/C" ] && ok "31.3 path" || ko "31.3"
+bash "$SCRIPT" --action=create-page-tree --platform=affine >/dev/null 2>&1
+[ $? -eq 2 ] && ok "31.4 missing path rejected" || ko "31.4"
+
+echo ""
+echo "[32] write actions short-circuit on dry-run"
+out=$(bash "$SCRIPT" --action=update-page-content --platform=affine --page-id=p1 --content="x" --dry-run); rc=$?
+[ $rc -eq 0 ] && ok "32.1 update-page-content dry-run exit 0" || ko "32.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "32.2 mode dry-run" || ko "32.2"
+
+out=$(bash "$SCRIPT" --action=set-page-tags --platform=affine --page-id=p1 --tags='[]' --dry-run); rc=$?
+[ $rc -eq 0 ] && ok "32.3 set-page-tags dry-run exit 0" || ko "32.3 rc=$rc"
+
+out=$(bash "$SCRIPT" --action=create-page-tree --platform=affine --path="X/Y" --workspace-id=ws-1 --dry-run); rc=$?
+[ $rc -eq 0 ] && ok "32.4 create-page-tree dry-run exit 0" || ko "32.4 rc=$rc"
+
+echo ""
+echo "[33] lookup-page does NOT short-circuit on dry-run (read action)"
+out=$(bash "$SCRIPT" --action=lookup-page --platform=affine --title="X" --workspace-id=ws-1 --dry-run); rc=$?
+[ $rc -eq 10 ] && ok "33.1 lookup-page still hits MCP" || ko "33.1 rc=$rc"
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

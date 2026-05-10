@@ -66,7 +66,7 @@ Chaque skill, step-00:
 Si {resume_id} set:
   1. ls .claude/product/features/ | grep ^{resume_id}
   2. Si match: read meta.json, tickets.json, wireframes/manifest.json, progress.md
-  3. (Optionnel) fetch PRD docs via meta.json.affine_page_id si contexte produit requis
+  3. (Optionnel) fetch PRD docs via meta.json.prd.page_id si contexte produit requis (v0.2)
   4. Détermine dernière étape complétée (parse progress.md)
   5. Load step suivant
   6. Sinon: liste features dispo, AskUserQuestion

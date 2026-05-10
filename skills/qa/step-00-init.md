@@ -12,7 +12,8 @@ feature.
 ## Tasks
 
 1. **Parse args**: `--resume`/`-r`, positional `<id>`, `--dry-run`,
-   `--no-wireframe-check`, `--retrigger`.
+   `--no-wireframe-check`, `--retrigger`, `--no-doc-update` (v0.2 — opt out
+   of post-success `/snap:doc-update` auto-trigger).
 
 2. **Resume short-circuit**:
    ```bash
@@ -42,6 +43,7 @@ feature.
    ```
    `--no-wireframe-check` forces `wireframe_enabled=false` regardless of config.
    `--retrigger` forces `retrigger=true` even if config says otherwise.
+   `--no-doc-update` sets `$NO_DOC_UPDATE=true` (consumed by step-05 E3).
 
 5. **Pre-flight**:
    - `git rev-parse --is-inside-work-tree` — abort if not a repo.

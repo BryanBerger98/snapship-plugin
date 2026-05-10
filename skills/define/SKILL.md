@@ -31,8 +31,8 @@ order; when blocked the model reads only the active step's body.
 | 01 | `step-01-vision.md` | Ask vision + north star metric |
 | 02 | `step-02-personas.md` | Ask 1-N personas |
 | 03 | `step-03-features.md` | Ask features list with priorities |
-| 04 | `step-04-render.md` | Render `prd-global.md` + per-feature PRDs from templates |
-| 05 | `step-05-publish.md` | Push to AFFiNE/Notion via docs-adapter, update progress |
+| 04 | `step-04-render.md` | Render per-feature PRDs (change-request format) from templates |
+| 05 | `step-05-publish.md` | Archive PRD pages by date, ensure domain + journey pages exist (v0.2) |
 
 ## Args
 
@@ -47,11 +47,18 @@ order; when blocked the model reads only the active step's body.
 
 ## Outputs
 
-- `.claude/product/prd-global.md`
 - `.claude/product/features/{feature_id}/prd-feature.md` (one per feature)
-- `.claude/product/features/{feature_id}/meta.json` (state=`defined`)
+- `.claude/product/features/{feature_id}/meta.json` (state=`defined`,
+  `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` after publish)
+- `.claude/product/domains.json` (domain + journey page IDs cached, idempotent)
 - `.claude/product/progress.md` (append-only run log)
-- AFFiNE / Notion pages (URLs cached in meta.json)
+- AFFiNE / Notion:
+  - PRD page at `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable archive)
+  - Domain + journey pages under `{functional_root}/{domain}/{journey}` (living
+    spec, body populated later by `/snap:doc-update`)
+
+v0.1's `prd-global.md` is dropped — see `docs/decisions.md` "PRD archive vs
+doc fonctionnelle vivante (v0.2)".
 
 ## How to run a step
 

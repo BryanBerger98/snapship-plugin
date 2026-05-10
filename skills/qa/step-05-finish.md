@@ -76,6 +76,65 @@ trash .tmp/regression-*.log 2>/dev/null || true
 bash skills/_shared/update-index.sh --project-root="$PWD"
 ```
 
+### E2. Roll up feature state (v0.2)
+
+If **all** tickets for `$feature_id` now have `status == qa-validated`,
+transition the feature itself to `qa-validated` in `meta.json`:
+
+```bash
+total=$(jq '.tickets | length' "$tickets_file")
+validated=$(jq '[.tickets[] | select(.status == "qa-validated")] | length' "$tickets_file")
+META=".claude/product/features/${feature_id}/meta.json"
+
+if [ "$total" -gt 0 ] && [ "$total" -eq "$validated" ]; then
+  tmp=$(mktemp)
+  jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+     '.state = "qa-validated" | .updated_at = $ts' \
+     "$META" > "$tmp" && mv "$tmp" "$META"
+
+  # Validate post-mutation
+  ajv validate \
+    -s skills/_shared/schemas/meta.schema.json \
+    -d "$META" --spec=draft2020 --strict=false \
+    || { echo "ERROR: meta.json invalid after qa-validated rollup" >&2; exit 1; }
+
+  feature_qa_validated=true
+fi
+```
+
+Skip rollup if any ticket is still `blocked` / `developed` / etc — feature
+state stays whatever it was (typically `developed`).
+
+### E3. Auto-trigger `/snap:doc-update` (v0.2)
+
+If feature transitioned to `qa-validated` AND config opts in, fire `doc-update`:
+
+```bash
+AUTO_DOC=$(jq -r '.documentation.auto_update_on_qa_success // false' \
+  .claude/product/.config-resolved.json 2>/dev/null)
+PLATFORM=$(jq -r '.documentation.platform // "none"' \
+  .claude/product/.config-resolved.json 2>/dev/null)
+
+if [ "$feature_qa_validated" = "true" ] \
+   && [ "$AUTO_DOC" = "true" ] \
+   && [ "$PLATFORM" != "none" ] \
+   && [ "$NO_DOC_UPDATE" != "true" ]; then
+  echo "→ feature ${feature_id} qa-validated, triggering /snap:doc-update --auto"
+  # Hand off to the doc-update skill in -a (autonomous) mode.
+  # Skill is invoked via Skill tool by the orchestrator; the QA model emits the
+  # following directive on stdout for the orchestrator to pick up:
+  echo "SNAP_NEXT_SKILL=doc-update --feature=${feature_id} -a"
+fi
+```
+
+> The orchestrator (Claude in `/snap:qa` execution context) picks up the
+> `SNAP_NEXT_SKILL=` directive and invokes `Skill(skill="doc-update",
+> args="--feature=${feature_id} -a")` after step-05 returns. Failure of the
+> doc-update skill is **non-fatal** to the QA run — QA verdict stands.
+
+If the user wants to opt out per-run, they pass `--no-doc-update` to `/snap:qa`
+(parsed in step-00, surfaced as `$NO_DOC_UPDATE`); skip section E3 when set.
+
 ### F. Telemetry + progress
 
 ```bash

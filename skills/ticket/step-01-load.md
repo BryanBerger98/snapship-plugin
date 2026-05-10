@@ -40,7 +40,8 @@ Read the feature PRD and stage its content for decomposition.
    Use `awk` or `sed` to slice between `## ` headings; do not write the JSON to disk.
 
 3. **Read `meta.json`** for the feature; remember `tickets_count` (used to detect
-   re-runs) and `affine_page_id` / `notion_page_id` (linked from each ticket body).
+   re-runs) and `prd.page_id` / `prd.url` (linked from each ticket body — v0.2
+   PRD archive page).
 
 4. **Cross-reference wireframes**: if `wireframes-gallery.md` exists at
    `.claude/product/wireframes-gallery.md`, look up each wireframe ID and capture the

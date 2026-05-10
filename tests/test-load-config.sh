@@ -170,6 +170,63 @@ else
 fi
 trash "$DIR" 2>/dev/null || true
 
+# 10. v0.2 — documentation.paths defaults injected when platform != none
+echo ""
+echo "[10] v0.2 documentation paths defaults"
+DIR=$(setup_dir)
+cat > "${DIR}/snapship.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "documentation": { "platform": "affine", "workspace": { "id": "ws-1" } }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+assert_eq "10.1 functional_root default" "Product Docs" "$(echo "$out" | jq -r '.documentation.paths.functional_root')"
+assert_eq "10.2 prd_root default" "Change Requests" "$(echo "$out" | jq -r '.documentation.paths.prd_root')"
+assert_eq "10.3 auto_update_mode default" "diff" "$(echo "$out" | jq -r '.documentation.auto_update_mode')"
+assert_eq "10.4 auto_update_on_qa_success default" "true" "$(echo "$out" | jq -r '.documentation.auto_update_on_qa_success')"
+trash "$DIR" 2>/dev/null || true
+
+# 11. v0.2 — paths defaults NOT injected when platform = none
+echo ""
+echo "[11] v0.2 paths skip when platform=none"
+DIR=$(setup_dir)
+cat > "${DIR}/snapship.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "documentation": { "platform": "none" }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+fr=$(echo "$out" | jq -r '.documentation.paths.functional_root // "<absent>"')
+assert_eq "11.1 functional_root absent" "<absent>" "$fr"
+auto=$(echo "$out" | jq -r '.documentation.auto_update_on_qa_success // "<absent>"')
+assert_eq "11.2 auto_update absent" "<absent>" "$auto"
+trash "$DIR" 2>/dev/null || true
+
+# 12. v0.2 — user-provided paths preserved (no override)
+echo ""
+echo "[12] v0.2 user paths preserved"
+DIR=$(setup_dir)
+cat > "${DIR}/snapship.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "documentation": {
+    "platform": "notion",
+    "workspace": { "id": "ws-1" },
+    "paths": { "functional_root": "Specs", "prd_root": "PRDs" },
+    "auto_update_mode": "rewrite",
+    "auto_update_on_qa_success": false
+  }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+assert_eq "12.1 functional_root user" "Specs" "$(echo "$out" | jq -r '.documentation.paths.functional_root')"
+assert_eq "12.2 prd_root user" "PRDs" "$(echo "$out" | jq -r '.documentation.paths.prd_root')"
+assert_eq "12.3 auto_update_mode user" "rewrite" "$(echo "$out" | jq -r '.documentation.auto_update_mode')"
+assert_eq "12.4 auto_update_on_qa_success user" "false" "$(echo "$out" | jq -r '.documentation.auto_update_on_qa_success')"
+trash "$DIR" 2>/dev/null || true
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

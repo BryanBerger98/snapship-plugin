@@ -196,12 +196,13 @@ RESOLVED=$(echo "$MERGED" | jq '
       )
     else . end)
   # documentation.auto_update_mode + auto_update_on_qa_success defaults (v0.2)
+  # Use has() not // null (// treats false as null → false would get overwritten).
   | (if (.documentation // null) != null
         and (.documentation.platform // "none") != "none" then
-      (if (.documentation.auto_update_mode // null) == null then
+      (if (.documentation | has("auto_update_mode")) | not then
         .documentation.auto_update_mode = "diff"
       else . end)
-      | (if (.documentation.auto_update_on_qa_success // null) == null then
+      | (if (.documentation | has("auto_update_on_qa_success")) | not then
         .documentation.auto_update_on_qa_success = true
       else . end)
     else . end)

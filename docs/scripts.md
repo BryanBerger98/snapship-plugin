@@ -181,16 +181,39 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 
 ```bash
 # Route vers MCP selon config.documentation.platform
-# Actions:
+# Actions (lecture):
 #   - get <page_id>                        → markdown content
+#   - search <query>
+#   - lookup-page (--title) (--workspace-id|--parent-id)        → page_id|empty (v0.2)
+# Actions (écriture):
 #   - create <parent_id> <title> <md>      → page_id + url
 #   - apply-template <tpl_id> <parent_id> <title> <vars_json> → page_id + url
 #   - upload-blob <file_path>              → blob_id (pour embed images)
 #   - update <page_id> <markdown>
-#   - search <query>
+#   - lookup-or-create-page (idempotent) → page_id (existing or new) (v0.2)
+#   - update-page-content <page_id> <markdown>                  (v0.2)
+#   - set-page-tags <page_id> <tags_json_array>                 (v0.2)
+#   - create-page-tree <path=A/B/C> (--workspace-id|--parent-id)→ leaf page_id (v0.2)
 # Implémentations:
 #   - affine: appels MCP affine-mcp-server
 #   - notion: appels MCP notion-mcp (community)
+# Mode: les write actions sortent un MCP descriptor (exit 10) + court-circuitent en --dry-run.
+```
+
+## domains-state.sh (v0.2 — cache domain/journey ↔ page IDs)
+
+```bash
+# CRUD .claude/product/domains.json (persistant, schema: domains.schema.json)
+# Source vérité ID pour idempotent lookup-or-create dans /snap:define publish + /snap:doc-update.
+# Subcommands:
+#   - init                                              → écrit {} si absent
+#   - add-domain SLUG TITLE PAGE_ID [URL]               → idempotent (preserve journeys)
+#   - add-journey DOMAIN_SLUG JOURNEY_SLUG TITLE PAGE_ID [URL]
+#   - get-domain SLUG                                   → JSON entrée ou vide
+#   - get-journey DOMAIN_SLUG JOURNEY_SLUG              → JSON entrée ou vide
+#   - list-domains | list-journeys [DOMAIN_SLUG]
+#   - has-domain SLUG | has-journey DOMAIN_SLUG SLUG    → exit 0/1
+#   - validate                                          → ajv contre schema
 ```
 
 ## tickets-adapter.sh (abstraction GitHub/GitLab/JIRA)

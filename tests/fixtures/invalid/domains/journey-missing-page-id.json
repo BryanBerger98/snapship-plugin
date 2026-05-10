@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "domain_page_id": "page-auth",
+    "journeys": {
+      "signup-flow": {
+        "title": "Sign-up Flow"
+      }
+    }
+  }
+}
