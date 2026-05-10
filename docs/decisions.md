@@ -95,6 +95,53 @@
 
 **Choix:** Structural-diff (Frame0 MCP shapes ↔ Playwright DOM) plutôt que pixel-diff. Comparaison structure (count buttons/inputs/sections matchent, labels présents).
 
+### Documentation: PRD archive vs doc fonctionnelle vivante (v0.2)
+
+**Issue:** v0.1 traite tout en pages plates AFFiNE — 1 PRD global + 1 PRD par feature. Pas de séparation entre intention de changement (PRD éphémère) et état courant du produit (doc fonctionnelle vivante). Liens entre pages cassés en pratique. Pas de chemin configurable.
+
+**Choix:** refonte v0.2 — deux types de pages distincts:
+- **PRD / Change request** — archive immuable d'une évolution. Path: `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}`. Tags = domaines impactés. Figée post-ship.
+- **Doc fonctionnelle** — spec vivante hiérarchie `{functional_root}/{domain}/{user journey}`. Updated chaque ship via nouveau skill `/snap:doc-update`.
+
+**Why:** PRD = "ce qu'on va changer" (forward-looking, périmé post-ship). Doc fonctionnelle = "ce que le produit fait aujourd'hui" (source vérité courante). Les mélanger pollue les deux usages.
+
+**How to apply:** spec complète dans `docs/docs-architecture.md`. Breaking change vs v0.1, pas de migration (pilote uniquement).
+
+### Doc fonctionnelle: structure domain → journey
+
+**Choix:** hiérarchie 2 niveaux:
+- Domain page (`auth`, `dashboard`) = overview + liens vers journeys
+- User journey page (`Login Flow`, `Signup Flow`) = spec vivante détaillée
+
+**Pas de log modifications sur domain page** — éviterait bloat exponentiel sur projets longs. Historique = via les pages PRD elles-mêmes (filtrables AFFiNE par tag + date).
+
+**Pas de lien direct journey → PRD** — journey reste spec propre, PRD = archive externe.
+
+### Doc legacy bootstrap: skill `/snap:doc-import`
+
+**Issue:** projet existant avec doc AFFiNE accumulée libre/scattered ne respecte pas hiérarchie snap. Bootstrap manuel = friction majeure.
+
+**Choix:** skill `/snap:doc-import` lit pages AFFiNE existantes → AI propose découpage domains/journeys → user confirme → restructure selon stratégie:
+- `synthesize` (default): AI consolide N pages source → 1 journey doc
+- `copy`: duplique vers snap path, archive originaux
+- `move`: relocate pages source vers snap path
+
+**Why:** doc legacy = courant. Sans bootstrap automatisé, plugin inutilisable sur projets existants.
+
+**How to apply:** skill séparé de `/snap:define` (bootstrap one-shot vs cycle dev). PAS de migration v0.1 → v0.2 (pilote uniquement). PAS d'équivalent local-source (drop `doc-rebuild` proposé initialement).
+
+### Auto-update doc post-ship
+
+**Choix:** skill `/snap:doc-update` standalone, trigger:
+- Auto post-`/snap:qa` si `documentation.auto_update_on_qa_success: true`
+- Manuel `/snap:doc-update --feature=NN`
+
+Mode update configurable: `diff` (default — patch sections impactées) ou `rewrite` (regenerate full journey doc). PRD jamais touché par cette skill.
+
+### Slug vs titre
+
+**Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `domains.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).
+
 ### CC optimizations appliquées
 
 1. **Agent tool parallel** — review cycle `/develop` Phase 2 spawn 3 reviewers via 1 message N Agent calls (= parallel native CC, context isolé par fork)

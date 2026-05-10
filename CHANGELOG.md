@@ -7,6 +7,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Planned (v0.2 — breaking)
+
+- **Documentation architecture refactor** — séparation PRD archive vs doc fonctionnelle vivante (cf. `docs/docs-architecture.md`).
+  - PRD path: `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` avec tags domaines.
+  - Doc fonctionnelle: hiérarchie `{functional_root}/{domain}/{user journey}`.
+  - Nouveau skill `/snap:doc-update` (auto post-`/snap:qa` ou manuel).
+  - Nouveau skill `/snap:doc-import` (bootstrap projet avec doc legacy AFFiNE).
+  - Config additions: `documentation.paths.{functional_root,prd_root}`, `documentation.auto_update_mode`, `documentation.auto_update_on_qa_success`.
+  - `meta.json` revisé: `domains[]`, `impacted_journeys[]`, `prd` object.
+  - Nouveau `domains-state.sh` + `.claude/product/domains.json`.
+  - Breaking — pas de migration (v0.1 = pilote dogfood seulement).
+
 ### Added
 
 - Plugin manifest at `.claude-plugin/plugin.json` (Claude Code schema-conforme).
