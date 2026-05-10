@@ -192,6 +192,126 @@ echo "[23] dry-run via env"
 out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=delete-page --page-id=p)
 [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "23.1" || ko "23.1"
 
+# --- move-export ----------------------------------------------------------
+
+echo ""
+echo "[24] move-export requires --filename and --output-path"
+bash "$SCRIPT" --action=move-export                                >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.1 needs filename" || ko "24.1"
+bash "$SCRIPT" --action=move-export --filename=a.png               >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.2 needs out"      || ko "24.2"
+bash "$SCRIPT" --action=move-export --output-path=/tmp/x.png       >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.3 needs filename" || ko "24.3"
+
+echo ""
+echo "[25] move-export rejects path traversal in --filename"
+bash "$SCRIPT" --action=move-export --filename=../etc/passwd --output-path=/tmp/x >/dev/null 2>&1
+[ $? -eq 2 ] && ok "25.1 reject dotdot" || ko "25.1"
+bash "$SCRIPT" --action=move-export --filename=sub/file.png --output-path=/tmp/x >/dev/null 2>&1
+[ $? -eq 2 ] && ok "25.2 reject slash" || ko "25.2"
+
+echo ""
+echo "[26] move-export source_not_found"
+TMP=$(mktemp -d)
+mkdir -p "$TMP/Downloads"
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
+JSON
+out=$(bash "$SCRIPT" --action=move-export --filename=missing.png \
+        --output-path="$TMP/out/missing.png" --project-root="$TMP" 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "26.1 exit 1" || ko "26.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.ok')" = "false" ]                    && ok "26.2 ok=false" || ko "26.2"
+[ "$(echo "$out" | jq -r '.error')" = "source_not_found" ]      && ok "26.3 err"      || ko "26.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[27] move-export success — moves file and creates target dir"
+TMP=$(mktemp -d)
+mkdir -p "$TMP/Downloads"
+echo "fake-png-bytes" > "$TMP/Downloads/01-auth-signup-empty.png"
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
+JSON
+TARGET="$TMP/.claude/product/features/01-auth/wireframes/01-auth-signup-empty.png"
+out=$(bash "$SCRIPT" --action=move-export --filename=01-auth-signup-empty.png \
+        --output-path="$TARGET" --project-root="$TMP")
+rc=$?
+[ $rc -eq 0 ] && ok "27.1 exit 0" || ko "27.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "27.2 ok=true" || ko "27.2"
+[ "$(echo "$out" | jq -r '.mode')" = "local" ] && ok "27.3 mode=local" || ko "27.3"
+[ -f "$TARGET" ] && ok "27.4 target exists" || ko "27.4"
+[ ! -f "$TMP/Downloads/01-auth-signup-empty.png" ] && ok "27.5 source removed (move)" || ko "27.5"
+[ "$(cat "$TARGET")" = "fake-png-bytes" ] && ok "27.6 content preserved" || ko "27.6"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[28] move-export tilde expansion in export_source_dir"
+TMP=$(mktemp -d)
+mkdir -p "$TMP/Downloads"
+echo "x" > "$TMP/Downloads/tilde-test.png"
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","export_source_dir":"~/_snap_tilde_test_dl" } }
+JSON
+# Stage at $HOME-shaped path. We can't actually write under user's $HOME safely in tests;
+# instead, assert dry-run output reflects the expanded source_dir.
+out=$(bash "$SCRIPT" --action=move-export --filename=tilde-test.png \
+        --output-path="$TMP/x.png" --project-root="$TMP" --dry-run)
+expanded_dir=$(echo "$out" | jq -r '.result.source_dir')
+case "$expanded_dir" in
+  "$HOME"/*) ok "28.1 tilde expanded ($expanded_dir)" ;;
+  *)         ko "28.1 not expanded: $expanded_dir" ;;
+esac
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[29] move-export default source_dir = \$HOME/Downloads when unset"
+TMP=$(mktemp -d)
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0" } }
+JSON
+out=$(bash "$SCRIPT" --action=move-export --filename=x.png \
+        --output-path="$TMP/o.png" --project-root="$TMP" --dry-run)
+src_dir=$(echo "$out" | jq -r '.result.source_dir')
+[ "$src_dir" = "$HOME/Downloads" ] && ok "29.1 default applied" || ko "29.1 got '$src_dir'"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[30] move-export dry-run does not touch filesystem"
+TMP=$(mktemp -d)
+mkdir -p "$TMP/Downloads"
+echo "keep-me" > "$TMP/Downloads/dry.png"
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
+JSON
+out=$(bash "$SCRIPT" --action=move-export --filename=dry.png \
+        --output-path="$TMP/out/dry.png" --project-root="$TMP" --dry-run)
+[ -f "$TMP/Downloads/dry.png" ] && ok "30.1 source untouched" || ko "30.1"
+[ ! -f "$TMP/out/dry.png" ]     && ok "30.2 target untouched" || ko "30.2"
+[ "$(echo "$out" | jq -r '.result.moved')" = "false" ] && ok "30.3 moved=false" || ko "30.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[31] move-export never emits MCP descriptor"
+TMP=$(mktemp -d)
+mkdir -p "$TMP/Downloads"
+echo "x" > "$TMP/Downloads/nomcp.png"
+cat > "$TMP/snapship.config.json" <<JSON
+{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
+JSON
+out=$(bash "$SCRIPT" --action=move-export --filename=nomcp.png \
+        --output-path="$TMP/o.png" --project-root="$TMP")
+desc=$(echo "$out" | jq -r '.descriptor // empty')
+[ -z "$desc" ]                                       && ok "31.1 no descriptor" || ko "31.1"
+[ "$(echo "$out" | jq -r '.mode')" = "local" ]       && ok "31.2 mode=local"    || ko "31.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
 unset TMP
 
 echo ""

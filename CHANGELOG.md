@@ -7,6 +7,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Wireframes export source dir
+
+- **`wireframes.export_source_dir`** — nouvelle clé schema (string, défaut
+  `~/Downloads`, tilde-expanded). Frame0 écrit toujours dans un **unique
+  dossier OS** indépendamment du param `output_path` MCP ; le skill déplace
+  ensuite le PNG depuis ce dossier vers
+  `.claude/product/features/<id>/wireframes/`. Permet d'aligner la config
+  avec l'OS si Frame0 exporte ailleurs (ex: `~/Desktop`).
+- **`frame0-helper.sh move-export`** — nouvelle action **local-only** (jamais
+  de descripteur MCP). Args `--filename=<basename>` + `--output-path=<dest>`.
+  Compose `${export_source_dir}/${filename}`, `mkdir -p` la cible, `mv`. Exit
+  0 succès, 1 si source introuvable (avec hint), 2 args invalides. Rejette
+  les `--filename` contenant `/` ou `..` (anti-traversal).
+- **`skills/wireframe/step-02-design.md`** — étape « Move export into the
+  project » ajoutée après l'export PNG. Filename composé via
+  `${feature_slug}-${screen_id}-${state}.png` (préfixé `feature_slug` pour
+  rester unique dans `~/Downloads` partagés entre features).
+- Dry-run : `move-export --dry-run` renvoie `{moved: false}` sans toucher au
+  filesystem (cohérent avec le reste du pipeline wireframe).
+
 ### Changed — Plugin agents namespacing (breaking)
 
 - **Préfixage `snap-` sur tous les agents bundlés du plugin** pour éviter les

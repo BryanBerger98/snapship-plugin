@@ -13,6 +13,11 @@
 #   list-pages     --query (--limit, default 20)
 #   add-shapes     --page-id --shapes (JSON array of shape objects)
 #   export-page    --page-id --output-path (--format png|svg|pdf, --scale 1|2|3)
+#   move-export    --filename --output-path
+#                  Move a Frame0 export from `wireframes.export_source_dir`
+#                  (Frame0 writes to a single OS directory regardless of MCP
+#                  output_path; default `~/Downloads`) into the project.
+#                  Local-only — never emits an MCP descriptor.
 #
 # Defaults for export_format / export_scale read from
 # config.wireframes.{export_format,export_scale} when not specified.
@@ -35,6 +40,7 @@ SHAPES_FILE=""
 OUTPUT_PATH=""
 EXPORT_FORMAT=""
 EXPORT_SCALE=""
+FILENAME=""
 QUERY=""
 LIMIT="20"
 DRY_RUN="${SNAP_DRY_RUN:-false}"
@@ -51,6 +57,7 @@ Actions:
   list-pages     --query (--limit, default 20)
   add-shapes     --page-id --shapes JSON|@file
   export-page    --page-id --output-path (--format, --scale)
+  move-export    --filename --output-path
 
 Options:
   --project-root=PATH      Project root (default: \$PWD)
@@ -62,6 +69,7 @@ Options:
   --output-path=PATH       Where to save exported asset
   --format=png|svg|pdf     Export format (config default: png)
   --scale=1|2|3            Export scale (config default: 2)
+  --filename=NAME          Filename to move (move-export only — basename, not full path)
   --query=TEXT             Search query
   --limit=N                Search limit (default 20)
   --dry-run                Skip writes; equivalent to \$SNAP_DRY_RUN=1
@@ -81,6 +89,7 @@ while [ $# -gt 0 ]; do
     --output-path=*)   OUTPUT_PATH="${1#--output-path=}" ;;
     --format=*)        EXPORT_FORMAT="${1#--format=}" ;;
     --scale=*)         EXPORT_SCALE="${1#--scale=}" ;;
+    --filename=*)      FILENAME="${1#--filename=}" ;;
     --query=*)         QUERY="${1#--query=}" ;;
     --limit=*)         LIMIT="${1#--limit=}" ;;
     --dry-run)         DRY_RUN="true" ;;
@@ -94,20 +103,27 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 [ -z "$ACTION" ] && { echo "ERROR: --action required" >&2; exit 2; }
 
 case "$ACTION" in
-  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-page) ;;
+  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-page|move-export) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
 # Read config defaults for export.
 CFG_FORMAT=""
 CFG_SCALE=""
+CFG_SOURCE_DIR=""
 if [ -f "${PROJECT_ROOT}/snapship.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
   CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
   CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format // ""')
   CFG_SCALE=$(echo  "$CFG" | jq -r '.wireframes.export_scale  // ""')
+  CFG_SOURCE_DIR=$(echo "$CFG" | jq -r '.wireframes.export_source_dir // ""')
 fi
 [ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="${CFG_FORMAT:-png}"
 [ -z "$EXPORT_SCALE"  ] && EXPORT_SCALE="${CFG_SCALE:-2}"
+[ -z "$CFG_SOURCE_DIR" ] && CFG_SOURCE_DIR="${HOME}/Downloads"
+# Tilde expand user-provided value (POSIX: only `~` or `~/` prefix, not `~user`).
+if [ "${CFG_SOURCE_DIR:0:1}" = "~" ]; then
+  CFG_SOURCE_DIR="${HOME}${CFG_SOURCE_DIR:1}"
+fi
 
 case "$EXPORT_FORMAT" in png|svg|pdf) ;; *) echo "ERROR: bad --format: $EXPORT_FORMAT" >&2; exit 2 ;; esac
 case "$EXPORT_SCALE"  in 1|2|3)        ;; *) echo "ERROR: bad --scale: $EXPORT_SCALE"  >&2; exit 2 ;; esac
@@ -140,7 +156,41 @@ case "$ACTION" in
   export-page)
     need "$PAGE_ID"     "--page-id required for export-page"
     need "$OUTPUT_PATH" "--output-path required for export-page" ;;
+  move-export)
+    need "$FILENAME"    "--filename required for move-export"
+    need "$OUTPUT_PATH" "--output-path required for move-export"
+    # Filename must be a basename — no path traversal.
+    case "$FILENAME" in
+      */*|*..*) echo "ERROR: --filename must be a basename, not a path: $FILENAME" >&2; exit 2 ;;
+    esac ;;
 esac
+
+# --- move-export (local, no MCP) -----------------------------------------
+if [ "$ACTION" = "move-export" ]; then
+  SOURCE_PATH="${CFG_SOURCE_DIR%/}/${FILENAME}"
+  if [ "$DRY_RUN" = "true" ]; then
+    jq -nc --arg act "$ACTION" --arg src "$SOURCE_PATH" --arg out "$OUTPUT_PATH" --arg dir "$CFG_SOURCE_DIR" '
+      {ok:true, mode:"dry-run", action:$act, platform:"frame0",
+       result:{dry_run:true, source_dir:$dir, source:$src, output_path:$out, moved:false}}'
+    exit 0
+  fi
+  if [ ! -f "$SOURCE_PATH" ]; then
+    jq -nc --arg src "$SOURCE_PATH" --arg dir "$CFG_SOURCE_DIR" '
+      {ok:false, error:"source_not_found", source:$src, source_dir:$dir,
+       hint:"Frame0 did not export here, or filename mismatch. Check wireframes.export_source_dir and the page title used by the Frame0 export."}'
+    exit 1
+  fi
+  TARGET_DIR=$(dirname "$OUTPUT_PATH")
+  mkdir -p "$TARGET_DIR" || { echo "ERROR: cannot create target dir: $TARGET_DIR" >&2; exit 1; }
+  if ! mv "$SOURCE_PATH" "$OUTPUT_PATH"; then
+    echo "ERROR: mv failed: $SOURCE_PATH → $OUTPUT_PATH" >&2
+    exit 1
+  fi
+  jq -nc --arg act "$ACTION" --arg src "$SOURCE_PATH" --arg out "$OUTPUT_PATH" --arg dir "$CFG_SOURCE_DIR" '
+    {ok:true, mode:"local", action:$act, platform:"frame0",
+     result:{source_dir:$dir, source:$src, output_path:$out, moved:true}}'
+  exit 0
+fi
 
 # --- write detection / dry-run -------------------------------------------
 is_write_action() {

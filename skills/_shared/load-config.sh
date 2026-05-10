@@ -216,6 +216,11 @@ RESOLVED=$(echo "$MERGED" | jq '
         .documentation.auto_update_on_qa_success = true
       else . end)
     else . end)
+  # wireframes.export_source_dir default (only if wireframes section present)
+  | (if (.wireframes // null) != null
+        and ((.wireframes | has("export_source_dir")) | not) then
+      .wireframes.export_source_dir = "~/Downloads"
+    else . end)
 ')
 
 # Inherit unresolved → fail

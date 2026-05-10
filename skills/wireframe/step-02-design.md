@@ -12,10 +12,14 @@ Generate the actual wireframes. One Frame0 page per `(screen_id, state)`.
 
 For each screen draft from step-01, and for each state in `states[]`:
 
-1. **Create page**:
+1. **Create page**: the title doubles as the Frame0 export filename basename
+   (Frame0 exports as `<page_title>.<ext>` into `wireframes.export_source_dir`,
+   default `~/Downloads`). Prefix with `feature_slug` to keep filenames unique
+   across features in the user's Downloads:
    ```bash
+   page_title="${feature_slug}-${screen_id}-${state}"
    bash skills/_shared/frame0-helper.sh create-page \
-     --title="${screen_id} — ${state}" \
+     --title="$page_title" \
      --project-root="$PWD"
    # exits 10 with descriptor → invoke MCP, capture page_id
    ```
@@ -35,17 +39,32 @@ For each screen draft from step-01, and for each state in `states[]`:
      --project-root="$PWD"
    ```
 
-3. **Export PNG**:
+3. **Export PNG** (Frame0 writes to `wireframes.export_source_dir`, NOT to
+   `--output-path` — the `output-path` param is informational, ignored by the
+   Frame0 MCP):
    ```bash
    bash skills/_shared/frame0-helper.sh export-page \
      --page-id="$page_id" \
-     --output-path=".claude/product/features/${feature_id}/wireframes/${screen_id}-${state}.png" \
+     --output-path=".claude/product/features/${feature_id}/wireframes/${page_title}.png" \
      --format=png \
      --scale=2 \
      --project-root="$PWD"
+   # exits 10 with descriptor → invoke MCP, Frame0 writes to ${export_source_dir}/${page_title}.png
    ```
 
-4. **Cache descriptor result**: append to `.wireframes-draft.json`:
+4. **Move export into the project** (Frame0 always writes to a single OS
+   directory — typically `~/Downloads` — regardless of MCP params. The skill
+   moves the file from there into `.claude/product/features/<id>/wireframes/`,
+   leaving Downloads clean):
+   ```bash
+   bash skills/_shared/frame0-helper.sh move-export \
+     --filename="${page_title}.png" \
+     --output-path=".claude/product/features/${feature_id}/wireframes/${page_title}.png" \
+     --project-root="$PWD"
+   # local-only — never emits an MCP descriptor; exit 0 on success, 1 if source missing.
+   ```
+
+5. **Cache descriptor result**: append to `.wireframes-draft.json`:
    ```json
    {
      "screens": [
@@ -70,8 +89,9 @@ separate pages.
 ## Dry-run
 
 `--dry-run` writes a placeholder PNG (1×1 transparent) and uses fake page IDs
-(`frame0_page_id: "DRY-{n}"`). This lets the rest of the pipeline (gallery + link)
-be tested without burning Frame0 quota.
+(`frame0_page_id: "DRY-{n}"`). `move-export --dry-run` returns
+`{moved: false}` without touching the filesystem. This lets the rest of the
+pipeline (gallery + link) be tested without burning Frame0 quota.
 
 ## Failure handling
 
