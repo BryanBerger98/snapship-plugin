@@ -78,9 +78,9 @@ flowchart TB
     P1 --> P2[Phase 2: Reviews parallèles]
     subgraph P2[Phase 2: Reviews parallèles]
         BATCH[1 message<br/>3 Agent calls parallèles]
-        BATCH --> RT[reviewer-technical]
-        BATCH --> RF[reviewer-functional]
-        BATCH --> RS[reviewer-security]
+        BATCH --> RT[snap-code-reviewer-technical]
+        BATCH --> RF[snap-code-reviewer-functional]
+        BATCH --> RS[snap-code-reviewer-security]
         RT --> AGG{tous severity<br/>< threshold?}
         RF --> AGG
         RS --> AGG

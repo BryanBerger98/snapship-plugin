@@ -7,6 +7,32 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed — Plugin agents namespacing (breaking)
+
+- **Préfixage `snap-` sur tous les agents bundlés du plugin** pour éviter les
+  collisions avec les `.claude/agents/` du projet utilisateur. Claude Code
+  donne la priorité aux agents du projet sur ceux du plugin lorsque les noms
+  collident — sans préfixe, un agent `developer.md` ou
+  `code-reviewer-technical.md` du projet écrasait silencieusement l'agent
+  bundlé.
+  - `agents/developer.md` → `agents/snap-developer.md`
+  - `agents/code-reviewer-technical.md` → `agents/snap-code-reviewer-technical.md`
+  - `agents/code-reviewer-functional.md` → `agents/snap-code-reviewer-functional.md`
+  - `agents/code-reviewer-security.md` → `agents/snap-code-reviewer-security.md`
+  - `agents/code-reviewer-qa.md` → `agents/snap-code-reviewer-qa.md`
+  - Frontmatter `name:` aligné sur le nouveau nom de fichier.
+- Refs mises à jour dans `skills/develop/` (step-00-init, step-02-prepare,
+  step-03a-standalone) et `skills/qa/` (step-02-interpret, step-03-fix,
+  step-04-retrigger). Note : `step-04-retrigger` utilisait des noms
+  pré-existants incorrects (`reviewer-technical` au lieu de
+  `code-reviewer-technical`) — corrigé en passant.
+- Doc mises à jour : `docs/skills/develop.md`, `docs/structure.md`,
+  `docs/plugin.md`, `docs/diagram.md`, `docs/roadmap.md`,
+  `_shared/templates/docs-defaults/wireframes-gallery.md`.
+- **Override utilisateur** : un projet qui veut surcharger un agent du plugin
+  peut créer `.claude/agents/snap-<name>.md` (la priorité project > plugin
+  reste effective sur le nom préfixé).
+
 ### Added — Templates customization
 
 - **Système de templates customisables** — section `templates` dans

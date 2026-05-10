@@ -54,8 +54,8 @@ feature (session/daemon loop).
 
    - Branch protection: refuse to commit directly on
      `repository.protected_branches`. Branch will be created in step-02.
-   - Reviewers reachable: `agents/code-reviewer-{technical,functional,security}.md`
-     and `agents/developer.md` exist (verified once via the `Task` tool dispatch
+   - Reviewers reachable: `agents/snap-code-reviewer-{technical,functional,security}.md`
+     and `agents/snap-developer.md` exist (verified once via the `Task` tool dispatch
      in step-03a; here we only confirm the files are present).
 
 6. **Append progress**:

@@ -124,11 +124,12 @@ snapship-plugin/  (plugin repo)
 │       ├── domains-state.sh                # v0.2 — CRUD domains.json (cache domain/journey ↔ page ID)
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
 │
-└── agents/                                 # → ~/.claude/agents/ ou .claude/agents/ (paths CC officiels)
-    ├── code-reviewer-technical.md          # review code propre + conventions repo + lint/style
-    ├── code-reviewer-functional.md         # review AC ticket + match wireframes + scope conformance
-    ├── code-reviewer-security.md           # review OWASP + secrets + injection + auth + deps
-    └── code-reviewer-qa.md                 # interprète raw outputs (tests + structural diff) → severity + feedback
+└── agents/                                 # bundlés dans le plugin (préfixés `snap-` pour éviter collision avec project agents)
+    ├── snap-code-reviewer-technical.md     # review code propre + conventions repo + lint/style
+    ├── snap-code-reviewer-functional.md    # review AC ticket + match wireframes + scope conformance
+    ├── snap-code-reviewer-security.md      # review OWASP + secrets + injection + auth + deps
+    ├── snap-code-reviewer-qa.md            # interprète raw outputs (tests + structural diff) → severity + feedback
+    └── snap-developer.md                   # applique aggregated feedback (write tools)
 ```
 
 ## 2. Stockage projet — `.claude/product/` (minimal)

@@ -1,5 +1,5 @@
 ---
-name: developer
+name: snap-developer
 description: Use this agent to apply aggregated review feedback (technical + functional + security + qa) to a code diff. Edits files, fixes findings ordered by severity, leaves a structured changelog. Returns a single JSON fence with severity (post-fix residual) + feedback_md.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet

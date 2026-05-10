@@ -58,12 +58,12 @@ snapship-plugin/
 │   ├── develop/
 │   ├── qa/
 │   └── _shared/                   # scripts + templates + schemas partagés (utilisés par skills, pas un dossier CC standard)
-├── agents/                        # auto-découvert
-│   ├── code-reviewer-technical.md
-│   ├── code-reviewer-functional.md
-│   ├── code-reviewer-security.md
-│   ├── code-reviewer-qa.md
-│   └── developer.md
+├── agents/                        # auto-découvert (préfixe `snap-` pour éviter collision avec agents projet)
+│   ├── snap-code-reviewer-technical.md
+│   ├── snap-code-reviewer-functional.md
+│   ├── snap-code-reviewer-security.md
+│   ├── snap-code-reviewer-qa.md
+│   └── snap-developer.md
 └── docs/                          # specs internes (pas distribuées run-time)
 ```
 

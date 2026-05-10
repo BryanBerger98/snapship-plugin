@@ -21,7 +21,7 @@ amends the ticket commit, then we re-collect (step-01) and re-interpret
 
 ### A. Spawn developer agent (write-enabled)
 
-Reuse `agents/developer.md`. Prompt assembly:
+Reuse `agents/snap-developer.md`. Prompt assembly:
 
 ```json
 {
@@ -37,7 +37,7 @@ Reuse `agents/developer.md`. Prompt assembly:
 ```
 Task({
   description: "QA fix t-001 cycle 1",
-  subagent_type: "developer",
+  subagent_type: "snap-developer",
   prompt: <prompt>
 })
 ```

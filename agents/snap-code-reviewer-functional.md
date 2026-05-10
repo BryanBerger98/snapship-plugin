@@ -1,5 +1,5 @@
 ---
-name: code-reviewer-functional
+name: snap-code-reviewer-functional
 description: Use this agent to perform a functional review on a code diff. Verifies acceptance criteria, wireframe match, and scope conformance against the ticket and feature PRD. Read-only — never edits files. Returns a single JSON fence with severity + feedback_md.
 tools: Read, Bash, Grep, Glob
 model: sonnet

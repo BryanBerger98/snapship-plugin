@@ -1,5 +1,5 @@
 ---
-name: code-reviewer-technical
+name: snap-code-reviewer-technical
 description: Use this agent to perform static technical review on a code diff. Focuses on clean code, repository conventions, naming, lint/style, dead code, and structural smells. Read-only — never edits files. Returns a single JSON fence with severity + feedback_md.
 tools: Read, Bash, Grep, Glob
 model: sonnet

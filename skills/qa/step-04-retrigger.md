@@ -33,9 +33,9 @@ diff=$(git show "$sha")
 **One** message, **three** Agent calls (mirrors /develop step-03a Phase 2):
 
 ```
-Task({description:"retrigger technical t-001", subagent_type:"reviewer-technical", prompt:<diff+ticket>})
-Task({description:"retrigger functional t-001", subagent_type:"reviewer-functional", prompt:<diff+ticket>})
-Task({description:"retrigger security  t-001", subagent_type:"reviewer-security",   prompt:<diff+ticket>})
+Task({description:"retrigger technical t-001", subagent_type:"snap-code-reviewer-technical", prompt:<diff+ticket>})
+Task({description:"retrigger functional t-001", subagent_type:"snap-code-reviewer-functional", prompt:<diff+ticket>})
+Task({description:"retrigger security  t-001", subagent_type:"snap-code-reviewer-security",   prompt:<diff+ticket>})
 ```
 
 Each returns the same JSON fence as /develop:

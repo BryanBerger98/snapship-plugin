@@ -33,7 +33,7 @@ Refuse to proceed if the resolved branch is in `repository.protected_branches`.
 ### B. Conventions
 
 Cache `CLAUDE.md`, `CONTRIBUTING.md`, `.cursorrules` content (whichever exist) —
-will be passed to the developer agent in step-03a.
+will be passed to the snap-developer agent in step-03a.
 
 ```bash
 conventions=""

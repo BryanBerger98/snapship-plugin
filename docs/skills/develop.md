@@ -89,9 +89,9 @@ Convertit ticket(s) → state variables + crée branche:
 - Reviews actives = `[technical, functional, security]` moins types désactivés via flags `--no-tech`/`--no-functional`/`--no-security`
 - Loop `i = 1..develop.review_cycles_max`:
   1. **Spawn batch parallèle via Agent tool** (1 message contenant N Agent tool calls = parallel execution native CC, context isolé par fork). Sur diff courant:
-     - `Agent(subagent_type: "code-reviewer-technical", description: ...)` → severity tech (clean code, conventions repo, lint/style)
-     - `Agent(subagent_type: "code-reviewer-functional", description: ...)` → severity fonctionnelle (AC ticket cochés? matche description? wireframes respectés?)
-     - `Agent(subagent_type: "code-reviewer-security", description: ...)` → severity sécu (OWASP, secrets, injection, auth, dépendances)
+     - `Agent(subagent_type: "snap-code-reviewer-technical", description: ...)` → severity tech (clean code, conventions repo, lint/style)
+     - `Agent(subagent_type: "snap-code-reviewer-functional", description: ...)` → severity fonctionnelle (AC ticket cochés? matche description? wireframes respectés?)
+     - `Agent(subagent_type: "snap-code-reviewer-security", description: ...)` → severity sécu (OWASP, secrets, injection, auth, dépendances)
      - Chaque agent retourne JSON fence final `{ severity, feedback_md }` — skill parse via regex + jq (voir Subagent return format)
   2. **Décision exit** — passe si pour **chaque type actif**:
      - `severity < develop.reviews.{type}.severity_threshold`

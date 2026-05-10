@@ -1,7 +1,7 @@
 ---
 step: 02-interpret
 next_step: 03-fix
-description: Spawn code-reviewer-qa agent with raw evidence; capture severity + qa_feedback_md + flaky verdict.
+description: Spawn snap-code-reviewer-qa agent with raw evidence; capture severity + qa_feedback_md + flaky verdict.
 ---
 
 # step-02 — interpret
@@ -29,13 +29,13 @@ Per ticket, assemble:
 
 ### B. Spawn the agent
 
-Use the `Task` tool with `subagent_type="code-reviewer-qa"` (definition at
-`agents/code-reviewer-qa.md`). The reviewer has read-only tools.
+Use the `Task` tool with `subagent_type="snap-code-reviewer-qa"` (definition at
+`agents/snap-code-reviewer-qa.md`). The reviewer has read-only tools.
 
 ```
 Task({
   description: "QA review t-001 cycle 0",
-  subagent_type: "code-reviewer-qa",
+  subagent_type: "snap-code-reviewer-qa",
   prompt: <the JSON above + standing instructions from the agent file>
 })
 ```

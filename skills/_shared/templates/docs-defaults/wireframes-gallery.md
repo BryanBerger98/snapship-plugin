@@ -8,7 +8,7 @@
 ## How to use
 
 1. Each screen has an ID (`{{feature_id}}-{{screen_slug}}`) used by tickets and the per-feature PRD.
-2. Reviewers (`code-reviewer-functional`) open the PNG paths via the Read tool to verify wireframe match.
+2. Reviewers (`snap-code-reviewer-functional`) open the PNG paths via the Read tool to verify wireframe match.
 3. `/qa` Playwright structural-diff compares the PR's rendered DOM against these images.
 
 ## Screens by feature

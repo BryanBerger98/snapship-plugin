@@ -1,5 +1,5 @@
 ---
-name: code-reviewer-qa
+name: snap-code-reviewer-qa
 description: Use this agent to interpret raw QA outputs (unit/integration/e2e tests, typecheck, lint, Playwright structural diffs) for a code diff. Detects flaky tests, real regressions, and assigns severity. Read-only — never edits files. Returns a single JSON fence with severity + feedback_md.
 tools: Read, Bash, Grep, Glob
 model: sonnet

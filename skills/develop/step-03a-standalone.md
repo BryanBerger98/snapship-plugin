@@ -10,7 +10,7 @@ Implement one ticket. Two phases, then commit.
 
 ## Phase 1 — Code
 
-Spawn the **developer** agent (`agents/developer.md`) with a structured prompt:
+Spawn the **snap-developer** agent (`agents/snap-developer.md`) with a structured prompt:
 
 | Sub-step | What |
 |----------|------|
@@ -71,7 +71,7 @@ blocked = any(reviewer.severity >= reviewer.severity_threshold)
      aggregated_feedback=$(bash skills/_shared/render-template.sh \
        --template="$agg_tpl" --vars="$review_context_json")
      ```
-   - Spawn `developer` agent (write tools enabled) with
+   - Spawn `snap-developer` agent (write tools enabled) with
      `{aggregated_feedback, diff, ticket, conventions, repo_root}`.
    - Re-run Phase 2 (3 reviewers parallel, fresh).
    - cycles_used += 1.

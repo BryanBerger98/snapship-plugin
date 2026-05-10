@@ -1,5 +1,5 @@
 ---
-name: code-reviewer-security
+name: snap-code-reviewer-security
 description: Use this agent to perform a security review on a code diff. Focuses on OWASP Top 10, secrets/credentials, injection (SQL/cmd/XSS), auth/authz, and dependency CVEs. Read-only — never edits files. Returns a single JSON fence with severity + feedback_md.
 tools: Read, Bash, Grep, Glob
 model: sonnet
