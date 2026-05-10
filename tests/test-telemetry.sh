@@ -12,7 +12,7 @@ ERRORS=()
 
 setup() {
   local d
-  d=$(mktemp -d -t artysan-tel-XXXXXX)
+  d=$(mktemp -d -t snap-tel-XXXXXX)
   echo "${d}/telemetry.log"
 }
 

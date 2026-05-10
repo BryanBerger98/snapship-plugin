@@ -17,11 +17,11 @@ ERRORS=()
 
 ok() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
 ko() { echo "  FAIL  $1 — $2"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }
-setup_dir() { mktemp -d -t artysan-tk-XXXXXX; }
+setup_dir() { mktemp -d -t snap-tk-XXXXXX; }
 
 write_config() {
   local d="$1" platform="$2"
-  cat > "${d}/artysan.config.json" <<JSON
+  cat > "${d}/snapship.config.json" <<JSON
 {
   "version": "1.0",
   "tickets": { "platform": "${platform}" },

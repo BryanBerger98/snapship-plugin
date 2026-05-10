@@ -18,7 +18,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unset ARTYSAN_DRY_RUN ARTYSAN_PROJECT_ROOT 2>/dev/null || true
+unset SNAP_DRY_RUN SNAP_PROJECT_ROOT 2>/dev/null || true
 
 echo "=== docs-adapter.sh tests ==="
 
@@ -171,7 +171,7 @@ out=$(bash "$SCRIPT" --action=get --platform=affine --page-id=abc --dry-run); rc
 
 echo ""
 echo "[22] dry-run via env var"
-out=$(ARTYSAN_DRY_RUN=true bash "$SCRIPT" --action=update --platform=notion --page-id=p --title=x); rc=$?
+out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=update --platform=notion --page-id=p --title=x); rc=$?
 [ $rc -eq 0 ]                                          && ok "22.1 exit 0" || ko "22.1"
 [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ]       && ok "22.2 mode"   || ko "22.2"
 
@@ -180,7 +180,7 @@ out=$(ARTYSAN_DRY_RUN=true bash "$SCRIPT" --action=update --platform=notion --pa
 echo ""
 echo "[23] resolves platform + workspace from config"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'JSON'
+cat > "$TMP/snapship.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",
@@ -197,7 +197,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[24] explicit --workspace-id overrides config"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'JSON'
+cat > "$TMP/snapship.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",

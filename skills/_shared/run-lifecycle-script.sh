@@ -2,7 +2,7 @@
 # run-lifecycle-script.sh — execute a workflow lifecycle hook script.
 #
 # Reads config.lifecycle_scripts.<hook>, resolves to project-root path, and
-# executes if present + executable. These hooks are part of the artysan
+# executes if present + executable. These hooks are part of the snap
 # workflow (≠ Claude Code native hooks).
 #
 # Behavior:
@@ -14,9 +14,9 @@
 #                                    or exit 0 with --continue-on-error
 #
 # Environment passed to the script:
-#   ARTYSAN_HOOK            e.g., "pre_develop"
-#   ARTYSAN_FEATURE_ID      passed via --feature-id (may be empty)
-#   ARTYSAN_PROJECT_ROOT    project root
+#   SNAP_HOOK            e.g., "pre_develop"
+#   SNAP_FEATURE_ID      passed via --feature-id (may be empty)
+#   SNAP_PROJECT_ROOT    project root
 #
 # Exit codes:
 #   0  ok or no-op
@@ -28,7 +28,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 HOOK=""
 FEATURE_ID=""
 CONTINUE="false"
@@ -46,8 +46,8 @@ Required:
   --hook=NAME              one of: ${VALID_HOOKS[*]}
 
 Options:
-  --project-root=PATH      Project root (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
-  --feature-id=ID          Forwarded to the script as ARTYSAN_FEATURE_ID
+  --project-root=PATH      Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
+  --feature-id=ID          Forwarded to the script as SNAP_FEATURE_ID
   --continue-on-error      Treat missing/failing scripts as non-fatal (exit 0)
   --json                   After execution, emit a JSON status summary
   -h, --help               Show this help
@@ -97,7 +97,7 @@ emit_json() {
 }
 
 # Load config
-if [ ! -f "${PROJECT_ROOT}/artysan.config.json" ]; then
+if [ ! -f "${PROJECT_ROOT}/snapship.config.json" ]; then
   emit_json "false" "" "0" "0" "no config"
   exit 0
 fi
@@ -160,9 +160,9 @@ now_ms() {
 START=$(now_ms)
 
 set +e
-ARTYSAN_HOOK="$HOOK" \
-ARTYSAN_FEATURE_ID="$FEATURE_ID" \
-ARTYSAN_PROJECT_ROOT="$PROJECT_ROOT" \
+SNAP_HOOK="$HOOK" \
+SNAP_FEATURE_ID="$FEATURE_ID" \
+SNAP_PROJECT_ROOT="$PROJECT_ROOT" \
   "$ABS"
 RC=$?
 set -e

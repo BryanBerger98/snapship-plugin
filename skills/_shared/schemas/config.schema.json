@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/config.schema.json",
-  "title": "artysan.config.json",
-  "description": "Configuration projet artysan — racine projet, committable, partagée équipe.",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/config.schema.json",
+  "title": "snapship.config.json",
+  "description": "Configuration projet snap — racine projet, committable, partagée équipe.",
   "type": "object",
   "required": ["version"],
   "additionalProperties": false,

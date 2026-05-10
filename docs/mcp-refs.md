@@ -19,7 +19,7 @@
 ## code-review-graph MCP (bundled)
 
 - Persistent incremental knowledge graph (Tree-sitter parser, structural graph)
-- **Bundled via `.mcp.json` racine plugin** — auto-démarre quand artysan activé. Pas de `claude mcp add` manuel.
+- **Bundled via `.mcp.json` racine plugin** — auto-démarre quand snap activé. Pas de `claude mcp add` manuel.
 - **Prérequis binaire (non auto-installé par Claude Code):**
   ```bash
   pipx install code-review-graph   # recommandé

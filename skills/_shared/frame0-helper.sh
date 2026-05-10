@@ -25,7 +25,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 ACTION=""
 PAGE_ID=""
 PARENT_ID=""
@@ -37,7 +37,7 @@ EXPORT_FORMAT=""
 EXPORT_SCALE=""
 QUERY=""
 LIMIT="20"
-DRY_RUN="${ARTYSAN_DRY_RUN:-false}"
+DRY_RUN="${SNAP_DRY_RUN:-false}"
 
 usage() {
   cat <<EOF
@@ -64,7 +64,7 @@ Options:
   --scale=1|2|3            Export scale (config default: 2)
   --query=TEXT             Search query
   --limit=N                Search limit (default 20)
-  --dry-run                Skip writes; equivalent to \$ARTYSAN_DRY_RUN=1
+  --dry-run                Skip writes; equivalent to \$SNAP_DRY_RUN=1
   -h, --help               Show this help
 EOF
 }
@@ -101,7 +101,7 @@ esac
 # Read config defaults for export.
 CFG_FORMAT=""
 CFG_SCALE=""
-if [ -f "${PROJECT_ROOT}/artysan.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
+if [ -f "${PROJECT_ROOT}/snapship.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
   CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
   CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format // ""')
   CFG_SCALE=$(echo  "$CFG" | jq -r '.wireframes.export_scale  // ""')

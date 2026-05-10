@@ -1,4 +1,4 @@
-# Artysan
+# SnapShip
 
 Plugin Claude Code — workflow produit autonome, 5 skills enchaînables: définition produit → tickets → wireframes → développement → QA.
 
@@ -6,33 +6,33 @@ Plugin Claude Code — workflow produit autonome, 5 skills enchaînables: défin
 
 | Slash                | Rôle                                                          | Stockage primaire             |
 | -------------------- | ------------------------------------------------------------- | ----------------------------- |
-| `/artysan:init`      | Bootstrap workspace (config + `.claude/product/`). À lancer 1× par projet. | `artysan.config.json` racine projet |
-| `/artysan:define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature) |
-| `/artysan:ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets            |
-| `/artysan:wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery       |
-| `/artysan:develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques      |
-| `/artysan:qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0  |
+| `/snap:init`      | Bootstrap workspace (config + `.claude/product/`). À lancer 1× par projet. | `snapship.config.json` racine projet |
+| `/snap:define`    | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE (PRD global + feature) |
+| `/snap:ticket`    | Génère tickets adaptés à plateforme depuis mini-PRD.          | Plateforme tickets            |
+| `/snap:wireframe` | Wireframes Frame0 multi-écrans liés aux tickets.              | Frame0 + AFFiNE gallery       |
+| `/snap:develop`   | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques      |
+| `/snap:qa`        | Validation runtime: régression scope + wireframes Playwright. | Tests + Playwright vs Frame0  |
 
 ## Quickstart
 
 ```bash
 # Install (marketplace bryanberger, Phase 10)
 /plugin marketplace add bryanberger/claude-plugins
-/plugin install artysan@bryanberger
+/plugin install snap@bryanberger
 
 # Ou clone manuel global (auto-loaded au prochain démarrage CC)
-git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
+git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 
 # Premier projet
 cd <mon-projet>
 claude
 # Dans session — bootstrap once:
-/artysan:init
+/snap:init
 # Puis première feature:
-/artysan:define "feature description"
+/snap:define "feature description"
 ```
 
-`/artysan:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `artysan.config.json` racine projet + scaffold `.claude/product/`. Toutes les autres commandes (`/artysan:define`, `/artysan:ticket`, `/artysan:wireframe`, `/artysan:develop`, `/artysan:qa`) refusent de s'exécuter sans config et pointent vers `/artysan:init`.
+`/snap:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `snapship.config.json` racine projet + scaffold `.claude/product/`. Toutes les autres commandes (`/snap:define`, `/snap:ticket`, `/snap:wireframe`, `/snap:develop`, `/snap:qa`) refusent de s'exécuter sans config et pointent vers `/snap:init`.
 
 ## Prérequis
 
@@ -54,7 +54,7 @@ claude
 Specs complètes dans [`docs/`](docs/README.md):
 
 - [docs/structure.md](docs/structure.md) — file tree + storage projet
-- [docs/config.md](docs/config.md) — schema `artysan.config.json`
+- [docs/config.md](docs/config.md) — schema `snapship.config.json`
 - [docs/workflow.md](docs/workflow.md) — détection plateformes + intégration
 - [docs/modes.md](docs/modes.md) — flags `-a`, telemetry, `--dry-run`, hooks
 - [docs/mcp-refs.md](docs/mcp-refs.md) — Frame0, AFFiNE, code-review-graph, Playwright

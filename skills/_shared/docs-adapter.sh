@@ -21,7 +21,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 ACTION=""
 PLATFORM=""
 PAGE_ID=""
@@ -35,7 +35,7 @@ TEMPLATE_VARS_JSON=""
 BLOB_PATH=""
 QUERY=""
 LIMIT="20"
-DRY_RUN="${ARTYSAN_DRY_RUN:-false}"
+DRY_RUN="${SNAP_DRY_RUN:-false}"
 
 usage() {
   cat <<EOF
@@ -63,7 +63,7 @@ Options:
   --blob-path=PATH               File to upload (PNG, etc.)
   --query=TEXT                   Search query
   --limit=N                      Search result cap (default 20)
-  --dry-run                      Skip writes; equivalent to \$ARTYSAN_DRY_RUN=1
+  --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   -h, --help                     Show this help
 EOF
 }
@@ -100,7 +100,7 @@ case "$ACTION" in
 esac
 
 # Resolve platform + workspace from config when omitted.
-if { [ -z "$PLATFORM" ] || [ -z "$WORKSPACE_ID" ]; } && [ -f "${PROJECT_ROOT}/artysan.config.json" ]; then
+if { [ -z "$PLATFORM" ] || [ -z "$WORKSPACE_ID" ]; } && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
   if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     [ -z "$PLATFORM" ]     && PLATFORM=$(echo "$CFG"     | jq -r '.documentation.platform // ""')

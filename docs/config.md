@@ -1,4 +1,4 @@
-# Config — `artysan.config.json`
+# Config — `snapship.config.json`
 
 **Localisation:** racine projet (committable, partagée avec équipe).
 
@@ -24,7 +24,7 @@
   "tickets": {
     "platform": "jira",                    // github | gitlab | jira | inherit
     "url": "https://company.atlassian.net/browse/PROJ",
-    "default_labels": ["artysan"],
+    "default_labels": ["snap"],
     "jira": {                              // section utilisée seulement si platform=jira
       "project_key": "PROJ",
       "default_issue_type": "Story",
@@ -178,11 +178,11 @@ MCP/CLI gèrent indépendamment:
 
 ## Auto-génération premier run
 
-1. `_shared/setup-config.sh` lance si `artysan.config.json` absent
+1. `_shared/setup-config.sh` lance si `snapship.config.json` absent
 2. Parse `.git/config` → extract remote URL → detect repo platform + URLs
 3. Tente MCP servers actifs → propose match (atlassian, github, notion, affine, frame0)
 4. AskUserQuestion mapping pour ambigus + champs critiques (jira.project_key si JIRA, workspace_id, root_page_id, template_ids)
-5. Génère `artysan.config.json` avec sections détectées
+5. Génère `snapship.config.json` avec sections détectées
 6. User peut éditer ensuite (config = source de vérité, pas re-détection)
 
 ## Auto-discovery sections par étape

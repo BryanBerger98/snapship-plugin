@@ -13,7 +13,7 @@ ERRORS=()
 
 setup_dir() {
   local d
-  d=$(mktemp -d -t artysan-updidx-XXXXXX)
+  d=$(mktemp -d -t snap-updidx-XXXXXX)
   bash "$SETUP" --project-root="$d" >/dev/null
   echo "$d"
 }
@@ -95,7 +95,7 @@ trash "$DIR" 2>/dev/null || true
 # 6. index.md missing → error
 echo ""
 echo "[6] Missing index.md"
-DIR=$(mktemp -d -t artysan-noidx-XXXXXX)
+DIR=$(mktemp -d -t snap-noidx-XXXXXX)
 bash "$SCRIPT" --project-root="$DIR" --feature-id=01-auth --feature-name=X >/dev/null 2>&1
 [ $? -ne 0 ] && ok "6.1 fails when index.md absent" || ko "6.1 succeeded without index.md"
 trash "$DIR" 2>/dev/null || true

@@ -64,7 +64,7 @@ Skip si `{has_codebase}=false` — green-field brainstorm direct.
 
 ### step-04-write-prd (AFFiNE)
 
-- Vérifie `artysan.config.json` section `documentation`. Si absente/incomplète → run `_shared/setup-config.sh` (auto-discovery workspace/templates, AskUserQuestion mapping)
+- Vérifie `snapship.config.json` section `documentation`. Si absente/incomplète → run `_shared/setup-config.sh` (auto-discovery workspace/templates, AskUserQuestion mapping)
 - Génère contenu PRD global: vision + problème + users + features prioritaires + scope/out-of-scope
 - Crée page AFFiNE via MCP:
   - Si `templates.prd_global` set → duplique template, remplit variables (titre, sections)

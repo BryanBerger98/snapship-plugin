@@ -20,7 +20,7 @@ Materialize the markdown PRDs from the cached state and the bundled templates.
 
 ```bash
 PLUGIN_ROOT=$(bash skills/_shared/load-config.sh --project-root="$PWD" \
-  --field plugin_root)  # falls back to ${ARTYSAN_PLUGIN_ROOT:-$(dirname …)}
+  --field plugin_root)  # falls back to ${SNAP_PLUGIN_ROOT:-$(dirname …)}
 TPL_GLOBAL="${PLUGIN_ROOT}/skills/_shared/templates/docs-defaults/prd-global.md"
 TPL_FEATURE="${PLUGIN_ROOT}/skills/_shared/templates/docs-defaults/prd-feature.md"
 ```

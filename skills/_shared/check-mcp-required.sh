@@ -22,15 +22,15 @@
 #   check-mcp-required.sh --required=affine,frame0 --optional=playwright \
 #     --available=affine,frame0,jira
 #   check-mcp-required.sh --project-root=/path        # read from config
-#   ARTYSAN_MCP_AVAILABLE=affine,frame0 check-mcp-required.sh --required=affine
+#   SNAP_MCP_AVAILABLE=affine,frame0 check-mcp-required.sh --required=affine
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 REQUIRED_CSV=""
 OPTIONAL_CSV=""
-AVAILABLE_CSV="${ARTYSAN_MCP_AVAILABLE:-}"
+AVAILABLE_CSV="${SNAP_MCP_AVAILABLE:-}"
 STRICT_OPTIONAL="false"
 USE_CONFIG="auto"   # auto|true|false
 
@@ -45,13 +45,13 @@ Options:
   --optional=CSV         Optional MCP names (warn if missing)
   --available=CSV        Override runtime MCP detection (test hook)
   --project-root=PATH    Read required/optional from config.ai.mcp_servers_*
-                         (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
+                         (default: \$PWD or \$SNAP_PROJECT_ROOT)
   --no-config            Skip config; use only --required/--optional
   --strict-optional      Treat missing optional as failure (exit 1)
   -h, --help             Show this help
 
 Detection priority for available MCPs:
-  --available=CSV  >  \$ARTYSAN_MCP_AVAILABLE  >  \`claude mcp list\` (best effort)
+  --available=CSV  >  \$SNAP_MCP_AVAILABLE  >  \`claude mcp list\` (best effort)
 
 Exit codes: 0=ok, 1=missing required, 2=bad args.
 EOF
@@ -75,7 +75,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 
 # Resolve required/optional from config if not provided explicitly
 if [ "$USE_CONFIG" != "false" ] && [ -z "$REQUIRED_CSV" ] && [ -z "$OPTIONAL_CSV" ]; then
-  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/artysan.config.json" ]; then
+  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     REQUIRED_CSV=$(echo "$CFG" | jq -r '(.ai.mcp_servers_required // []) | join(",")')
     OPTIONAL_CSV=$(echo "$CFG" | jq -r '(.ai.mcp_servers_optional // []) | join(",")')

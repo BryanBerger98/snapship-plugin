@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 PREFER=""
 
 usage() {
@@ -29,7 +29,7 @@ Usage: detect-test-commands.sh [OPTIONS]
 Auto-detects test/lint/typecheck/format commands from project manifests.
 
 Options:
-  --project-root=PATH   Project root (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
+  --project-root=PATH   Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
   --prefer=ECOSYSTEM    Bias detection: npm|cargo|python|make (default: first found)
   -h, --help            Show this help
 

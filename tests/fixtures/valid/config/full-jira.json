@@ -11,7 +11,7 @@
   "tickets": {
     "platform": "jira",
     "url": "https://company.atlassian.net/browse/PROJ",
-    "default_labels": ["artysan"],
+    "default_labels": ["snap"],
     "jira": {
       "project_key": "PROJ",
       "default_issue_type": "Story",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/tickets.schema.json",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/tickets.schema.json",
   "title": "feature tickets.json",
   "description": "Cache tickets feature — .claude/product/features/{feature_id}/tickets.json. Source vérité = plateforme, cache local pour resume + offline reads.",
   "type": "object",

@@ -18,7 +18,7 @@ assert_eq() {
   if [ "$expected" = "$actual" ]; then ok "$label"; else ko "$label" "$actual (expected $expected)"; fi
 }
 
-DIR=$(mktemp -d -t artysan-flt-XXXXXX)
+DIR=$(mktemp -d -t snap-flt-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 # 1. Arg validation

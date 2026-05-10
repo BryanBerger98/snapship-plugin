@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# load-config.sh — Read artysan.config.json, merge defaults, validate schema, resolve inheritance.
+# load-config.sh — Read snapship.config.json, merge defaults, validate schema, resolve inheritance.
 # Output: normalized JSON config on stdout.
 # Exit codes:
 #   0 = success
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 USE_CACHE=true
 NO_VALIDATE=false
 
@@ -19,11 +19,11 @@ usage() {
   cat <<EOF
 Usage: load-config.sh [OPTIONS]
 
-Reads artysan.config.json (project root), merges bundled defaults, validates
+Reads snapship.config.json (project root), merges bundled defaults, validates
 schema, resolves inheritance, outputs normalized JSON to stdout.
 
 Options:
-  --project-root=PATH  Project root (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
+  --project-root=PATH  Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
   --no-cache           Bypass cache (.claude/product/.config-resolved.json)
   --no-validate        Skip JSON Schema validation
   -h, --help           Show this help
@@ -41,7 +41,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-CONFIG_FILE="${PROJECT_ROOT}/artysan.config.json"
+CONFIG_FILE="${PROJECT_ROOT}/snapship.config.json"
 CACHE_FILE="${PROJECT_ROOT}/.claude/product/.config-resolved.json"
 SCHEMA_FILE="${SCRIPT_DIR}/schemas/config.schema.json"
 

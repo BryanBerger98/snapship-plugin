@@ -16,7 +16,7 @@ ERRORS=()
 
 setup_dir() {
   local dir
-  dir="$(mktemp -d -t artysan-loadcfg-XXXXXX)"
+  dir="$(mktemp -d -t snap-loadcfg-XXXXXX)"
   echo "$dir"
 }
 
@@ -63,7 +63,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[2] Minimal config (version only)"
 DIR=$(setup_dir)
-cp "${FIXTURES}/minimal.json" "${DIR}/artysan.config.json"
+cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
 assert_eq "2.1 version" "1.0" "$(echo "$out" | jq -r '.version')"
 assert_eq "2.2 default qa_cycles_max" "2" "$(echo "$out" | jq -r '.qa.qa_cycles_max')"
@@ -74,7 +74,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[3] github-only fixture (inherit, user overrides)"
 DIR=$(setup_dir)
-cp "${FIXTURES}/github-only.json" "${DIR}/artysan.config.json"
+cp "${FIXTURES}/github-only.json" "${DIR}/snapship.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
 assert_eq "3.1 inherit resolved → github" "github" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "3.2 ticket_id_regex github" "#[0-9]+" "$(echo "$out" | jq -r '.naming.ticket_id_regex')"
@@ -89,7 +89,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[4] full-jira fixture"
 DIR=$(setup_dir)
-cp "${FIXTURES}/full-jira.json" "${DIR}/artysan.config.json"
+cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
 assert_eq "4.1 jira platform" "jira" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "4.2 jira project_key" "PROJ" "$(echo "$out" | jq -r '.tickets.jira.project_key')"
@@ -101,11 +101,11 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[5] Invalid config rejected"
 DIR=$(setup_dir)
-cp "${INVALID}/bad-platform.json" "${DIR}/artysan.config.json"
+cp "${INVALID}/bad-platform.json" "${DIR}/snapship.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
 assert_exit "5.1 bad-platform exit 1" 1 $?
 
-cp "${INVALID}/extra-field.json" "${DIR}/artysan.config.json"
+cp "${INVALID}/extra-field.json" "${DIR}/snapship.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
 assert_exit "5.2 extra-field exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
@@ -114,7 +114,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[6] Unsupported version"
 DIR=$(setup_dir)
-echo '{"version":"2.0"}' > "${DIR}/artysan.config.json"
+echo '{"version":"2.0"}' > "${DIR}/snapship.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate >/dev/null 2>&1
 assert_exit "6.1 version 2.0 exit 2" 2 $?
 trash "$DIR" 2>/dev/null || true
@@ -123,7 +123,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[7] inherit without repository"
 DIR=$(setup_dir)
-echo '{"version":"1.0","tickets":{"platform":"inherit"}}' > "${DIR}/artysan.config.json"
+echo '{"version":"1.0","tickets":{"platform":"inherit"}}' > "${DIR}/snapship.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate >/dev/null 2>&1
 assert_exit "7.1 unresolved inherit exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
@@ -132,7 +132,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[8] Cache write + read"
 DIR=$(setup_dir)
-cp "${FIXTURES}/full-jira.json" "${DIR}/artysan.config.json"
+cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
 bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 if [ -f "${DIR}/.claude/product/.config-resolved.json" ]; then
   echo "  PASS  8.1 cache file written"
@@ -150,7 +150,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[9] Warning: tickets.jira on non-jira platform"
 DIR=$(setup_dir)
-cat > "${DIR}/artysan.config.json" <<'EOF'
+cat > "${DIR}/snapship.config.json" <<'EOF'
 {
   "version": "1.0",
   "tickets": {

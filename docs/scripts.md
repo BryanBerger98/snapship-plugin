@@ -7,7 +7,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 ```bash
 # args: --section=tickets|documentation|wireframes|all
 # Output JSON: { tickets: { platform, via, auth }, documentation: {...}, ... }
-# 1. Read artysan.config.json (via load-config.sh)
+# 1. Read snapship.config.json (via load-config.sh)
 # 2. Pour chaque platform configurée:
 #    - MCP server actif? (parse claude_desktop_config / .claude/settings.json)
 #    - Sinon CLI dispo? (which gh glab jira)
@@ -47,7 +47,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 ## load-config.sh
 
 ```bash
-# Parse artysan.config.json + apply defaults bundlés + inheritance rules
+# Parse snapship.config.json + apply defaults bundlés + inheritance rules
 # Output: JSON normalisé (tous champs résolus) sur stdout
 # Cas:
 #   - Config absent → returns defaults
@@ -77,7 +77,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
    - setup-config.sh:
      - AskUserQuestion mapping interactif champs requis
      - Auto-discovery sub-fields (workspace via MCP, templates par heuristique nom)
-     - Persist artysan.config.json
+     - Persist snapship.config.json
      - Validate via load-config.sh schema
    - Skill reprend step-00 avec config complète
 3. Si flag `-a` ET section absente → fail explicite (no AskUserQuestion en autonomous)
@@ -115,7 +115,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 ## setup-config.sh
 
 ```bash
-# Auto-générer artysan.config.json racine projet
+# Auto-générer snapship.config.json racine projet
 # 1. Parse .git/config → repository.{http_url, ssh_url, platform}
 # 2. Detect MCP servers actifs (affine, notion, frame0, atlassian, github, gitlab)
 # 3. AskUserQuestion progressive par section:
@@ -127,7 +127,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #    - develop: review_cycles_max + severity_threshold + fail_strategy
 #    - qa: qa_cycles_max + severity_threshold + retrigger_review
 #    - defaults: lang (FR/EN)
-# 4. Write artysan.config.json
+# 4. Write snapship.config.json
 # Idempotent: si config existe, propose update sections incomplètes
 ```
 

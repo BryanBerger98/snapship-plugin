@@ -24,7 +24,7 @@ assert_eq() {
   if [ "$expected" = "$actual" ]; then ok "$label"; else ko "$label" "got '$actual' expected '$expected'"; fi
 }
 
-DIR=$(mktemp -d -t artysan-qa-e2e-XXXXXX)
+DIR=$(mktemp -d -t snap-qa-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"
@@ -79,7 +79,7 @@ cat > "${FEATURE_DIR}/meta.json" <<JSON
 {"feature_id":"${FEATURE_ID}","title":"Auth","state":"in_review","updated_at":"2026-05-09T00:00:00Z"}
 JSON
 
-cat > "${DIR}/artysan.config.json" <<'JSON'
+cat > "${DIR}/snapship.config.json" <<'JSON'
 {
   "version": "1.0",
   "repository": {"platform": "github", "default_branch": "main"},

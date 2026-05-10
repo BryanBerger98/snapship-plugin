@@ -35,7 +35,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 
 state_file() { echo "${PROJECT_ROOT}/.claude/product/.define-state.json"; }
 

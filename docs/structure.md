@@ -3,7 +3,7 @@
 ## 1. Layout plugin repo
 
 ```
-artysan-plugin/  (plugin repo)
+snapship-plugin/  (plugin repo)
 ├── .claude-plugin/
 │   └── plugin.json                         # manifest CC (name, version, metadata)
 ├── .mcp.json                               # MCP servers bundlés (code-review-graph)
@@ -12,7 +12,7 @@ artysan-plugin/  (plugin repo)
 ├── LICENSE
 ├── README.md
 ├── skills/                                 # → installé dans ~/.claude/skills/ ou .claude/skills/
-│   ├── init/                               # /artysan:init — bootstrap workspace (config + scaffold)
+│   ├── init/                               # /snap:init — bootstrap workspace (config + scaffold)
 │   │   ├── SKILL.md
 │   │   └── steps/
 │   │       ├── step-00-detect.md
@@ -81,8 +81,8 @@ artysan-plugin/  (plugin repo)
 │   │       └── step-05-finish.md
 │   │
 │   └── _shared/
-│       ├── load-config.sh                  # parse artysan.config.json + apply defaults/inheritance + validate schema
-│       ├── setup-config.sh                 # auto-générer artysan.config.json (premier run)
+│       ├── load-config.sh                  # parse snapship.config.json + apply defaults/inheritance + validate schema
+│       ├── setup-config.sh                 # auto-générer snapship.config.json (premier run)
 │       ├── detect-platforms.sh             # detect MCP/CLI dispo (auth check au runtime)
 │       ├── detect-test-commands.sh         # auto-detect testing commands
 │       ├── tickets-adapter.sh              # CRUD tickets (route MCP|CLI selon config.tickets.platform)
@@ -105,7 +105,7 @@ artysan-plugin/  (plugin repo)
 │       │   ├── daemon.sh.tpl               # template loop daemon /develop
 │       │   └── session-start-hook.sh.tpl   # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # JSON Schema bundlés validation runtime
-│       │   ├── config.schema.json          # artysan.config.json
+│       │   ├── config.schema.json          # snapship.config.json
 │       │   ├── meta.schema.json            # features/{id}/meta.json
 │       │   └── tickets.schema.json         # features/{id}/tickets.json
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
@@ -123,7 +123,7 @@ AFFiNE = source primaire docs. Local = cache + progress uniquement. Config vit r
 
 ```
 <project_root>/
-├── artysan.config.json            # Config unifiée (étend defaults bundlés)
+├── snapship.config.json            # Config unifiée (étend defaults bundlés)
 └── .claude/product/
     ├── index.md                    # Track features (état + AFFiNE page IDs)
     └── features/
@@ -140,10 +140,10 @@ AFFiNE = source primaire docs. Local = cache + progress uniquement. Config vit r
 
 - ❌ `PRD.md` global local → AFFiNE
 - ❌ `features/*/PRD.md` local → AFFiNE
-- ❌ `platform.json` (fusionné dans `artysan.config.json`)
-- ❌ `affine.config.json` (fusionné dans `artysan.config.json`)
+- ❌ `platform.json` (fusionné dans `snapship.config.json`)
+- ❌ `affine.config.json` (fusionné dans `snapship.config.json`)
 - ✅ `meta.json` ajouté (lien local ↔ docs platform)
-- ✅ `artysan.config.json` racine projet (config unique)
+- ✅ `snapship.config.json` racine projet (config unique)
 
 ## 3. État `index.md` (centralise progression)
 

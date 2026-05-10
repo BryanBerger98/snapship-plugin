@@ -14,14 +14,26 @@ This step has no `next_step` — it is terminal.
 
 - `.claude/product/prd-global.md` (from step-04)
 - `.claude/product/features/{feature_id}/prd-feature.md` per feature
-- `artysan.config.json` → `documentation.platform` ∈ {`affine`, `notion`, `none`}
+- `snapship.config.json` → `documentation.platform` ∈ {`affine`, `notion`, `none`}
 
 ## Tasks
 
 ### A. Skip if platform = none
 
-If `documentation.platform = "none"`, log a notice and skip publish. Mark progress
-`skip` with note `documentation.platform=none`. Stop.
+Read the platform deterministically from the resolved config (NEVER read the user
+`snapship.config.json` directly — it lacks defaults and may omit the section):
+
+```bash
+PLATFORM=$(jq -r '.documentation.platform // "none"' .claude/product/.config-resolved.json)
+echo "documentation.platform=${PLATFORM}"
+```
+
+If `$PLATFORM = "none"`, log a notice and skip publish. Mark progress `skip` with
+note `documentation.platform=none`. Stop.
+
+If `$PLATFORM ∈ {"affine", "notion"}`, continue to step B. **Do not assume `none`
+when the field is missing or unreadable** — instead, abort with an explicit error
+asking the user to re-run `/snap:init` or fix the config.
 
 ### B. Push global PRD
 
@@ -29,7 +41,7 @@ If `documentation.platform = "none"`, log a notice and skip publish. Mark progre
 bash skills/_shared/docs-adapter.sh \
   --action=create \
   --project-root="$PWD" \
-  --title="PRD — $(jq -r .product_name artysan.config.json)" \
+  --title="PRD — $(jq -r .product_name snapship.config.json)" \
   --content-file=.claude/product/prd-global.md
 ```
 

@@ -49,12 +49,12 @@ h2. References
 * Related: {{related_refs}}
 
 ----
-artysan-feature: {{feature_id}}
-artysan-platform: jira
-artysan-template-version: 1
+snap-feature: {{feature_id}}
+snap-platform: jira
+snap-template-version: 1
 {{!--
 Jira uses wiki-style markup (h2., *bold*, (/) for checked, lists with leading *).
-The trailing ---- block carries machine-readable artysan metadata that the
+The trailing ---- block carries machine-readable snap metadata that the
 tickets-adapter scrubs on round-trip parse.
 
 Variables:

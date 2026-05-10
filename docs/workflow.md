@@ -28,17 +28,17 @@
    - qa: qa_cycles_max + severity_threshold + retrigger_review
    - defaults: lang (FR/EN)
 5. AskUserQuestion confirm (montre aperçu)
-6. Write `artysan.config.json` racine
+6. Write `snapship.config.json` racine
 ```
 
 Idempotent: si config existe partielle, propose update sections incomplètes uniquement.
 
 ## Runtime check (config présente) — `detect-platforms.sh`
 
-**Source de vérité = `artysan.config.json`.** Aucune re-détection sauf vérif auth.
+**Source de vérité = `snapship.config.json`.** Aucune re-détection sauf vérif auth.
 
 ```
-1. Read artysan.config.json (via load-config.sh)
+1. Read snapship.config.json (via load-config.sh)
 2. Pour chaque platform configurée:
    - MCP server actif? (vérifier listing MCP)
    - Sinon CLI dispo? (which + auth check)

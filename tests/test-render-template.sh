@@ -83,7 +83,7 @@ assert_eq "7.1 comment stripped" "beforeafter" "$out"
 # 8. file template + file context
 echo ""
 echo "[8] file inputs"
-DIR=$(mktemp -d -t artysan-rdr-XXXXXX)
+DIR=$(mktemp -d -t snap-rdr-XXXXXX)
 echo "Hello {{name}}" > "$DIR/tpl.md"
 echo '{"name":"File"}' > "$DIR/ctx.json"
 out=$(bash "$SCRIPT" --template="$DIR/tpl.md" --context="$DIR/ctx.json")
@@ -121,7 +121,7 @@ assert_eq "11.1 nested array of arrays" "[A: x,y,][B: z,]" "$out"
 # 12. real PRD template renders cleanly with full context
 echo ""
 echo "[12] real prd-feature.md template"
-DIR=$(mktemp -d -t artysan-rdr-XXXXXX)
+DIR=$(mktemp -d -t snap-rdr-XXXXXX)
 cat > "$DIR/ctx.json" <<'JSON'
 {
   "feature_id": "01-auth",

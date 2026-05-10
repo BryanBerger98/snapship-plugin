@@ -19,7 +19,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Isolate from any inherited env
-unset ARTYSAN_MCP_AVAILABLE 2>/dev/null || true
+unset SNAP_MCP_AVAILABLE 2>/dev/null || true
 
 echo "=== check-mcp-required.sh tests ==="
 
@@ -70,24 +70,24 @@ echo "[6] valid JSON"
 out=$(bash "$SCRIPT" --required=a --available=a --no-config)
 echo "$out" | jq empty 2>/dev/null && ok "6.1 valid" || ko "6.1 invalid: $out"
 
-# 7. ARTYSAN_MCP_AVAILABLE env fallback
+# 7. SNAP_MCP_AVAILABLE env fallback
 echo ""
 echo "[7] env fallback"
-out=$(ARTYSAN_MCP_AVAILABLE="x,y" bash "$SCRIPT" --required=x --no-config)
+out=$(SNAP_MCP_AVAILABLE="x,y" bash "$SCRIPT" --required=x --no-config)
 [ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "7.1 env used" || ko "7.1"
 [ "$(echo "$out" | jq -r '.available | join(",")')" = "x,y" ] && ok "7.2 env contents" || ko "7.2"
 
 # 8. --available overrides env
 echo ""
 echo "[8] --available overrides env"
-out=$(ARTYSAN_MCP_AVAILABLE="x,y" bash "$SCRIPT" --required=a --available=a --no-config)
+out=$(SNAP_MCP_AVAILABLE="x,y" bash "$SCRIPT" --required=a --available=a --no-config)
 [ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "8.1 explicit wins" || ko "8.1"
 
 # 9. Reads required from config
 echo ""
 echo "[9] config-driven required"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'EOF'
+cat > "$TMP/snapship.config.json" <<'EOF'
 {
   "version": "1.0",
   "ai": {
@@ -113,7 +113,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[11] --no-config skip"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'EOF'
+cat > "$TMP/snapship.config.json" <<'EOF'
 { "version": "1.0", "ai": { "mcp_servers_required": ["nope"] } }
 EOF
 out=$(bash "$SCRIPT" --project-root="$TMP" --available=anything --no-config)

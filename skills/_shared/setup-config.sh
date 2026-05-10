@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-config.sh — initial wizard producing artysan.config.json.
+# setup-config.sh — initial wizard producing snapship.config.json.
 #
 # Two modes:
 #
@@ -9,7 +9,7 @@
 #      Skill consumes this to drive AskUserQuestion prompts.
 #
 #   2. --write
-#      Writes artysan.config.json from explicit field flags +/or merged
+#      Writes snapship.config.json from explicit field flags +/or merged
 #      answer JSON. Refuses to overwrite an existing config unless --force.
 #
 # Usage:
@@ -22,11 +22,11 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 MODE=""
 FORCE="false"
 AUTO_MODE="false"
-AVAILABLE_CSV="${ARTYSAN_MCP_AVAILABLE:-}"
+AVAILABLE_CSV="${SNAP_MCP_AVAILABLE:-}"
 FROM_ANSWERS_JSON=""
 
 REPO_PLATFORM=""
@@ -42,13 +42,13 @@ Usage: setup-config.sh [--detect | --write] [OPTIONS]
 
 Modes:
   --detect          (default) Probe environment, emit detected defaults JSON.
-  --write           Materialize artysan.config.json at project root.
+  --write           Materialize snapship.config.json at project root.
 
 Options:
-  --project-root=PATH      Project root (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
-  --force                  Overwrite existing artysan.config.json
+  --project-root=PATH      Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
+  --force                  Overwrite existing snapship.config.json
   --auto-mode=true|false   In --write: skip empty-field check; use detected defaults
-  --available=CSV          Override MCP detection (test hook; defaults to \$ARTYSAN_MCP_AVAILABLE)
+  --available=CSV          Override MCP detection (test hook; defaults to \$SNAP_MCP_AVAILABLE)
   --from-answers=JSON      JSON object merged on top of detected defaults
   --repository-platform=github|gitlab
   --repository-url=URL
@@ -203,7 +203,7 @@ fi
 
 # --- Write mode -----------------------------------------------------------
 
-OUTPUT="$PROJECT_ROOT/artysan.config.json"
+OUTPUT="$PROJECT_ROOT/snapship.config.json"
 
 if [ -e "$OUTPUT" ] && [ "$FORCE" != "true" ]; then
   echo "ERROR: $OUTPUT exists; pass --force to overwrite" >&2
@@ -257,7 +257,7 @@ MERGED=$(jq -n \
 # Add version + $schema (github raw URL — portable across install locations,
 # resolvable by IDEs once plugin published; relative paths break since the plugin
 # lives in CC cache dir, not in the user's project root)
-FINAL=$(echo "$MERGED" | jq '. + {version: "1.0"} | {"$schema": "https://raw.githubusercontent.com/BryanBerger98/artysan-plugin/main/skills/_shared/schemas/config.schema.json"} + .')
+FINAL=$(echo "$MERGED" | jq '. + {version: "1.0"} | {"$schema": "https://raw.githubusercontent.com/BryanBerger98/snapship-plugin/main/skills/_shared/schemas/config.schema.json"} + .')
 
 # In auto-mode=true, ensure every required field resolved
 required_check_msg=""

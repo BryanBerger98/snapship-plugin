@@ -1,19 +1,19 @@
 {
-  "name": "artysan-local",
+  "name": "snapship-local",
   "owner": {
     "name": "Bryan Berger",
     "email": "contact@bryanberger.dev"
   },
   "metadata": {
-    "description": "Marketplace locale brouillon — test install artysan avant publication bryanberger/claude-plugins."
+    "description": "Marketplace locale brouillon — test install snap avant publication bryanberger/claude-plugins."
   },
   "plugins": [
     {
-      "name": "artysan",
+      "name": "snap",
       "source": "./",
       "description": "Workflow produit Claude Code: 5 skills enchaînables (define → ticket → wireframe → develop → qa).",
       "version": "0.1.0",
-      "homepage": "https://github.com/BryanBerger98/artysan-plugin",
+      "homepage": "https://github.com/BryanBerger98/snapship-plugin",
       "license": "MIT",
       "keywords": [
         "workflow",

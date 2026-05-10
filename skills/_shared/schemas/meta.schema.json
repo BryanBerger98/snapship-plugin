@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/BryanBerger98/artysan-plugin/schemas/meta.schema.json",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/meta.schema.json",
   "title": "feature meta.json",
   "description": "Métadonnées feature — .claude/product/features/{feature_id}/meta.json. Cache local IDs externes (AFFiNE, plateforme tickets, branche git).",
   "type": "object",

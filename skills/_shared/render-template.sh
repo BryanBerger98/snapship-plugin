@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# render-template.sh — Mustache-subset template renderer for artysan templates.
+# render-template.sh — Mustache-subset template renderer for snap templates.
 #
 # Reads a template file with {{var}} / {{#list}}…{{/list}} / {{^var}}…{{/var}}
 # placeholders and a JSON context (file or --vars), emits the rendered document

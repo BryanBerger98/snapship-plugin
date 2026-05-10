@@ -11,7 +11,7 @@
 | AFFiNE                | MCP `affine-mcp-server` (DAWNCR0W, 84 tools) — source primaire docs produit                                                         |
 | Templates docs        | Pages templates natives AFFiNE (UI), référencées par template_id                                                                    |
 | Pages AFFiNE générées | PRD global, PRD feature, Wireframes gallery feature                                                                                 |
-| Workspace AFFiNE      | 1 par projet code, mappé via `artysan.config.json` (`documentation.workspace`)                                                      |
+| Workspace AFFiNE      | 1 par projet code, mappé via `snapship.config.json` (`documentation.workspace`)                                                      |
 | Source vérité PRD     | AFFiNE (primaire) — local minimal                                                                                                   |
 | Source vérité tickets | Plateforme primary, cache local                                                                                                     |
 | Stockage local        | `.claude/product/` minimal (cache + progress + meta)                                                                                |
@@ -25,27 +25,27 @@
 | `/develop`            | Standalone (1 ticket = 1 cycle dev/review) + `--loop=session\|daemon` (epic/feature)                                                |
 | Chaining              | Manuel (suggestion fin de skill)                                                                                                    |
 | Sync tickets          | Draft local → review batch → push                                                                                                   |
-| Config                | `artysan.config.json` racine projet (étend defaults bundlés)                                                                        |
+| Config                | `snapship.config.json` racine projet (étend defaults bundlés)                                                                        |
 | Auth                  | Aucune dans config — MCP/CLI gèrent (gh auth, glab auth, $AFFINE_API_TOKEN)                                                         |
 | Sections config       | `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `defaults` |
 
 ## Décisions design (history résolution issues)
 
-### Bootstrap config: skill dédié `/artysan:init`
+### Bootstrap config: skill dédié `/snap:init`
 
-**Issue:** `/define` portait à la fois la création de `artysan.config.json` et la définition produit. Conséquences: step-00 surchargé, échec silencieux quand `load-config.sh` traitait config absente comme `{}` (pas de fail-fast), couplage init ↔ entrée workflow PRD.
+**Issue:** `/define` portait à la fois la création de `snapship.config.json` et la définition produit. Conséquences: step-00 surchargé, échec silencieux quand `load-config.sh` traitait config absente comme `{}` (pas de fail-fast), couplage init ↔ entrée workflow PRD.
 
-**Choix:** extraction dans skill dédié `/artysan:init` (steps `step-00-detect.md` + `step-01-write.md`). Toutes les autres skills (define/ticket/wireframe/develop/qa) exit early avec `ERROR: artysan.config.json not found. Run /artysan:init first.` si config absente.
+**Choix:** extraction dans skill dédié `/snap:init` (steps `step-00-detect.md` + `step-01-write.md`). Toutes les autres skills (define/ticket/wireframe/develop/qa) exit early avec `ERROR: snapship.config.json not found. Run /snap:init first.` si config absente.
 
 **Why:** séparation responsabilités, fail-fast loud > silent fallback, init explicite (1× par projet).
 
-**How to apply:** ajouter un nouveau skill = ajouter le guard `[ -f "$PWD/artysan.config.json" ] || exit 1` au début de step-00.
+**How to apply:** ajouter un nouveau skill = ajouter le guard `[ -f "$PWD/snapship.config.json" ] || exit 1` au début de step-00.
 
 ### `$schema` config: github raw URL
 
 **Issue:** `setup-config.sh --write` injectait `"$schema": "./skills/_shared/schemas/config.schema.json"` (chemin relatif au project root). Une fois le plugin installé via marketplace, le fichier schéma vit dans le cache CC, pas dans le projet → IDE schema validation cassée.
 
-**Choix:** URL github raw `https://raw.githubusercontent.com/BryanBerger98/artysan-plugin/main/skills/_shared/schemas/config.schema.json` (résolu par tout IDE une fois le repo public).
+**Choix:** URL github raw `https://raw.githubusercontent.com/BryanBerger98/snapship-plugin/main/skills/_shared/schemas/config.schema.json` (résolu par tout IDE une fois le repo public).
 
 **Why:** portabilité cross-install. Runtime `load-config.sh` lit toujours le schema depuis le bundle plugin (pas via le champ `$schema`), donc validation ajv non impactée.
 

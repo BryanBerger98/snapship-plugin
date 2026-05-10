@@ -22,7 +22,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 ACTION=""
 PLATFORM=""
 TICKET_ID=""
@@ -33,7 +33,7 @@ ASSIGNEES_CSV=""
 STATE=""
 LIMIT="50"
 COMMENT_TEXT=""
-DRY_RUN="${ARTYSAN_DRY_RUN:-false}"
+DRY_RUN="${SNAP_DRY_RUN:-false}"
 MODE="auto"
 
 usage() {
@@ -60,7 +60,7 @@ Options:
   --state=open|closed
   --limit=N                      For list (default 50)
   --comment=TEXT                 For comment action
-  --dry-run                      Skip writes; equivalent to \$ARTYSAN_DRY_RUN=1
+  --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   --mode=auto|cli|mcp            Force routing (default auto)
   -h, --help                     Show this help
 EOF
@@ -98,7 +98,7 @@ esac
 case "$MODE" in auto|cli|mcp) ;; *) echo "ERROR: bad --mode: $MODE" >&2; exit 2 ;; esac
 
 # Resolve platform from config when omitted
-if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/artysan.config.json" ]; then
+if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
   if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
@@ -191,9 +191,9 @@ fi
 
 # --- CLI dispatch (github via gh, gitlab via glab) ------------------------
 
-# Allow tests to override the CLI binary via $ARTYSAN_GH_BIN / $ARTYSAN_GLAB_BIN
-gh_bin()   { echo "${ARTYSAN_GH_BIN:-gh}"; }
-glab_bin() { echo "${ARTYSAN_GLAB_BIN:-glab}"; }
+# Allow tests to override the CLI binary via $SNAP_GH_BIN / $SNAP_GLAB_BIN
+gh_bin()   { echo "${SNAP_GH_BIN:-gh}"; }
+glab_bin() { echo "${SNAP_GLAB_BIN:-glab}"; }
 
 # Normalize a github JSON issue → ticket schema fields (best-effort subset)
 normalize_github_issue() {

@@ -1,4 +1,4 @@
-# Roadmap artysan
+# Roadmap snap
 
 Étapes développement → publication → installation. Ordre dépendances strict.
 
@@ -6,12 +6,12 @@
 
 **Objectif:** scaffolding plugin + tooling dev.
 
-- [x] Init repo `artysan` (git, license MIT, README minimal)
+- [x] Init repo `snap` (git, license MIT, README minimal)
 - [x] Créer arbo squelette: `skills/`, `agents/`, `skills/_shared/`, `skills/_shared/templates/`, `skills/_shared/schemas/`
 - [x] `.gitignore`: `_shared/telemetry.log*`, `.config-resolved.json`, `.qa-raw-*.json`
 - [x] `plugin.json` brouillon (name, version 0.1.0, paths) — migration vers `.claude-plugin/plugin.json` en Phase 7 (schema officiel CC)
 - [x] CI minimal: lint shell (`shellcheck`), validate JSON Schemas (`ajv-cli`), markdown lint
-- [x] Structure docs `artysan/` copiée depuis ce dossier (source vérité)
+- [x] Structure docs `snap/` copiée depuis ce dossier (source vérité)
 
 **Sortie:** repo public clone-able, structure vide validable CI.
 
@@ -19,7 +19,7 @@
 
 **Objectif:** schemas JSON utilisés par toute config + meta + tickets.
 
-- [x] `_shared/schemas/config.schema.json` — couvre toutes sections `artysan.config.json` (repository, tickets+jira nested, documentation, wireframes, testing, naming, ai, develop, qa, lifecycle_scripts, defaults)
+- [x] `_shared/schemas/config.schema.json` — couvre toutes sections `snapship.config.json` (repository, tickets+jira nested, documentation, wireframes, testing, naming, ai, develop, qa, lifecycle_scripts, defaults)
 - [x] `_shared/schemas/meta.schema.json` — feature `meta.json` (feature_id, affine_page_id, branch_name, etc.)
 - [x] `_shared/schemas/tickets.schema.json` — cache `tickets.json`
 - [x] Tests fixtures valides + invalides par schema
@@ -169,10 +169,10 @@ Ordre dépendances:
 ### 7.3 Validation + test install
 
 - [x] `claude plugin validate .` passe sans warning (plugin + marketplace)
-- [x] `.claude-plugin/marketplace.json` brouillon créé (name `artysan-local`, source `./`)
-- [ ] `/plugin validate .` passe sans warning (in-session, manuel)
-- [ ] Test install local: `/plugin marketplace add ./` puis `/plugin install artysan@artysan-local`
-- [ ] Vérifier 5 skills disponibles dans session + 4 agents listables
+- [x] `.claude-plugin/marketplace.json` brouillon créé (name `snapship-local`, source `./`)
+- [x] `/plugin validate .` passe sans warning (in-session, manuel)
+- [x] Test install local: `/plugin marketplace add ./` puis `/plugin install snap@snapship-local`
+- [x] Vérifier 6 skills disponibles dans session (`init`, `define`, `ticket`, `wireframe`, `develop`, `qa`) + 4 agents listables
 
 ### 7.4 Distribution metadata
 
@@ -202,7 +202,7 @@ Ordre dépendances:
 - [ ] `docs/install.md` (marketplace `bryanberger` + clone manuel + projet-scoped)
 - [ ] `docs/getting-started.md` (premier `/define` walkthrough)
 - [ ] `docs/troubleshooting.md` (auth MCP, conflicts, resume)
-- [ ] `docs/configuration.md` (référence `artysan.config.json` complète)
+- [ ] `docs/configuration.md` (référence `snapship.config.json` complète)
 - [ ] Screencast court (asciinema) flux `/define` → `/develop` → `/qa`
 - [ ] Migration guide si breaking changes futurs
 
@@ -210,7 +210,7 @@ Ordre dépendances:
 
 ## Phase 10 — Marketplace `bryanberger`
 
-**Objectif:** héberger artysan (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add bryanberger/claude-plugins`.
+**Objectif:** héberger snap (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add bryanberger/claude-plugins`.
 
 > Claude Code n'a pas de marketplace centrale Anthropic — chaque créateur publie via un repo GitHub contenant `.claude-plugin/marketplace.json`. Nom `bryanberger` libre (liste réservée complète: `claude-code-marketplace`, `claude-code-plugins`, `claude-plugins-official`, `anthropic-marketplace`, `anthropic-plugins`, `agent-skills`, `knowledge-work-plugins`, `life-sciences`).
 >
@@ -243,17 +243,17 @@ Ordre dépendances:
     "version": "1.0.0",
     "plugins": [
       {
-        "name": "artysan",
+        "name": "snap",
         "description": "Workflow produit 5 skills (define→ticket→wireframe→develop→qa)",
         "source": {
           "source": "github",
-          "repo": "BryanBerger98/artysan-plugin",
+          "repo": "BryanBerger98/snapship-plugin",
           "ref": "v0.1.0"
         },
         "version": "0.1.0",
         "author": { "name": "Bryan Berger", "email": "contact@bryanberger.dev" },
-        "homepage": "https://github.com/BryanBerger98/artysan-plugin",
-        "repository": "https://github.com/BryanBerger98/artysan-plugin",
+        "homepage": "https://github.com/BryanBerger98/snapship-plugin",
+        "repository": "https://github.com/BryanBerger98/snapship-plugin",
         "license": "MIT",
         "keywords": ["workflow", "product-management", "tickets", "wireframes", "qa"]
       }
@@ -264,23 +264,23 @@ Ordre dépendances:
 - [ ] Validation: `claude plugin validate .` passe sans warning
 - [ ] Test local end-to-end:
   - `/plugin marketplace add ./claude-plugins`
-  - `/plugin install artysan@bryanberger`
+  - `/plugin install snap@bryanberger`
   - Vérifier 5 skills disponibles dans session Claude Code
 
 ### 10.3 Publication
 
 - [ ] Push GitHub `bryanberger/claude-plugins` (public)
 - [ ] Test depuis machine vierge: `/plugin marketplace add bryanberger/claude-plugins`
-- [ ] README marketplace: badge install, lien artysan, instructions ajout marketplaces additionnels
+- [ ] README marketplace: badge install, lien snap, instructions ajout marketplaces additionnels
 - [ ] CI workflow `validate-marketplace.yml`: `claude plugin validate .` sur push/PR
-- [ ] Auto-bump `marketplace.json` `ref`/`version` à chaque release artysan (script `bump-marketplace.sh` ou GitHub Action workflow_dispatch)
+- [ ] Auto-bump `marketplace.json` `ref`/`version` à chaque release snap (script `bump-marketplace.sh` ou GitHub Action workflow_dispatch)
 
 ### 10.4 Annonce
 
-- [ ] README artysan-plugin: badge install + lien marketplace
+- [ ] README snapship-plugin: badge install + lien marketplace
 - [ ] Annonce communauté CC (Discord / Reddit r/ClaudeAI / X)
 
-**Sortie:** `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install artysan@bryanberger` fonctionne sur n'importe quelle session Claude Code.
+**Sortie:** `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install snap@bryanberger` fonctionne sur n'importe quelle session Claude Code.
 
 ## Phase 11 — Install user-side (3 méthodes)
 
@@ -289,7 +289,7 @@ Ordre dépendances:
 ```bash
 # Dans Claude Code session
 /plugin marketplace add bryanberger/claude-plugins
-/plugin install artysan@bryanberger
+/plugin install snap@bryanberger
 # Skills + agents + scripts + schemas + templates copiés ~/.claude/
 ```
 
@@ -298,7 +298,7 @@ Auto-update opt-in via `/plugin` → onglet Marketplaces.
 ### 11.2 Clone manuel global
 
 ```bash
-git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
+git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 # Plugin auto-loaded au prochain démarrage CC
 ```
 
@@ -310,7 +310,7 @@ git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/arty
   "extraKnownMarketplaces": {
     "bryanberger": { "source": { "source": "github", "repo": "bryanberger/claude-plugins" } }
   },
-  "enabledPlugins": { "artysan@bryanberger": true }
+  "enabledPlugins": { "snap@bryanberger": true }
 }
 # Membres équipe: prompt install au prochain démarrage CC dans le projet
 ```
@@ -326,7 +326,7 @@ claude
 #   - .git/config (platform, url)
 #   - MCP servers actifs (affine, frame0, etc.)
 #   - test commands (package.json, Cargo.toml, etc.)
-# → écrit artysan.config.json racine projet
+# → écrit snapship.config.json racine projet
 # → continue step-01-discover ou green-field
 ```
 
@@ -342,7 +342,7 @@ claude
 - [ ] Minor releases (v0.2+) — nouvelles features (templates additionnels, nouveaux adapters platforms)
 - [ ] Major release (v1.0) — API stable, breaking changes documentés
 - [ ] Compatibilité MCP versions (track upstream changes affine/frame0/playwright)
-- [ ] Sync `bryanberger/claude-plugins` `marketplace.json` à chaque release artysan (`ref` → nouveau tag, `version` bumpée)
+- [ ] Sync `bryanberger/claude-plugins` `marketplace.json` à chaque release snap (`ref` → nouveau tag, `version` bumpée)
 
 **Sortie:** plugin maintenu, communauté contribue (PRs).
 
@@ -356,7 +356,7 @@ claude
 | 5     | Templates render sans erreur avec vars sample                                |
 | 6     | E2E test suite passe par skill (mock MCP + real MCP)                         |
 | 7     | `claude plugin validate .` passe sur `.claude-plugin/plugin.json`            |
-| 8     | 1 feature complète shipped via artysan en dogfood                            |
+| 8     | 1 feature complète shipped via snap en dogfood                            |
 | 9     | User non-impliqué installe + run premier `/define` sans aide                 |
 | 10    | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
 | 11    | 3 méthodes install testées (marketplace bryanberger + clone global + projet) |

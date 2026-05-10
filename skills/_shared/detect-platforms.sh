@@ -24,15 +24,15 @@
 #
 # Test hooks:
 #   --mock-cli=gh:true,glab:false   force CLI auth probe results
-#   $ARTYSAN_MCP_AVAILABLE=name1,…  controls MCP detection (also via --available)
+#   $SNAP_MCP_AVAILABLE=name1,…  controls MCP detection (also via --available)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 STRICT="false"
 MOCK_CLI=""
-AVAILABLE_CSV="${ARTYSAN_MCP_AVAILABLE:-}"
+AVAILABLE_CSV="${SNAP_MCP_AVAILABLE:-}"
 TICKETS_OVERRIDE=""
 DOCS_OVERRIDE=""
 WIRE_OVERRIDE=""
@@ -80,7 +80,7 @@ DOCS_PLATFORM=""
 WIRE_PLATFORM=""
 
 if [ -z "$TICKETS_OVERRIDE" ] || [ -z "$DOCS_OVERRIDE" ] || [ -z "$WIRE_OVERRIDE" ]; then
-  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/artysan.config.json" ]; then
+  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     TICKETS_PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
     DOCS_PLATFORM=$(echo "$CFG"    | jq -r '.documentation.platform // ""')

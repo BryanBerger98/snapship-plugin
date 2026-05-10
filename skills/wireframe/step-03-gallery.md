@@ -14,8 +14,19 @@ headings per screen and image rows per state. Optional — skipped if
 
 ### A. Skip on platform=none
 
-If `documentation.platform = "none"`, render the local `wireframes-gallery.md`
-file only and mark progress `skip` for the publish leg. Do not call docs-adapter.
+Read platform deterministically from the resolved config (NEVER from the user
+`snapship.config.json` directly):
+
+```bash
+PLATFORM=$(jq -r '.documentation.platform // "none"' .claude/product/.config-resolved.json)
+echo "documentation.platform=${PLATFORM}"
+```
+
+If `$PLATFORM = "none"`, render the local `wireframes-gallery.md` file only and
+mark progress `skip` for the publish leg. Do not call docs-adapter.
+
+If `$PLATFORM ∈ {"affine", "notion"}`, continue. Do not assume `none` on missing
+field — abort with explicit error.
 
 ### B. Render the gallery markdown
 

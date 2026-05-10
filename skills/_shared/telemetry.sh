@@ -43,7 +43,7 @@ Optional:
   --log-path=PATH         Override default log path
   -h, --help              Show this help
 
-Default log: \$ARTYSAN_TELEMETRY_LOG or skills/_shared/telemetry.log (relative to script dir).
+Default log: \$SNAP_TELEMETRY_LOG or skills/_shared/telemetry.log (relative to script dir).
 EOF
 }
 
@@ -95,8 +95,8 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
 
 # Resolve log path
 if [ -z "$LOG_PATH" ]; then
-  if [ -n "${ARTYSAN_TELEMETRY_LOG:-}" ]; then
-    LOG_PATH="$ARTYSAN_TELEMETRY_LOG"
+  if [ -n "${SNAP_TELEMETRY_LOG:-}" ]; then
+    LOG_PATH="$SNAP_TELEMETRY_LOG"
   else
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     LOG_PATH="${SCRIPT_DIR}/telemetry.log"

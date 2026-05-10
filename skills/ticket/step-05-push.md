@@ -13,7 +13,7 @@ have a `platform_url` recorded.
 
 ### A. Skip if dry-run
 
-If `--dry-run`, set `ARTYSAN_DRY_RUN=true` for the whole loop. The adapter logs to
+If `--dry-run`, set `SNAP_DRY_RUN=true` for the whole loop. The adapter logs to
 telemetry and returns mock IDs; mark progress `skip` with note `dry-run`.
 
 ### B. Per-story create loop

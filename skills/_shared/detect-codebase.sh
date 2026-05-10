@@ -24,7 +24,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 
 usage() {
   cat <<EOF
@@ -34,7 +34,7 @@ Detect whether the directory contains an existing codebase. Prints a JSON
 verdict to stdout with the signals found.
 
 Options:
-  --project-root=PATH  Project root (default: \$PWD or \$ARTYSAN_PROJECT_ROOT)
+  --project-root=PATH  Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
   -h, --help           Show this help
 EOF
 }

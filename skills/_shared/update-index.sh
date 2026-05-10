@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${ARTYSAN_PROJECT_ROOT:-$(pwd)}"
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 FEATURE_ID=""
 FEATURE_NAME=""
 STATE=""

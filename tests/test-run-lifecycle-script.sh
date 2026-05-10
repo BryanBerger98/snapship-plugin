@@ -22,11 +22,11 @@ mk_project() {
   local dir="$1" hook="$2" path="$3"
   mkdir -p "$dir"
   if [ -n "$hook" ] && [ -n "$path" ]; then
-    cat > "$dir/artysan.config.json" <<EOF
+    cat > "$dir/snapship.config.json" <<EOF
 { "version": "1.0", "lifecycle_scripts": { "${hook}": "${path}" } }
 EOF
   else
-    cat > "$dir/artysan.config.json" <<'EOF'
+    cat > "$dir/snapship.config.json" <<'EOF'
 { "version": "1.0" }
 EOF
   fi
@@ -128,7 +128,7 @@ echo ""
 echo "[8] env vars"
 TMP=$(mktemp -d)
 mk_project "$TMP" "post_ticket" "scripts/env.sh"
-mk_hook_script "$TMP/scripts/env.sh" 'echo "$ARTYSAN_HOOK|$ARTYSAN_FEATURE_ID|$ARTYSAN_PROJECT_ROOT"'
+mk_hook_script "$TMP/scripts/env.sh" 'echo "$SNAP_HOOK|$SNAP_FEATURE_ID|$SNAP_PROJECT_ROOT"'
 out=$(bash "$SCRIPT" --hook=post_ticket --project-root="$TMP" --feature-id=05-bar)
 [ "$out" = "post_ticket|05-bar|$TMP" ] && ok "8.1 env correct" || ko "8.1 got '$out'"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
@@ -138,7 +138,7 @@ echo ""
 echo "[9] absolute path"
 TMP=$(mktemp -d)
 mk_hook_script "$TMP/abs.sh" 'echo ABS'
-cat > "$TMP/artysan.config.json" <<EOF
+cat > "$TMP/snapship.config.json" <<EOF
 { "version": "1.0", "lifecycle_scripts": { "pre_wireframe": "${TMP}/abs.sh" } }
 EOF
 out=$(bash "$SCRIPT" --hook=pre_wireframe --project-root="$TMP")

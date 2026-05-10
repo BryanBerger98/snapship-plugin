@@ -36,8 +36,8 @@ Bootstrap a `/ticket` run for a single feature.
 
 4. **Require config + load**:
    ```bash
-   [ -f "$PWD/artysan.config.json" ] || {
-     echo "ERROR: artysan.config.json not found. Run /artysan:init first." >&2
+   [ -f "$PWD/snapship.config.json" ] || {
+     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    bash skills/_shared/load-config.sh --project-root="$PWD" > /tmp/cfg.json

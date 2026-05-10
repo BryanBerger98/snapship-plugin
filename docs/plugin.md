@@ -4,8 +4,8 @@
 
 Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin.json`, MCP servers via `.mcp.json` racine, skills/agents auto-découverts depuis dossiers conventionnels.
 
-- Install marketplace `bryanberger` (Phase 10): `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install artysan@bryanberger`
-- Ou clone manuel: `git clone … ~/.claude/plugins/artysan` (auto-loaded)
+- Install marketplace `bryanberger` (Phase 10): `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install snap@bryanberger`
+- Ou clone manuel: `git clone … ~/.claude/plugins/snap` (auto-loaded)
 - Compatible installation projet via `.claude/settings.json` (`extraKnownMarketplaces` + `enabledPlugins`)
 
 **Pas de symlink custom.** Paths officiels CC uniquement.
@@ -14,12 +14,12 @@ Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin
 
 ```json
 {
-  "name": "artysan",
+  "name": "snap",
   "version": "0.1.0",
   "description": "Workflow produit Claude Code: 5 skills enchaînables (define → ticket → wireframe → develop → qa).",
   "author": { "name": "Bryan Berger", "email": "contact@bryanberger.dev" },
-  "homepage": "https://github.com/BryanBerger98/artysan-plugin",
-  "repository": { "type": "git", "url": "https://github.com/BryanBerger98/artysan-plugin" },
+  "homepage": "https://github.com/BryanBerger98/snapship-plugin",
+  "repository": { "type": "git", "url": "https://github.com/BryanBerger98/snapship-plugin" },
   "license": "MIT",
   "keywords": ["workflow", "product-management", "tickets", "wireframes", "code-review", "qa", "affine", "frame0"]
 }
@@ -43,7 +43,7 @@ Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin
 ## Layout repo plugin
 
 ```
-artysan-plugin/
+snapship-plugin/
 ├── .claude-plugin/
 │   └── plugin.json                # manifest CC (name, version, metadata)
 ├── .mcp.json                      # MCP servers bundlés (code-review-graph)
@@ -83,13 +83,13 @@ CI run cette validation à chaque push (Phase 7.3).
 
 ```bash
 /plugin marketplace add bryanberger/claude-plugins
-/plugin install artysan@bryanberger
+/plugin install snap@bryanberger
 ```
 
 ### Clone manuel global
 
 ```bash
-git clone https://github.com/BryanBerger98/artysan-plugin ~/.claude/plugins/artysan
+git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 ```
 
 Plugin auto-chargé au prochain démarrage Claude Code.
@@ -103,7 +103,7 @@ Plugin auto-chargé au prochain démarrage Claude Code.
   "extraKnownMarketplaces": {
     "bryanberger": { "source": { "source": "github", "repo": "bryanberger/claude-plugins" } }
   },
-  "enabledPlugins": { "artysan@bryanberger": true }
+  "enabledPlugins": { "snap@bryanberger": true }
 }
 ```
 

@@ -18,7 +18,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unset ARTYSAN_DRY_RUN ARTYSAN_PROJECT_ROOT 2>/dev/null || true
+unset SNAP_DRY_RUN SNAP_PROJECT_ROOT 2>/dev/null || true
 
 echo "=== frame0-helper.sh tests ==="
 
@@ -122,7 +122,7 @@ rc=$?
 echo ""
 echo "[15] export-page defaults from config"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'JSON'
+cat > "$TMP/snapship.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",
@@ -138,7 +138,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[16] flag overrides config"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'JSON'
+cat > "$TMP/snapship.config.json" <<'JSON'
 { "$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
   "wireframes":{ "platform":"frame0","export_format":"svg","export_scale":3 } }
 JSON
@@ -189,7 +189,7 @@ out=$(bash "$SCRIPT" --action=get-page --page-id=p --dry-run); rc=$?
 
 echo ""
 echo "[23] dry-run via env"
-out=$(ARTYSAN_DRY_RUN=true bash "$SCRIPT" --action=delete-page --page-id=p)
+out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=delete-page --page-id=p)
 [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "23.1" || ko "23.1"
 
 unset TMP

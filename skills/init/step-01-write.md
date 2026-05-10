@@ -1,6 +1,6 @@
 ---
 step: 01-write
-description: Materialize artysan.config.json, scaffold .claude/product/, validate via load-config.sh.
+description: Materialize snapship.config.json, scaffold .claude/product/, validate via load-config.sh.
 ---
 
 # step-01 — write
@@ -20,7 +20,7 @@ Terminal step. Persist config + scaffold local cache.
    bash skills/_shared/setup-config.sh "${ARGS[@]}"
    ```
    Exit codes:
-   - `0` → config written at `$PWD/artysan.config.json`.
+   - `0` → config written at `$PWD/snapship.config.json`.
    - `1` → bad args / autonomous mode missing required field. Surface stderr to
      the user and stop. Do **not** scaffold `.claude/product/`.
    - `2` → existing config + no `--force`. Should never reach here (step-00
@@ -34,7 +34,7 @@ Terminal step. Persist config + scaffold local cache.
    ```
    If `progress.md` is empty, write a header:
    ```
-   # Artysan progress log
+   # SnapShip progress log
 
    Append-only run log. Entries written by `_shared/update-progress.sh`.
    ```
@@ -67,7 +67,7 @@ Terminal step. Persist config + scaffold local cache.
 
 ## Acceptance check
 
-- `artysan.config.json` exists at project root and parses as JSON.
+- `snapship.config.json` exists at project root and parses as JSON.
 - `load-config.sh` exits 0.
 - `.claude/product/{features,progress.md,telemetry.ndjson,.config-resolved.json}`
   all present.
@@ -77,9 +77,9 @@ Terminal step. Persist config + scaffold local cache.
 Terminal. Suggest to the user:
 
 ```
-✓ artysan workspace ready.
+✓ snap workspace ready.
 
 Next:
-  /artysan:define          # start your first feature PRD
-  /artysan:define -a       # autonomous mode (no prompts)
+  /snap:define          # start your first feature PRD
+  /snap:define -a       # autonomous mode (no prompts)
 ```

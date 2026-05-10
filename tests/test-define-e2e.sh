@@ -17,11 +17,11 @@ ERRORS=()
 
 ok() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
 ko() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }
-setup_dir() { mktemp -d -t artysan-e2e-XXXXXX; }
+setup_dir() { mktemp -d -t snap-e2e-XXXXXX; }
 
 write_config_none() {
   local d="$1"
-  cat > "${d}/artysan.config.json" <<'JSON'
+  cat > "${d}/snapship.config.json" <<'JSON'
 {
   "version": "1.0",
   "documentation": { "platform": "none" },
@@ -107,7 +107,7 @@ fcount=$(bash "$STATE" list-features --project-root="$DIR" | wc -l | tr -d ' ')
 [ "$fcount" = "1" ] && ok "1.6 features list yields 1 entry" || ko "1.6 got $fcount"
 
 # step-05 publish: platform=none → skip
-platform=$(jq -r '.documentation.platform' "$DIR/artysan.config.json")
+platform=$(jq -r '.documentation.platform' "$DIR/snapship.config.json")
 if [ "$platform" = "none" ]; then
   bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=05 --step-name=publish --status=skip --skill=define --note="documentation.platform=none" >/dev/null
   ok "1.7 step-05 skipped on platform=none"

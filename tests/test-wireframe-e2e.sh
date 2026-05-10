@@ -29,7 +29,7 @@ assert_eq() {
   if [ "$expected" = "$actual" ]; then ok "$label"; else ko "$label" "got '$actual' expected '$expected'"; fi
 }
 
-DIR=$(mktemp -d -t artysan-wf-e2e-XXXXXX)
+DIR=$(mktemp -d -t snap-wf-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"

@@ -10,7 +10,7 @@ PASS=0
 FAIL=0
 ERRORS=()
 
-setup_dir() { mktemp -d -t artysan-updprg-XXXXXX; }
+setup_dir() { mktemp -d -t snap-updprg-XXXXXX; }
 
 ok() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
 ko() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }

@@ -10,18 +10,18 @@ Probe the environment and resolve answers for every required config field.
 
 ## Tasks
 
-1. **Parse args** from `/artysan:init`. Recognize `--auto`/`-a`, `--lang=fr|en`,
+1. **Parse args** from `/snap:init`. Recognize `--auto`/`-a`, `--lang=fr|en`,
    `--force`. Default `lang=fr`, `auto=false`, `force=false`.
 
 2. **Project root sanity**: confirm `$PWD` looks like a project root (presence of
    `.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, or
    `composer.json`). If none found, ask the user to confirm before proceeding.
 
-3. **Existing config guard**: if `$PWD/artysan.config.json` exists and `--force`
+3. **Existing config guard**: if `$PWD/snapship.config.json` exists and `--force`
    is not passed, abort with:
    ```
-   ERROR: artysan.config.json already exists. Re-run with --force to overwrite,
-   or run /artysan:define to start a feature.
+   ERROR: snapship.config.json already exists. Re-run with --force to overwrite,
+   or run /snap:define to start a feature.
    ```
    Do **not** write progress; just exit.
 
@@ -31,7 +31,7 @@ Probe the environment and resolve answers for every required config field.
    and pass them as a comma-separated list into setup-config.sh:
    ```bash
    # Example — replace with actual session MCP list
-   AVAILABLE="${ARTYSAN_MCP_AVAILABLE:-affine,frame0}"
+   AVAILABLE="${SNAP_MCP_AVAILABLE:-affine,frame0}"
    detected=$(bash skills/_shared/setup-config.sh --detect \
      --project-root="$PWD" \
      --available="$AVAILABLE")

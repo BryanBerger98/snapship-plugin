@@ -18,7 +18,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unset ARTYSAN_MCP_AVAILABLE NOTION_TOKEN 2>/dev/null || true
+unset SNAP_MCP_AVAILABLE NOTION_TOKEN 2>/dev/null || true
 
 echo "=== detect-platforms.sh tests ==="
 
@@ -102,7 +102,7 @@ out=$(bash "$SCRIPT" --tickets=github --mock-cli=gh:true --available= --strict);
 echo ""
 echo "[11] config drives slots"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'EOF'
+cat > "$TMP/snapship.config.json" <<'EOF'
 {
   "version": "1.0",
   "tickets": { "platform": "github" },
@@ -121,7 +121,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[12] override beats config"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'EOF'
+cat > "$TMP/snapship.config.json" <<'EOF'
 { "version": "1.0", "tickets": { "platform": "jira" } }
 EOF
 out=$(bash "$SCRIPT" --project-root="$TMP" --tickets=github --mock-cli=gh:true --available=)

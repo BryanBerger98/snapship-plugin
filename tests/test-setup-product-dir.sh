@@ -12,7 +12,7 @@ PASS=0
 FAIL=0
 ERRORS=()
 
-setup_dir() { mktemp -d -t artysan-setupdir-XXXXXX; }
+setup_dir() { mktemp -d -t snap-setupdir-XXXXXX; }
 
 ok() {
   echo "  PASS  $1"

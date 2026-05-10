@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tests for skills/_shared/tickets-adapter.sh
 #
-# Mocks `gh` and `glab` via $ARTYSAN_GH_BIN / $ARTYSAN_GLAB_BIN test hooks,
+# Mocks `gh` and `glab` via $SNAP_GH_BIN / $SNAP_GLAB_BIN test hooks,
 # pointing each to a stub script under a temp dir.
 
 set -uo pipefail
@@ -105,7 +105,7 @@ STUB
   chmod +x "$path"
 }
 
-unset ARTYSAN_DRY_RUN ARTYSAN_GH_BIN ARTYSAN_GLAB_BIN ARTYSAN_PROJECT_ROOT 2>/dev/null || true
+unset SNAP_DRY_RUN SNAP_GH_BIN SNAP_GLAB_BIN SNAP_PROJECT_ROOT 2>/dev/null || true
 
 echo "=== tickets-adapter.sh tests ==="
 
@@ -159,14 +159,14 @@ rc=$?
 
 echo ""
 echo "[8] dry-run via env var"
-out=$(ARTYSAN_DRY_RUN=true bash "$SCRIPT" --action=update --platform=gitlab --ticket-id=1 --title="x")
+out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=update --platform=gitlab --ticket-id=1 --title="x")
 [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "8.1 env triggers dry-run" || ko "8.1"
 
 echo ""
 echo "[9] dry-run NOT applied to read actions (should hit CLI)"
 TMP=$(mktemp -d)
 mk_failing_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 --dry-run 2>&1)
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 --dry-run 2>&1)
 rc=$?
 [ $rc -eq 1 ] && ok "9.1 read actions skip dry-run shortcut" || ko "9.1 rc=$rc"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
@@ -205,7 +205,7 @@ echo ""
 echo "[13] github create via mock gh"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github --title="T")
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github --title="T")
 rc=$?
 [ $rc -eq 0 ] && ok "13.1 exit 0" || ko "13.1 rc=$rc"
 [ "$(echo "$out" | jq -r '.mode')" = "cli" ]                                   && ok "13.2 mode cli"     || ko "13.2"
@@ -217,7 +217,7 @@ echo ""
 echo "[14] github get normalizes fields"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=42)
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=42)
 [ "$(echo "$out" | jq -r '.result.platform_id')" = "42" ]      && ok "14.1 id"     || ko "14.1"
 [ "$(echo "$out" | jq -r '.result.title')" = "T" ]             && ok "14.2 title"  || ko "14.2"
 [ "$(echo "$out" | jq -r '.result.status')" = "todo" ]         && ok "14.3 status" || ko "14.3"
@@ -229,7 +229,7 @@ echo ""
 echo "[15] github list returns items"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=list --platform=github --limit=5)
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=list --platform=github --limit=5)
 [ "$(echo "$out" | jq -r '.result.count')" = "2" ]                 && ok "15.1 count"   || ko "15.1"
 [ "$(echo "$out" | jq -r '.result.items[1].status')" = "done" ]    && ok "15.2 closed→done" || ko "15.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
@@ -238,7 +238,7 @@ echo ""
 echo "[16] github update returns updated:true"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=update --platform=github --ticket-id=42 --title="new")
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=update --platform=github --ticket-id=42 --title="new")
 [ "$(echo "$out" | jq -r '.result.updated')" = "true" ] && ok "16.1 updated" || ko "16.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -246,7 +246,7 @@ echo ""
 echo "[17] github comment"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment --platform=github --ticket-id=42 --comment="hi")
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment --platform=github --ticket-id=42 --comment="hi")
 [ "$(echo "$out" | jq -r '.result.platform_id')" = "42" ]                                && ok "17.1 id"  || ko "17.1"
 [ "$(echo "$out" | jq -r '.result.comment_url')" != "" ]                                 && ok "17.2 url" || ko "17.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
@@ -255,7 +255,7 @@ echo ""
 echo "[18] github comment requires --comment"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment --platform=github --ticket-id=42 >/dev/null 2>&1
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=comment --platform=github --ticket-id=42 >/dev/null 2>&1
 [ $? -eq 2 ] && ok "18.1 missing comment exit 2" || ko "18.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -263,7 +263,7 @@ echo ""
 echo "[19] github CLI failure → ok:false exit 1"
 TMP=$(mktemp -d)
 mk_failing_stub "$TMP/gh"
-out=$(ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 2>&1)
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 2>&1)
 rc=$?
 [ $rc -eq 1 ] && ok "19.1 exit 1" || ko "19.1 rc=$rc"
 [ "$(echo "$out" | jq -r '.ok' 2>/dev/null)" = "false" ] && ok "19.2 ok=false" || ko "19.2"
@@ -271,7 +271,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
 echo "[20] gh CLI not installed"
-out=$(ARTYSAN_GH_BIN="/nonexistent/gh-binary" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 2>&1)
+out=$(SNAP_GH_BIN="/nonexistent/gh-binary" bash "$SCRIPT" --action=get --platform=github --ticket-id=1 2>&1)
 rc=$?
 [ $rc -eq 1 ] && ok "20.1 exit 1" || ko "20.1 rc=$rc"
 
@@ -281,7 +281,7 @@ echo ""
 echo "[21] gitlab create via mock glab"
 TMP=$(mktemp -d)
 mk_glab_stub "$TMP/glab"
-out=$(ARTYSAN_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=create --platform=gitlab --title="T" --body="d")
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=create --platform=gitlab --title="T" --body="d")
 rc=$?
 [ $rc -eq 0 ] && ok "21.1 exit 0" || ko "21.1 rc=$rc"
 [ "$(echo "$out" | jq -r '.result.platform_id')" = "7" ]                                  && ok "21.2 iid"     || ko "21.2"
@@ -292,7 +292,7 @@ echo ""
 echo "[22] gitlab get normalizes"
 TMP=$(mktemp -d)
 mk_glab_stub "$TMP/glab"
-out=$(ARTYSAN_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=get --platform=gitlab --ticket-id=7)
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=get --platform=gitlab --ticket-id=7)
 [ "$(echo "$out" | jq -r '.result.platform_id')" = "7" ]                && ok "22.1 id"        || ko "22.1"
 [ "$(echo "$out" | jq -r '.result.status')" = "todo" ]                  && ok "22.2 opened→todo" || ko "22.2"
 [ "$(echo "$out" | jq -r '.result.labels[0]')" = "bug" ]                && ok "22.3 labels"    || ko "22.3"
@@ -303,7 +303,7 @@ echo ""
 echo "[23] gitlab list"
 TMP=$(mktemp -d)
 mk_glab_stub "$TMP/glab"
-out=$(ARTYSAN_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=list --platform=gitlab)
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=list --platform=gitlab)
 [ "$(echo "$out" | jq -r '.result.count')" = "2" ]                  && ok "23.1 count"     || ko "23.1"
 [ "$(echo "$out" | jq -r '.result.items[1].status')" = "done" ]     && ok "23.2 closed→done" || ko "23.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
@@ -312,7 +312,7 @@ echo ""
 echo "[24] gitlab update"
 TMP=$(mktemp -d)
 mk_glab_stub "$TMP/glab"
-out=$(ARTYSAN_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=update --platform=gitlab --ticket-id=7 --title="new")
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=update --platform=gitlab --ticket-id=7 --title="new")
 [ "$(echo "$out" | jq -r '.result.updated')" = "true" ] && ok "24.1 updated" || ko "24.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -320,7 +320,7 @@ echo ""
 echo "[25] gitlab comment"
 TMP=$(mktemp -d)
 mk_glab_stub "$TMP/glab"
-out=$(ARTYSAN_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=comment --platform=gitlab --ticket-id=7 --comment="hi")
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=comment --platform=gitlab --ticket-id=7 --comment="hi")
 [ "$(echo "$out" | jq -r '.result.comment')" = "true" ] && ok "25.1 comment ok" || ko "25.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -329,7 +329,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[26] platform resolved from config.tickets.platform"
 TMP=$(mktemp -d)
-cat > "$TMP/artysan.config.json" <<'JSON'
+cat > "$TMP/snapship.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",
@@ -348,7 +348,7 @@ echo ""
 echo "[27] github create without title fails"
 TMP=$(mktemp -d)
 mk_gh_stub "$TMP/gh"
-ARTYSAN_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github >/dev/null 2>&1
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github >/dev/null 2>&1
 [ $? -eq 2 ] && ok "27.1 missing title exit 2" || ko "27.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 

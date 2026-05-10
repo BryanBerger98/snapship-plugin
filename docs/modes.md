@@ -171,7 +171,7 @@ Combinable avec `-a` autonomous: skill court de bout en bout avec defaults, expo
 
 ## SessionStart hook opt-in (pre-load config)
 
-Optionnel pour user qui travaille fréquemment dans projet artysan.
+Optionnel pour user qui travaille fréquemment dans projet snap.
 
 **Setup:** copier template plugin vers location user, puis ajouter dans `~/.claude/settings.json` ou `.claude/settings.json` projet:
 
@@ -199,8 +199,8 @@ chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
 
 ```bash
 #!/usr/bin/env bash
-# Pre-load artysan context si projet courant a config
-CONFIG=".claude/product/artysan.config.json"
+# Pre-load snap context si projet courant a config
+CONFIG=".claude/product/snapship.config.json"
 [ -f "$CONFIG" ] || exit 0
 
 # Output additionalContext via JSON sortie (format CC SessionStart)
@@ -210,7 +210,7 @@ DOCS=$(echo "$RESOLVED" | jq -r '.documentation.platform')
 
 cat <<EOF
 {
-  "additionalContext": "artysan active. Tickets: $PLATFORM. Docs: $DOCS. Skills: /define /ticket /wireframe /develop /qa."
+  "additionalContext": "snap active. Tickets: $PLATFORM. Docs: $DOCS. Skills: /define /ticket /wireframe /develop /qa."
 }
 EOF
 ```

@@ -1,15 +1,15 @@
 ---
 step: 00-init
 next_step: 01-vision
-description: Parse args, require artysan.config.json, detect codebase, branch greenfield vs extension.
+description: Parse args, require snapship.config.json, detect codebase, branch greenfield vs extension.
 ---
 
 # step-00 — init
 
-Validate that the workspace was bootstrapped (`/artysan:init`) and decide which
+Validate that the workspace was bootstrapped (`/snap:init`) and decide which
 path to follow. **Config bootstrap is not handled here** — if
-`artysan.config.json` is missing, this step exits early and points the user back
-to `/artysan:init`.
+`snapship.config.json` is missing, this step exits early and points the user back
+to `/snap:init`.
 
 ## Tasks
 
@@ -32,11 +32,11 @@ to `/artysan:init`.
    For partial `--feature` matches, `resume-state.sh` resolves "01" or "auth" to the
    full `feature_id` and returns it in the JSON; ambiguous matches exit non-zero with
    a candidate list — surface that to the user and re-prompt.
-3. **Require config**: `artysan.config.json` must exist at `$PWD`. If absent,
+3. **Require config**: `snapship.config.json` must exist at `$PWD`. If absent,
    abort early with:
    ```
-   ERROR: artysan.config.json not found at <PWD>.
-   Run /artysan:init first to bootstrap the workspace.
+   ERROR: snapship.config.json not found at <PWD>.
+   Run /snap:init first to bootstrap the workspace.
    ```
    Do not scaffold, do not write progress. Just exit.
 
@@ -65,9 +65,9 @@ to `/artysan:init`.
    ```bash
    bash skills/_shared/load-config.sh --project-root="$PWD" >/dev/null
    ```
-   `.claude/product/` already exists (scaffolded by `/artysan:init`).
+   `.claude/product/` already exists (scaffolded by `/snap:init`).
    `load-config.sh` refreshes `.claude/product/.config-resolved.json` from
-   the current `artysan.config.json`. Fail loud on non-zero exit.
+   the current `snapship.config.json`. Fail loud on non-zero exit.
 8. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough (steps
      01 → 04 → 05).
