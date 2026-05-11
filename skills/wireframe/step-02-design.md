@@ -37,37 +37,30 @@ For each screen draft from step-01, and for each state in `states[]`:
      --project-root="$PWD"
    ```
 
-3. **Export PNG** (Frame0 MCP returns the image as a **base64 string** in the
-   tool result — it does NOT write a file. The `--output-path` arg is the
-   target the next step will use, not a path Frame0 itself honours):
+3. **Export PNG** (bypasses MCP — the Frame0 MCP `export_page_as_image` tool
+   returns an `image` content block whose base64 is rendered visually by the
+   Claude Code harness and never surfaces as text, so it cannot be piped into
+   a script. `export-png` POSTs `file:export-image` directly to Frame0
+   desktop's local HTTP API (`http://localhost:58320/execute_command` by
+   default) and writes the decoded PNG to `--output-path`, named after the
+   page = feature+screen+state):
    ```bash
    target=".claude/product/features/${feature_id}/wireframes/${page_title}.png"
-   bash skills/_shared/frame0-helper.sh export-page \
+   bash skills/_shared/frame0-helper.sh export-png \
      --page-id="$page_id" \
      --output-path="$target" \
      --format=png \
-     --scale=2 \
      --project-root="$PWD"
-   # exits 10 with descriptor → invoke MCP, capture base64 from the result
+   # local-only — exit 0 on success ({written:true,bytes:N}), 1 if Frame0
+   # desktop is unreachable, the API returned success:false, or decode failed.
    ```
 
-4. **Decode base64 → PNG** (`save-export` is local-only — never emits an MCP
-   descriptor; writes the binary asset named after the page = feature+screen+state):
-   ```bash
-   bash skills/_shared/frame0-helper.sh save-export \
-     --output-path="$target" \
-     --base64-file=".tmp/frame0-${page_title}.b64" \
-     --project-root="$PWD"
-   # OR pipe the base64 directly:
-   #   printf '%s' "$b64" | bash skills/_shared/frame0-helper.sh save-export \
-   #     --output-path="$target" --base64-stdin
-   # exit 0 on success, 1 if decode fails / payload empty.
-   ```
+   Override the port via `--api-port=N` or `wireframes.frame0_api_port` in
+   config (matches Frame0's `--api-port=` launch arg). The helper `mkdir -p`'s
+   the target directory and strips a `data:image/...;base64,` prefix if
+   present.
 
-   The helper strips a `data:image/...;base64,` prefix if Frame0 includes one,
-   trims whitespace, and `mkdir -p`'s the target directory.
-
-5. **Cache descriptor result**: append to `.wireframes-draft.json`:
+4. **Cache descriptor result**: append to `.wireframes-draft.json`:
    ```json
    {
      "screens": [
@@ -92,9 +85,9 @@ separate pages.
 ## Dry-run
 
 `--dry-run` writes a placeholder PNG (1×1 transparent) and uses fake page IDs
-(`frame0_page_id: "DRY-{n}"`). `save-export --dry-run` returns
-`{written: false, base64_chars: N}` without touching the filesystem. This lets
-the rest of the pipeline (gallery + link) be tested without burning Frame0 quota.
+(`frame0_page_id: "DRY-{n}"`). `export-png --dry-run` returns
+`{written: false}` without hitting the HTTP API. This lets the rest of the
+pipeline (gallery + link) be tested without a running Frame0 desktop.
 
 ## Failure handling
 

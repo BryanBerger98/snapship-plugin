@@ -310,6 +310,125 @@ else
 fi
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
+# --- export-png (HTTP API bypass) ----------------------------------------
+
+echo ""
+echo "[34] export-png requires --page-id and --output-path"
+bash "$SCRIPT" --action=export-png                                  >/dev/null 2>&1
+[ $? -eq 2 ] && ok "34.1 needs page-id" || ko "34.1"
+bash "$SCRIPT" --action=export-png --page-id=p                      >/dev/null 2>&1
+[ $? -eq 2 ] && ok "34.2 needs out" || ko "34.2"
+bash "$SCRIPT" --action=export-png --output-path=/tmp/x.png         >/dev/null 2>&1
+[ $? -eq 2 ] && ok "34.3 needs page-id" || ko "34.3"
+
+echo ""
+echo "[35] export-png format enum: png|jpeg|webp only"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --format=svg >/dev/null 2>&1
+[ $? -eq 2 ] && ok "35.1 rejects svg" || ko "35.1"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --format=pdf >/dev/null 2>&1
+[ $? -eq 2 ] && ok "35.2 rejects pdf" || ko "35.2"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --format=jpeg --dry-run >/dev/null 2>&1
+[ $? -eq 0 ] && ok "35.3 accepts jpeg" || ko "35.3"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --format=webp --dry-run >/dev/null 2>&1
+[ $? -eq 0 ] && ok "35.4 accepts webp" || ko "35.4"
+
+echo ""
+echo "[36] export-png validates --api-port"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --api-port=abc >/dev/null 2>&1
+[ $? -eq 2 ] && ok "36.1 non-numeric" || ko "36.1"
+bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/x.png --api-port=70000 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "36.2 out of range" || ko "36.2"
+
+echo ""
+echo "[37] export-png dry-run does not call HTTP API"
+out=$(bash "$SCRIPT" --action=export-png --page-id=p123 --output-path=/tmp/dry.png \
+        --api-port=58320 --dry-run)
+rc=$?
+[ $rc -eq 0 ] && ok "37.1 exit 0" || ko "37.1"
+[ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "37.2 mode" || ko "37.2"
+[ "$(echo "$out" | jq -r '.result.api_base')" = "http://localhost:58320" ] && ok "37.3 api_base" || ko "37.3"
+[ "$(echo "$out" | jq -r '.result.mime')" = "image/png" ] && ok "37.4 mime" || ko "37.4"
+[ ! -f /tmp/dry.png ] && ok "37.5 no file written" || ko "37.5"
+
+echo ""
+echo "[38] export-png mock success → PNG written"
+TMP=$(mktemp -d)
+PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="
+echo "{\"success\":true,\"data\":\"$PNG_B64\"}" > "$TMP/resp.json"
+TARGET="$TMP/wf/feat-screen-state.png"
+out=$(SNAP_FRAME0_MOCK_RESPONSE_FILE="$TMP/resp.json" \
+  bash "$SCRIPT" --action=export-png --page-id=p1 --output-path="$TARGET")
+rc=$?
+[ $rc -eq 0 ] && ok "38.1 exit 0" || ko "38.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "38.2 ok=true" || ko "38.2"
+[ "$(echo "$out" | jq -r '.mode')" = "local" ] && ok "38.3 mode=local" || ko "38.3"
+[ -f "$TARGET" ] && ok "38.4 target exists" || ko "38.4"
+sig=$(head -c 8 "$TARGET" | od -An -tx1 | tr -d ' \n')
+[ "$sig" = "89504e470d0a1a0a" ] && ok "38.5 PNG signature" || ko "38.5"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[39] export-png mock API error → exit 1"
+TMP=$(mktemp -d)
+echo '{"success":false,"error":"page not found"}' > "$TMP/resp.json"
+out=$(SNAP_FRAME0_MOCK_RESPONSE_FILE="$TMP/resp.json" \
+  bash "$SCRIPT" --action=export-png --page-id=bad --output-path="$TMP/x.png" 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "39.1 exit 1" || ko "39.1 rc=$rc"
+echo "$out" | grep -q "page not found" && ok "39.2 surfaces API error" || ko "39.2"
+[ ! -f "$TMP/x.png" ] && ok "39.3 no file written" || ko "39.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[40] export-png mock missing .data → exit 1"
+TMP=$(mktemp -d)
+echo '{"success":true}' > "$TMP/resp.json"
+SNAP_FRAME0_MOCK_RESPONSE_FILE="$TMP/resp.json" \
+  bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "40.1 exit 1" || ko "40.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[41] export-png mock malformed JSON → exit 1"
+TMP=$(mktemp -d)
+echo 'not json' > "$TMP/resp.json"
+SNAP_FRAME0_MOCK_RESPONSE_FILE="$TMP/resp.json" \
+  bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "41.1 exit 1" || ko "41.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[42] export-png live HTTP fails when Frame0 not running (port 1)"
+out=$(bash "$SCRIPT" --action=export-png --page-id=p --output-path=/tmp/nx.png \
+        --api-port=1 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "42.1 exit 1" || ko "42.1 rc=$rc"
+echo "$out" | grep -q "HTTP call" && ok "42.2 surfaces HTTP error" || ko "42.2"
+
+echo ""
+echo "[43] export-png reads frame0_api_port from config"
+TMP=$(mktemp -d)
+cat > "$TMP/snapship.config.json" <<'JSON'
+{ "$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
+  "wireframes":{ "platform":"frame0","frame0_api_port":59999 } }
+JSON
+out=$(bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" \
+        --project-root="$TMP" --dry-run)
+[ "$(echo "$out" | jq -r '.result.api_base')" = "http://localhost:59999" ] \
+  && ok "43.1 port from config" || ko "43.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[44] export-png never emits MCP descriptor"
+TMP=$(mktemp -d)
+echo "{\"success\":true,\"data\":\"$PNG_B64\"}" > "$TMP/resp.json"
+out=$(SNAP_FRAME0_MOCK_RESPONSE_FILE="$TMP/resp.json" \
+  bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png")
+desc=$(echo "$out" | jq -r '.descriptor // empty')
+[ -z "$desc" ] && ok "44.1 no descriptor" || ko "44.1"
+[ "$(echo "$out" | jq -r '.mode')" = "local" ] && ok "44.2 mode=local" || ko "44.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
 unset TMP
 
 echo ""

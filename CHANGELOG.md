@@ -7,31 +7,48 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed — Wireframes export decodes Frame0 base64 (breaking)
+### Changed — Wireframes export bypasses MCP via Frame0 HTTP API (breaking)
 
-- **Frame0 MCP `export_page` retourne la PNG en base64** dans le résultat
-  outil (pas un fichier sur disque). Le pipeline wireframe passe maintenant
-  ce payload à une nouvelle action helper qui le décode et l'écrit nommé
-  d'après la page (= `feature_slug-screen_id-state.png`).
-- **`frame0-helper.sh save-export`** (nouveau) — action **local-only**
-  (jamais de descripteur MCP). Args `--output-path=<dest>` + une source de
-  payload parmi `--base64-data=<DATA>`, `--base64-file=<PATH>`,
-  `--base64-stdin`. Strip préfixe `data:image/...;base64,` si présent,
-  retire les blancs, `mkdir -p` la cible, décode via `base64 --decode`. Exit
-  0 succès (`{written: true, bytes: N}`), 1 si décode échoue / payload vide,
-  2 si args invalides ou multiples sources mutex.
-- **`skills/wireframe/step-02-design.md`** — étape 4 « Move export » remplacée
-  par « Decode base64 → PNG ». Doc de l'étape 3 corrigée : `--output-path`
-  est la cible que `save-export` utilisera, pas un chemin honoré par Frame0.
-- Dry-run : `save-export --dry-run` renvoie `{written: false, base64_chars: N}`
-  sans toucher au filesystem.
+- **Pourquoi** : Frame0 MCP `export_page_as_image` retourne la PNG dans un
+  bloc `image` content (base64 rendu visuellement par le harness Claude
+  Code, jamais exposé en texte → impossible à piper vers un script). Le
+  flow précédent (`export-page` MCP → `save-export` base64) ne pouvait pas
+  fonctionner depuis le harness.
+- **`frame0-helper.sh export-png`** (nouveau) — action **local-only**
+  (jamais de descripteur MCP). POST direct à l'API HTTP de Frame0 desktop
+  (`http://localhost:<api-port>/execute_command`, commande
+  `file:export-image`), décode le `.data` base64 de la réponse, écrit le
+  fichier nommé d'après `--output-path` (= `feature_slug-screen_id-state.png`
+  depuis le skill `/wireframe`). Args : `--page-id`, `--output-path`,
+  optionnels `--format=png|jpeg|webp`, `--api-port=N`. Exit 0 succès
+  (`{written:true, bytes:N, mime, api_base}`), 1 si Frame0 desktop
+  injoignable / API renvoie `success:false` / décode échoue, 2 args
+  invalides.
+- **`wireframes.frame0_api_port`** (nouveau, schema config) — port HTTP API
+  Frame0 desktop. Défaut `58320` (= défaut Frame0). Override seulement si
+  Frame0 lancé avec `--api-port=N`. Sub `wireframes.export_scale` ignoré
+  par `export-png` (Frame0 HTTP API n'a pas de paramètre scale).
+- **`frame0-helper.sh export-page`** — toujours présent mais **deprecated**
+  pour usage depuis le harness Claude Code (header + usage le notent).
+  Conservé pour usage librairie/manuel.
+- **`frame0-helper.sh save-export`** — toujours présent (utile pour décoder
+  un base64 arbitraire). Décrit comme outil général, plus comme étape du
+  pipeline `/wireframe`.
+- **`skills/wireframe/step-02-design.md`** — étapes 3+4 fusionnées en une
+  seule étape `export-png`. Bloc `## Dry-run` mis à jour
+  (`export-png --dry-run` retourne `{written:false}` sans hit HTTP).
+- **Tests** : 14 nouveaux tests `export-png` (validation args, format enum
+  png|jpeg|webp, port validation, dry-run, mock success/error/missing-data,
+  HTTP unreachable, config-port resolution, jamais de descriptor MCP). Mock
+  via `$SNAP_FRAME0_MOCK_RESPONSE_FILE` (hidden test stub). 97/97 passing.
 
 ### Removed — Wireframes export source dir
 
 - **`wireframes.export_source_dir`** (schema config) — supprimé. La prémisse
   (Frame0 écrit dans un dossier OS unique type `~/Downloads`) était fausse :
-  Frame0 retourne base64 via MCP. Plus de `mv` depuis Downloads.
-- **`frame0-helper.sh move-export`** — supprimé (remplacé par `save-export`).
+  Frame0 retourne base64 via MCP, et la PNG arrive maintenant directement
+  sur disque via `export-png`. Plus de `mv` depuis Downloads.
+- **`frame0-helper.sh move-export`** — supprimé.
 - Default-fill `wireframes.export_source_dir = "~/Downloads"` retiré de
   `load-config.sh`.
 

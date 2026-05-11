@@ -13,17 +13,30 @@
 #   list-pages     --query (--limit, default 20)
 #   add-shapes     --page-id --shapes (JSON array of shape objects)
 #   export-page    --page-id --output-path (--format png|svg|pdf, --scale 1|2|3)
-#                  Frame0 MCP returns base64-encoded image data in the
-#                  descriptor result (it does NOT write a file). Pipe that
-#                  base64 string back into `save-export` to produce a PNG.
+#                  DEPRECATED for use from the Claude Code harness: Frame0 MCP
+#                  returns the export as an `image` content block whose base64
+#                  data is rendered visually and never surfaces as text — there
+#                  is no way to pipe it back into `save-export`. Use
+#                  `export-png` instead, which bypasses MCP and calls Frame0's
+#                  local HTTP API (`http://localhost:<api-port>/execute_command`).
+#                  Kept for library/manual use only.
+#   export-png     --page-id --output-path (--format png|jpeg|webp, --api-port N)
+#                  Local-only — bypasses MCP. POSTs `file:export-image` to the
+#                  Frame0 desktop HTTP API, decodes the returned base64, writes
+#                  the asset to --output-path. Requires Frame0 desktop running.
+#                  API port defaults to `wireframes.frame0_api_port` (config) or
+#                  58320. The base URL can be overridden for tests via
+#                  $SNAP_FRAME0_API_BASE; the entire HTTP call can be stubbed
+#                  via $SNAP_FRAME0_MOCK_RESPONSE_FILE (path to JSON body).
 #   save-export    --output-path --base64-data DATA|--base64-file PATH|--base64-stdin
-#                  Decode base64 from a Frame0 `export_page` MCP response
-#                  and write the binary asset to --output-path. Strips a
-#                  `data:image/...;base64,` prefix when present.
+#                  Decode an arbitrary base64 payload (e.g. captured from a
+#                  Frame0 response) and write the binary asset to --output-path.
+#                  Strips a `data:image/...;base64,` prefix when present.
 #                  Local-only — never emits an MCP descriptor.
 #
 # Defaults for export_format / export_scale read from
 # config.wireframes.{export_format,export_scale} when not specified.
+# export-png ignores --scale (Frame0's HTTP API has no scale parameter).
 #
 # Output JSON shapes:
 #   mcp:  {"ok":false,"mode":"mcp","reason":"mcp_required","descriptor":{...}}  exit 10
@@ -46,6 +59,7 @@ EXPORT_SCALE=""
 BASE64_DATA=""
 BASE64_FILE=""
 BASE64_STDIN="false"
+API_PORT=""
 QUERY=""
 LIMIT="20"
 DRY_RUN="${SNAP_DRY_RUN:-false}"
@@ -61,7 +75,8 @@ Actions:
   delete-page    --page-id
   list-pages     --query (--limit, default 20)
   add-shapes     --page-id --shapes JSON|@file
-  export-page    --page-id --output-path (--format, --scale)
+  export-page    --page-id --output-path (--format, --scale)         [DEPRECATED — see export-png]
+  export-png     --page-id --output-path (--format png|jpeg|webp, --api-port N)
   save-export    --output-path --base64-data DATA|--base64-file PATH|--base64-stdin
 
 Options:
@@ -77,6 +92,7 @@ Options:
   --base64-data=DATA       Base64 payload from Frame0 MCP export_page result
   --base64-file=PATH       Read base64 payload from a file
   --base64-stdin           Read base64 payload from stdin
+  --api-port=N             Frame0 desktop HTTP API port (default: config or 58320)
   --query=TEXT             Search query
   --limit=N                Search limit (default 20)
   --dry-run                Skip writes; equivalent to \$SNAP_DRY_RUN=1
@@ -99,6 +115,7 @@ while [ $# -gt 0 ]; do
     --base64-data=*)   BASE64_DATA="${1#--base64-data=}" ;;
     --base64-file=*)   BASE64_FILE="${1#--base64-file=}" ;;
     --base64-stdin)    BASE64_STDIN="true" ;;
+    --api-port=*)      API_PORT="${1#--api-port=}" ;;
     --query=*)         QUERY="${1#--query=}" ;;
     --limit=*)         LIMIT="${1#--limit=}" ;;
     --dry-run)         DRY_RUN="true" ;;
@@ -112,23 +129,37 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 [ -z "$ACTION" ] && { echo "ERROR: --action required" >&2; exit 2; }
 
 case "$ACTION" in
-  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-page|save-export) ;;
+  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-page|export-png|save-export) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
 # Read config defaults for export.
 CFG_FORMAT=""
 CFG_SCALE=""
+CFG_API_PORT=""
 if [ -f "${PROJECT_ROOT}/snapship.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
   CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
-  CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format // ""')
-  CFG_SCALE=$(echo  "$CFG" | jq -r '.wireframes.export_scale  // ""')
+  CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format    // ""')
+  CFG_SCALE=$(echo  "$CFG" | jq -r '.wireframes.export_scale     // ""')
+  CFG_API_PORT=$(echo "$CFG" | jq -r '.wireframes.frame0_api_port // ""')
 fi
 [ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="${CFG_FORMAT:-png}"
 [ -z "$EXPORT_SCALE"  ] && EXPORT_SCALE="${CFG_SCALE:-2}"
+[ -z "$API_PORT"      ] && API_PORT="${CFG_API_PORT:-58320}"
 
-case "$EXPORT_FORMAT" in png|svg|pdf) ;; *) echo "ERROR: bad --format: $EXPORT_FORMAT" >&2; exit 2 ;; esac
-case "$EXPORT_SCALE"  in 1|2|3)        ;; *) echo "ERROR: bad --scale: $EXPORT_SCALE"  >&2; exit 2 ;; esac
+# Format enum depends on action:
+#   export-page (legacy MCP descriptor) keeps png/svg/pdf for backward compat
+#   export-png (HTTP API) accepts png/jpeg/webp — Frame0's actual API surface
+if [ "$ACTION" = "export-png" ]; then
+  case "$EXPORT_FORMAT" in png|jpeg|webp) ;; *) echo "ERROR: bad --format for export-png: $EXPORT_FORMAT (allowed: png|jpeg|webp)" >&2; exit 2 ;; esac
+else
+  case "$EXPORT_FORMAT" in png|svg|pdf)   ;; *) echo "ERROR: bad --format: $EXPORT_FORMAT" >&2; exit 2 ;; esac
+fi
+case "$EXPORT_SCALE"  in 1|2|3) ;; *) echo "ERROR: bad --scale: $EXPORT_SCALE" >&2; exit 2 ;; esac
+case "$API_PORT" in
+  ''|*[!0-9]*) echo "ERROR: --api-port must be numeric: $API_PORT" >&2; exit 2 ;;
+  *) [ "$API_PORT" -ge 1 ] && [ "$API_PORT" -le 65535 ] || { echo "ERROR: --api-port out of range: $API_PORT" >&2; exit 2; } ;;
+esac
 
 # --- per-action validation -----------------------------------------------
 need() { [ -n "$1" ] || { echo "ERROR: $2" >&2; exit 2; }; }
@@ -158,6 +189,9 @@ case "$ACTION" in
   export-page)
     need "$PAGE_ID"     "--page-id required for export-page"
     need "$OUTPUT_PATH" "--output-path required for export-page" ;;
+  export-png)
+    need "$PAGE_ID"     "--page-id required for export-png"
+    need "$OUTPUT_PATH" "--output-path required for export-png" ;;
   save-export)
     need "$OUTPUT_PATH" "--output-path required for save-export"
     # Exactly one base64 source.
@@ -171,6 +205,78 @@ case "$ACTION" in
       [ -f "$BASE64_FILE" ] || { echo "ERROR: base64-file not found: $BASE64_FILE" >&2; exit 1; }
     fi ;;
 esac
+
+# --- export-png (local HTTP call, no MCP) --------------------------------
+if [ "$ACTION" = "export-png" ]; then
+  # Map --format to MIME type accepted by Frame0's file:export-image command.
+  case "$EXPORT_FORMAT" in
+    png)  MIME="image/png" ;;
+    jpeg) MIME="image/jpeg" ;;
+    webp) MIME="image/webp" ;;
+  esac
+
+  API_BASE="${SNAP_FRAME0_API_BASE:-http://localhost:${API_PORT}}"
+  REQ_BODY=$(jq -nc --arg pid "$PAGE_ID" --arg fmt "$MIME" '
+    {command:"file:export-image", args:{pageId:$pid, format:$fmt, fillBackground:true}}')
+
+  if [ "$DRY_RUN" = "true" ]; then
+    jq -nc --arg act "$ACTION" --arg pid "$PAGE_ID" --arg out "$OUTPUT_PATH" \
+           --arg api "$API_BASE" --arg mime "$MIME" '
+      {ok:true, mode:"dry-run", action:$act, platform:"frame0",
+       result:{dry_run:true, page_id:$pid, output_path:$out, api_base:$api, mime:$mime, written:false}}'
+    exit 0
+  fi
+
+  # Test stub: when SNAP_FRAME0_MOCK_RESPONSE_FILE is set, read the JSON body
+  # from that file instead of making a real HTTP call. Production code paths
+  # always hit the live API.
+  if [ -n "${SNAP_FRAME0_MOCK_RESPONSE_FILE:-}" ]; then
+    [ -f "$SNAP_FRAME0_MOCK_RESPONSE_FILE" ] || { echo "ERROR: mock response file not found: $SNAP_FRAME0_MOCK_RESPONSE_FILE" >&2; exit 1; }
+    RESP=$(cat "$SNAP_FRAME0_MOCK_RESPONSE_FILE")
+  else
+    command -v curl >/dev/null 2>&1 || { echo "ERROR: curl required for export-png" >&2; exit 2; }
+    RESP=$(curl -fsS -X POST "${API_BASE}/execute_command" \
+      -H "Content-Type: application/json" \
+      --data-binary "$REQ_BODY" 2>/dev/null) || {
+        echo "ERROR: HTTP call to ${API_BASE}/execute_command failed (Frame0 desktop not running on port ${API_PORT}?)" >&2
+        exit 1
+      }
+  fi
+
+  # Validate JSON shape: {success:bool, data:string} or {success:false, error}.
+  echo "$RESP" | jq -e 'type == "object" and has("success")' >/dev/null 2>&1 || {
+    echo "ERROR: Frame0 API returned unexpected response (not a JSON object with .success)" >&2
+    exit 1
+  }
+  SUCCESS=$(echo "$RESP" | jq -r '.success')
+  if [ "$SUCCESS" != "true" ]; then
+    ERR=$(echo "$RESP" | jq -r '.error // "(no error message)"')
+    echo "ERROR: Frame0 API: ${ERR}" >&2
+    exit 1
+  fi
+  PAYLOAD=$(echo "$RESP" | jq -r '.data // empty')
+  [ -n "$PAYLOAD" ] || { echo "ERROR: Frame0 API returned success but no .data" >&2; exit 1; }
+  # Strip data URI prefix if Frame0 ever wraps it.
+  case "$PAYLOAD" in
+    data:*\;base64,*) PAYLOAD="${PAYLOAD#*;base64,}" ;;
+  esac
+  PAYLOAD=$(printf '%s' "$PAYLOAD" | tr -d '[:space:]')
+
+  TARGET_DIR=$(dirname "$OUTPUT_PATH")
+  mkdir -p "$TARGET_DIR" || { echo "ERROR: cannot create target dir: $TARGET_DIR" >&2; exit 1; }
+  if ! printf '%s' "$PAYLOAD" | base64 --decode > "$OUTPUT_PATH" 2>/dev/null; then
+    echo "ERROR: base64 decode failed (target may be partial: $OUTPUT_PATH)" >&2
+    exit 1
+  fi
+  [ -s "$OUTPUT_PATH" ] || { echo "ERROR: decoded file is empty: $OUTPUT_PATH" >&2; exit 1; }
+
+  SIZE=$(wc -c < "$OUTPUT_PATH" | tr -d ' ')
+  jq -nc --arg act "$ACTION" --arg out "$OUTPUT_PATH" --arg api "$API_BASE" \
+         --arg mime "$MIME" --argjson sz "$SIZE" '
+    {ok:true, mode:"local", action:$act, platform:"frame0",
+     result:{output_path:$out, written:true, bytes:$sz, mime:$mime, api_base:$api}}'
+  exit 0
+fi
 
 # --- save-export (local, no MCP) -----------------------------------------
 if [ "$ACTION" = "save-export" ]; then

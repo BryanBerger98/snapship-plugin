@@ -183,6 +183,13 @@
         "naming_pattern": {
           "type": "string",
           "default": "{feature_id}-{screen_name}"
+        },
+        "frame0_api_port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 58320,
+          "description": "Port of Frame0 desktop's local HTTP API. The `export-png` action bypasses MCP and POSTs `file:export-image` here. Override only if Frame0 was launched with --api-port=<N>."
         }
       }
     },
