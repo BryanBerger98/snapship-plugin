@@ -64,8 +64,7 @@
     "platform": "frame0",                  // frame0 (seul supporté)
     "export_format": "png",                // png | svg | pdf
     "export_scale": 2,                     // 1x, 2x, 3x (retina)
-    "naming_pattern": "{feature_id}-{screen_name}",
-    "export_source_dir": "~/Downloads"     // dossier où Frame0 écrit le PNG. Skill déplace ensuite vers .claude/product/features/<id>/wireframes/. Tilde-expanded.
+    "naming_pattern": "{feature_id}-{screen_name}"
   },
   "testing": {
     "test_command": "pnpm test",
@@ -185,7 +184,6 @@ MCP/CLI gèrent indépendamment:
    - `qa.retrigger_review` absent → `false`
    - `qa.regression.scope` absent → `impacted` (fallback `tests-only` si code-review-graph MCP absent)
    - `qa.wireframe_check.enabled` absent → `false` (opt-in)
-   - `wireframes.export_source_dir` absent → `~/Downloads` (Frame0 écrit toujours dans un dossier OS unique indépendamment du param `output_path` MCP — le skill déplace ensuite vers le projet)
 4. **`feature_id` format hardcoded:** `NN-kebab` (ex: `01-auth`). `NN` = numéro auto-incrémenté depuis `index.md`, `kebab` = slugify nom feature tronqué à `feature_slug_max_length`.
 5. Override CLI flag toujours prioritaire (`--platform=...`, `--review-cycles=N`)
 6. `ai.mcp_servers_required` validé au startup chaque skill — fail fast si absent

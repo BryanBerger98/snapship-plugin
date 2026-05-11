@@ -7,25 +7,33 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added — Wireframes export source dir
+### Changed — Wireframes export decodes Frame0 base64 (breaking)
 
-- **`wireframes.export_source_dir`** — nouvelle clé schema (string, défaut
-  `~/Downloads`, tilde-expanded). Frame0 écrit toujours dans un **unique
-  dossier OS** indépendamment du param `output_path` MCP ; le skill déplace
-  ensuite le PNG depuis ce dossier vers
-  `.claude/product/features/<id>/wireframes/`. Permet d'aligner la config
-  avec l'OS si Frame0 exporte ailleurs (ex: `~/Desktop`).
-- **`frame0-helper.sh move-export`** — nouvelle action **local-only** (jamais
-  de descripteur MCP). Args `--filename=<basename>` + `--output-path=<dest>`.
-  Compose `${export_source_dir}/${filename}`, `mkdir -p` la cible, `mv`. Exit
-  0 succès, 1 si source introuvable (avec hint), 2 args invalides. Rejette
-  les `--filename` contenant `/` ou `..` (anti-traversal).
-- **`skills/wireframe/step-02-design.md`** — étape « Move export into the
-  project » ajoutée après l'export PNG. Filename composé via
-  `${feature_slug}-${screen_id}-${state}.png` (préfixé `feature_slug` pour
-  rester unique dans `~/Downloads` partagés entre features).
-- Dry-run : `move-export --dry-run` renvoie `{moved: false}` sans toucher au
-  filesystem (cohérent avec le reste du pipeline wireframe).
+- **Frame0 MCP `export_page` retourne la PNG en base64** dans le résultat
+  outil (pas un fichier sur disque). Le pipeline wireframe passe maintenant
+  ce payload à une nouvelle action helper qui le décode et l'écrit nommé
+  d'après la page (= `feature_slug-screen_id-state.png`).
+- **`frame0-helper.sh save-export`** (nouveau) — action **local-only**
+  (jamais de descripteur MCP). Args `--output-path=<dest>` + une source de
+  payload parmi `--base64-data=<DATA>`, `--base64-file=<PATH>`,
+  `--base64-stdin`. Strip préfixe `data:image/...;base64,` si présent,
+  retire les blancs, `mkdir -p` la cible, décode via `base64 --decode`. Exit
+  0 succès (`{written: true, bytes: N}`), 1 si décode échoue / payload vide,
+  2 si args invalides ou multiples sources mutex.
+- **`skills/wireframe/step-02-design.md`** — étape 4 « Move export » remplacée
+  par « Decode base64 → PNG ». Doc de l'étape 3 corrigée : `--output-path`
+  est la cible que `save-export` utilisera, pas un chemin honoré par Frame0.
+- Dry-run : `save-export --dry-run` renvoie `{written: false, base64_chars: N}`
+  sans toucher au filesystem.
+
+### Removed — Wireframes export source dir
+
+- **`wireframes.export_source_dir`** (schema config) — supprimé. La prémisse
+  (Frame0 écrit dans un dossier OS unique type `~/Downloads`) était fausse :
+  Frame0 retourne base64 via MCP. Plus de `mv` depuis Downloads.
+- **`frame0-helper.sh move-export`** — supprimé (remplacé par `save-export`).
+- Default-fill `wireframes.export_source_dir = "~/Downloads"` retiré de
+  `load-config.sh`.
 
 ### Changed — Plugin agents namespacing (breaking)
 

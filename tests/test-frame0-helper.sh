@@ -192,124 +192,122 @@ echo "[23] dry-run via env"
 out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=delete-page --page-id=p)
 [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "23.1" || ko "23.1"
 
-# --- move-export ----------------------------------------------------------
+# --- save-export ----------------------------------------------------------
+# 1×1 transparent PNG, base64-encoded. Decodes to 67 bytes.
+PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="
 
 echo ""
-echo "[24] move-export requires --filename and --output-path"
-bash "$SCRIPT" --action=move-export                                >/dev/null 2>&1
-[ $? -eq 2 ] && ok "24.1 needs filename" || ko "24.1"
-bash "$SCRIPT" --action=move-export --filename=a.png               >/dev/null 2>&1
-[ $? -eq 2 ] && ok "24.2 needs out"      || ko "24.2"
-bash "$SCRIPT" --action=move-export --output-path=/tmp/x.png       >/dev/null 2>&1
-[ $? -eq 2 ] && ok "24.3 needs filename" || ko "24.3"
+echo "[24] save-export requires --output-path and a payload source"
+bash "$SCRIPT" --action=save-export                                >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.1 needs out" || ko "24.1"
+bash "$SCRIPT" --action=save-export --output-path=/tmp/x.png       >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.2 needs payload" || ko "24.2"
+bash "$SCRIPT" --action=save-export --base64-data="$PNG_B64"       >/dev/null 2>&1
+[ $? -eq 2 ] && ok "24.3 needs out (with data)" || ko "24.3"
 
 echo ""
-echo "[25] move-export rejects path traversal in --filename"
-bash "$SCRIPT" --action=move-export --filename=../etc/passwd --output-path=/tmp/x >/dev/null 2>&1
-[ $? -eq 2 ] && ok "25.1 reject dotdot" || ko "25.1"
-bash "$SCRIPT" --action=move-export --filename=sub/file.png --output-path=/tmp/x >/dev/null 2>&1
-[ $? -eq 2 ] && ok "25.2 reject slash" || ko "25.2"
-
-echo ""
-echo "[26] move-export source_not_found"
-TMP=$(mktemp -d)
-mkdir -p "$TMP/Downloads"
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
-JSON
-out=$(bash "$SCRIPT" --action=move-export --filename=missing.png \
-        --output-path="$TMP/out/missing.png" --project-root="$TMP" 2>&1)
-rc=$?
-[ $rc -eq 1 ] && ok "26.1 exit 1" || ko "26.1 rc=$rc"
-[ "$(echo "$out" | jq -r '.ok')" = "false" ]                    && ok "26.2 ok=false" || ko "26.2"
-[ "$(echo "$out" | jq -r '.error')" = "source_not_found" ]      && ok "26.3 err"      || ko "26.3"
+echo "[25] save-export rejects multiple payload sources"
+TMP=$(mktemp -d); echo "$PNG_B64" > "$TMP/p.b64"
+bash "$SCRIPT" --action=save-export --output-path="$TMP/x.png" \
+  --base64-data="$PNG_B64" --base64-file="$TMP/p.b64" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "25.1 mutex data+file" || ko "25.1"
+bash "$SCRIPT" --action=save-export --output-path="$TMP/x.png" \
+  --base64-data="$PNG_B64" --base64-stdin </dev/null >/dev/null 2>&1
+[ $? -eq 2 ] && ok "25.2 mutex data+stdin" || ko "25.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
-echo "[27] move-export success — moves file and creates target dir"
+echo "[26] save-export base64-file not found"
+out=$(bash "$SCRIPT" --action=save-export --output-path=/tmp/x.png \
+        --base64-file=/no/such/file.b64 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "26.1 exit 1" || ko "26.1 rc=$rc"
+
+echo ""
+echo "[27] save-export decodes base64 → PNG (via --base64-data)"
 TMP=$(mktemp -d)
-mkdir -p "$TMP/Downloads"
-echo "fake-png-bytes" > "$TMP/Downloads/01-auth-signup-empty.png"
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
-JSON
 TARGET="$TMP/.claude/product/features/01-auth/wireframes/01-auth-signup-empty.png"
-out=$(bash "$SCRIPT" --action=move-export --filename=01-auth-signup-empty.png \
-        --output-path="$TARGET" --project-root="$TMP")
+out=$(bash "$SCRIPT" --action=save-export --output-path="$TARGET" \
+        --base64-data="$PNG_B64")
 rc=$?
 [ $rc -eq 0 ] && ok "27.1 exit 0" || ko "27.1 rc=$rc"
 [ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "27.2 ok=true" || ko "27.2"
 [ "$(echo "$out" | jq -r '.mode')" = "local" ] && ok "27.3 mode=local" || ko "27.3"
 [ -f "$TARGET" ] && ok "27.4 target exists" || ko "27.4"
-[ ! -f "$TMP/Downloads/01-auth-signup-empty.png" ] && ok "27.5 source removed (move)" || ko "27.5"
-[ "$(cat "$TARGET")" = "fake-png-bytes" ] && ok "27.6 content preserved" || ko "27.6"
+# PNG signature: 89 50 4E 47 0D 0A 1A 0A
+sig=$(head -c 8 "$TARGET" | od -An -tx1 | tr -d ' \n')
+[ "$sig" = "89504e470d0a1a0a" ] && ok "27.5 PNG signature" || ko "27.5 got '$sig'"
+[ "$(echo "$out" | jq -r '.result.bytes')" = "$(wc -c < "$TARGET" | tr -d ' ')" ] && ok "27.6 bytes match" || ko "27.6"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
-echo "[28] move-export tilde expansion in export_source_dir"
-TMP=$(mktemp -d)
-mkdir -p "$TMP/Downloads"
-echo "x" > "$TMP/Downloads/tilde-test.png"
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_source_dir":"~/_snap_tilde_test_dl" } }
-JSON
-# Stage at $HOME-shaped path. We can't actually write under user's $HOME safely in tests;
-# instead, assert dry-run output reflects the expanded source_dir.
-out=$(bash "$SCRIPT" --action=move-export --filename=tilde-test.png \
-        --output-path="$TMP/x.png" --project-root="$TMP" --dry-run)
-expanded_dir=$(echo "$out" | jq -r '.result.source_dir')
-case "$expanded_dir" in
-  "$HOME"/*) ok "28.1 tilde expanded ($expanded_dir)" ;;
-  *)         ko "28.1 not expanded: $expanded_dir" ;;
-esac
+echo "[28] save-export from --base64-file"
+TMP=$(mktemp -d); echo "$PNG_B64" > "$TMP/p.b64"
+TARGET="$TMP/out.png"
+out=$(bash "$SCRIPT" --action=save-export --output-path="$TARGET" --base64-file="$TMP/p.b64")
+[ $? -eq 0 ] && ok "28.1 exit 0" || ko "28.1"
+[ -f "$TARGET" ] && ok "28.2 file written" || ko "28.2"
+sig=$(head -c 8 "$TARGET" | od -An -tx1 | tr -d ' \n')
+[ "$sig" = "89504e470d0a1a0a" ] && ok "28.3 PNG signature" || ko "28.3"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
-echo "[29] move-export default source_dir = \$HOME/Downloads when unset"
+echo "[29] save-export from --base64-stdin (and strips data URI prefix)"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0" } }
-JSON
-out=$(bash "$SCRIPT" --action=move-export --filename=x.png \
-        --output-path="$TMP/o.png" --project-root="$TMP" --dry-run)
-src_dir=$(echo "$out" | jq -r '.result.source_dir')
-[ "$src_dir" = "$HOME/Downloads" ] && ok "29.1 default applied" || ko "29.1 got '$src_dir'"
+TARGET="$TMP/uri.png"
+out=$(printf 'data:image/png;base64,%s' "$PNG_B64" \
+        | bash "$SCRIPT" --action=save-export --output-path="$TARGET" --base64-stdin)
+[ $? -eq 0 ] && ok "29.1 exit 0" || ko "29.1"
+sig=$(head -c 8 "$TARGET" | od -An -tx1 | tr -d ' \n')
+[ "$sig" = "89504e470d0a1a0a" ] && ok "29.2 PNG signature after prefix strip" || ko "29.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
-echo "[30] move-export dry-run does not touch filesystem"
+echo "[30] save-export dry-run does not write the file"
 TMP=$(mktemp -d)
-mkdir -p "$TMP/Downloads"
-echo "keep-me" > "$TMP/Downloads/dry.png"
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
-JSON
-out=$(bash "$SCRIPT" --action=move-export --filename=dry.png \
-        --output-path="$TMP/out/dry.png" --project-root="$TMP" --dry-run)
-[ -f "$TMP/Downloads/dry.png" ] && ok "30.1 source untouched" || ko "30.1"
-[ ! -f "$TMP/out/dry.png" ]     && ok "30.2 target untouched" || ko "30.2"
-[ "$(echo "$out" | jq -r '.result.moved')" = "false" ] && ok "30.3 moved=false" || ko "30.3"
+TARGET="$TMP/out/dry.png"
+out=$(bash "$SCRIPT" --action=save-export --output-path="$TARGET" \
+        --base64-data="$PNG_B64" --dry-run)
+rc=$?
+[ $rc -eq 0 ] && ok "30.1 exit 0" || ko "30.1"
+[ ! -f "$TARGET" ] && ok "30.2 target untouched" || ko "30.2"
+[ "$(echo "$out" | jq -r '.result.written')" = "false" ] && ok "30.3 written=false" || ko "30.3"
+[ "$(echo "$out" | jq -r '.result.base64_chars | type')" = "number" ] && ok "30.4 chars numeric" || ko "30.4"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
-echo "[31] move-export never emits MCP descriptor"
+echo "[31] save-export never emits MCP descriptor"
 TMP=$(mktemp -d)
-mkdir -p "$TMP/Downloads"
-echo "x" > "$TMP/Downloads/nomcp.png"
-cat > "$TMP/snapship.config.json" <<JSON
-{ "\$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_source_dir":"$TMP/Downloads" } }
-JSON
-out=$(bash "$SCRIPT" --action=move-export --filename=nomcp.png \
-        --output-path="$TMP/o.png" --project-root="$TMP")
+out=$(bash "$SCRIPT" --action=save-export --output-path="$TMP/x.png" --base64-data="$PNG_B64")
 desc=$(echo "$out" | jq -r '.descriptor // empty')
 [ -z "$desc" ]                                       && ok "31.1 no descriptor" || ko "31.1"
 [ "$(echo "$out" | jq -r '.mode')" = "local" ]       && ok "31.2 mode=local"    || ko "31.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[32] save-export rejects empty payload"
+out=$(bash "$SCRIPT" --action=save-export --output-path=/tmp/empty.png --base64-data="   " 2>&1)
+[ $? -eq 1 ] && ok "32.1 exit 1" || ko "32.1"
+
+echo ""
+echo "[33] save-export rejects invalid base64"
+TMP=$(mktemp -d)
+out=$(bash "$SCRIPT" --action=save-export --output-path="$TMP/bad.png" \
+        --base64-data="!!!not-base64!!!" 2>&1)
+rc=$?
+# Some `base64` implementations are lenient and decode garbage to garbage without
+# failing. Accept either: hard fail (exit 1) OR a written file that does not
+# carry a PNG signature.
+if [ $rc -eq 1 ]; then
+  ok "33.1 strict reject"
+else
+  if [ -f "$TMP/bad.png" ]; then
+    sig=$(head -c 8 "$TMP/bad.png" | od -An -tx1 | tr -d ' \n')
+    [ "$sig" != "89504e470d0a1a0a" ] && ok "33.1 lenient (not PNG)" || ko "33.1 fake PNG produced"
+  else
+    ko "33.1 unexpected rc=$rc with no file"
+  fi
+fi
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 unset TMP

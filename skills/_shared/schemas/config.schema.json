@@ -183,11 +183,6 @@
         "naming_pattern": {
           "type": "string",
           "default": "{feature_id}-{screen_name}"
-        },
-        "export_source_dir": {
-          "type": "string",
-          "description": "Filesystem directory Frame0 exports to (Frame0 always writes to a single OS directory regardless of MCP `output_path`). Skill moves files from here into the project. Tilde-expanded.",
-          "default": "~/Downloads"
         }
       }
     },

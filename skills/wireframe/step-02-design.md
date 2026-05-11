@@ -12,10 +12,8 @@ Generate the actual wireframes. One Frame0 page per `(screen_id, state)`.
 
 For each screen draft from step-01, and for each state in `states[]`:
 
-1. **Create page**: the title doubles as the Frame0 export filename basename
-   (Frame0 exports as `<page_title>.<ext>` into `wireframes.export_source_dir`,
-   default `~/Downloads`). Prefix with `feature_slug` to keep filenames unique
-   across features in the user's Downloads:
+1. **Create page**: title encodes feature + screen + state so the resulting
+   PNG filename stays unique and self-describing:
    ```bash
    page_title="${feature_slug}-${screen_id}-${state}"
    bash skills/_shared/frame0-helper.sh create-page \
@@ -39,30 +37,35 @@ For each screen draft from step-01, and for each state in `states[]`:
      --project-root="$PWD"
    ```
 
-3. **Export PNG** (Frame0 writes to `wireframes.export_source_dir`, NOT to
-   `--output-path` — the `output-path` param is informational, ignored by the
-   Frame0 MCP):
+3. **Export PNG** (Frame0 MCP returns the image as a **base64 string** in the
+   tool result — it does NOT write a file. The `--output-path` arg is the
+   target the next step will use, not a path Frame0 itself honours):
    ```bash
+   target=".claude/product/features/${feature_id}/wireframes/${page_title}.png"
    bash skills/_shared/frame0-helper.sh export-page \
      --page-id="$page_id" \
-     --output-path=".claude/product/features/${feature_id}/wireframes/${page_title}.png" \
+     --output-path="$target" \
      --format=png \
      --scale=2 \
      --project-root="$PWD"
-   # exits 10 with descriptor → invoke MCP, Frame0 writes to ${export_source_dir}/${page_title}.png
+   # exits 10 with descriptor → invoke MCP, capture base64 from the result
    ```
 
-4. **Move export into the project** (Frame0 always writes to a single OS
-   directory — typically `~/Downloads` — regardless of MCP params. The skill
-   moves the file from there into `.claude/product/features/<id>/wireframes/`,
-   leaving Downloads clean):
+4. **Decode base64 → PNG** (`save-export` is local-only — never emits an MCP
+   descriptor; writes the binary asset named after the page = feature+screen+state):
    ```bash
-   bash skills/_shared/frame0-helper.sh move-export \
-     --filename="${page_title}.png" \
-     --output-path=".claude/product/features/${feature_id}/wireframes/${page_title}.png" \
+   bash skills/_shared/frame0-helper.sh save-export \
+     --output-path="$target" \
+     --base64-file=".tmp/frame0-${page_title}.b64" \
      --project-root="$PWD"
-   # local-only — never emits an MCP descriptor; exit 0 on success, 1 if source missing.
+   # OR pipe the base64 directly:
+   #   printf '%s' "$b64" | bash skills/_shared/frame0-helper.sh save-export \
+   #     --output-path="$target" --base64-stdin
+   # exit 0 on success, 1 if decode fails / payload empty.
    ```
+
+   The helper strips a `data:image/...;base64,` prefix if Frame0 includes one,
+   trims whitespace, and `mkdir -p`'s the target directory.
 
 5. **Cache descriptor result**: append to `.wireframes-draft.json`:
    ```json
@@ -89,9 +92,9 @@ separate pages.
 ## Dry-run
 
 `--dry-run` writes a placeholder PNG (1×1 transparent) and uses fake page IDs
-(`frame0_page_id: "DRY-{n}"`). `move-export --dry-run` returns
-`{moved: false}` without touching the filesystem. This lets the rest of the
-pipeline (gallery + link) be tested without burning Frame0 quota.
+(`frame0_page_id: "DRY-{n}"`). `save-export --dry-run` returns
+`{written: false, base64_chars: N}` without touching the filesystem. This lets
+the rest of the pipeline (gallery + link) be tested without burning Frame0 quota.
 
 ## Failure handling
 
