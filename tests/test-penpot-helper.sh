@@ -209,6 +209,23 @@ RC=$?
 echo "$OUT" | jq -e '.descriptor.params.format == "svg"' >/dev/null && ok "14.2 format from config" || ko "14.2"
 trash "$CFG_DIR" 2>/dev/null || rm -rf "$CFG_DIR"
 
+# --- get-current-file preflight ------------------------------------------
+
+echo ""
+echo "[15] get-current-file no-arg preflight"
+OUT=$(bash "$SCRIPT" --action=get-current-file 2>&1)
+RC=$?
+[ "$RC" -eq 10 ] && ok "15.1 exit 10" || ko "15.1 rc=$RC"
+echo "$OUT" | jq -e '.descriptor.tool == "execute_code"' >/dev/null && ok "15.2 tool=execute_code" || ko "15.2"
+echo "$OUT" | jq -e '.descriptor.action == "get-current-file"' >/dev/null && ok "15.3 action" || ko "15.3"
+echo "$OUT" | jq -e '.descriptor.params.code | contains("penpot.currentFile")' >/dev/null && ok "15.4 currentFile in JS" || ko "15.4"
+echo "$OUT" | jq -e '.descriptor.params.code | contains("({id: f.id, name: f.name})")' >/dev/null && ok "15.5 returns {id,name}" || ko "15.5"
+
+echo ""
+echo "[16] get-current-file unaffected by dry-run (read action)"
+OUT=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=get-current-file 2>&1)
+[ $? -eq 10 ] && ok "16.1 still emits descriptor" || ko "16.1"
+
 # --- summary --------------------------------------------------------------
 
 echo ""

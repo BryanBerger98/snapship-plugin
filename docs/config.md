@@ -66,7 +66,9 @@
     "export_scale": 2,                     // 1x, 2x, 3x (retina, ignoré par export-png)
     "naming_pattern": "{feature_id}-{screen_name}",
     "frame0_api_port": 58320,              // port HTTP API Frame0 desktop (export-png bypass, frame0 only)
-    "penpot_export_dir": null              // absolute path; default = features/{id}/wireframes/ (penpot only)
+    "penpot_export_dir": null,             // absolute path; default = features/{id}/wireframes/ (penpot only)
+    "penpot_file_id": null,                // UUID Penpot file ciblé (preflight step-00, penpot only)
+    "penpot_file_name": null               // nom humain pour message d'erreur mismatch (informationnel)
   },
   "testing": {
     "test_command": "pnpm test",

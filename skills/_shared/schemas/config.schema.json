@@ -194,6 +194,14 @@
         "penpot_export_dir": {
           "type": "string",
           "description": "Absolute path where Penpot MCP writes exported PNG/SVG assets. Penpot's `export_shape` tool requires an absolute filePath. Defaults to `{project_root}/.claude/product/features/{feature_id}/wireframes/` resolved at runtime."
+        },
+        "penpot_file_id": {
+          "type": "string",
+          "description": "Optional Penpot file UUID this project targets. When set, /wireframe step-00 preflights `penpot.currentFile.id` against this value and halts with a clear message if the user has the wrong file open in their Penpot browser tab. Penpot MCP cannot open files programmatically — user must navigate manually."
+        },
+        "penpot_file_name": {
+          "type": "string",
+          "description": "Human-readable file name shown in the mismatch error (purely informational; not used for matching)."
         }
       }
     },

@@ -7,6 +7,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Penpot file binding preflight
+
+- **`wireframes.penpot_file_id` + `penpot_file_name`** (schema config) —
+  UUID + nom human-readable du fichier Penpot ciblé. Penpot MCP **ne peut
+  pas ouvrir un fichier par programme** : le fichier ciblé = celui ouvert
+  dans l'onglet browser où le plugin Penpot MCP est chargé et connecté.
+- **`penpot-helper.sh get-current-file`** (nouveau) — action sans arg,
+  émet descripteur `execute_code` retournant `{id, name}` de
+  `penpot.currentFile`. Skill step-00 l'appelle au préflight.
+- **`step-00-init.md` 5b** — préflight binding fichier Penpot :
+  - Appelle `get-current-file`. Si "no plugin connected" → halt avec
+    instruction (ouvrir fichier + charger plugin + connect).
+  - Si `penpot_file_id` set en config → compare. Mismatch = halt avec
+    message clair (expected vs got).
+  - Pas de `penpot_file_id` → `AskUserQuestion` confirme + propose
+    "Save to config" pour persister le binding.
+- **Tests** : +6 (action `get-current-file` JS shape, exit code, descriptor
+  shape, comportement read-action sous dry-run). 66/66 pass.
+
 ### Added — Penpot wireframe platform support
 
 - **`wireframes.platform`** accepte désormais `"penpot"` en plus de `"frame0"`

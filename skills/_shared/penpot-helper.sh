@@ -32,6 +32,12 @@
 #                  → tool=export_shape, params {shapeId, format, filePath:absolute}.
 #                    Penpot writes the asset directly; nothing to decode locally.
 #                    --output-path must be absolute (Penpot rejects relative paths).
+#   get-current-file
+#                  → tool=execute_code, JS returns {id, name} of penpot.currentFile.
+#                    Used by skill preflight to verify the user has the correct
+#                    file open in their Penpot browser tab (no programmatic
+#                    "openFile" API exists; the binding is the tab + plugin
+#                    connection).
 #
 # Defaults for export_format read from config.wireframes.export_format.
 #
@@ -62,13 +68,14 @@ usage() {
 Usage: penpot-helper.sh --action=ACTION [OPTIONS]
 
 Actions:
-  create-page    --title
-  get-page       --page-id
-  update-page    --page-id (--title)
-  delete-page    --page-id
-  list-pages     --query (--limit, default 20)
-  add-shapes     --page-id --shapes JSON|@file
-  export-png     (--page-id|--shape-id) --output-path (--format png|svg)
+  create-page       --title
+  get-page          --page-id
+  update-page       --page-id (--title)
+  delete-page       --page-id
+  list-pages        --query (--limit, default 20)
+  add-shapes        --page-id --shapes JSON|@file
+  export-png        (--page-id|--shape-id) --output-path (--format png|svg)
+  get-current-file  (no args — returns {id, name} of penpot.currentFile)
 
 Options:
   --project-root=PATH      Project root (default: \$PWD)
@@ -111,7 +118,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 [ -z "$ACTION" ] && { echo "ERROR: --action required" >&2; exit 2; }
 
 case "$ACTION" in
-  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-png) ;;
+  create-page|get-page|update-page|delete-page|list-pages|add-shapes|export-png|get-current-file) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
@@ -213,6 +220,9 @@ build_js() {
     list-pages)
       jq -nc --arg q "$QUERY" --arg lim "$LIMIT" '
         "const q = " + ($q | tojson) + ".toLowerCase(); penpotUtils.getPages().filter(p => p.name.toLowerCase().includes(q)).slice(0, " + $lim + ").map(p => ({id: p.id, name: p.name}));"' ;;
+    get-current-file)
+      jq -nc '
+        "const f = penpot.currentFile; f ? ({id: f.id, name: f.name}) : null;"' ;;
     add-shapes)
       # Compact shapes JSON for embedding in JS string.
       local shapes_compact
