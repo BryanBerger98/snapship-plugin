@@ -61,11 +61,12 @@
     }
   },
   "wireframes": {                          // optionnel, absent = /wireframe désactivé
-    "platform": "frame0",                  // frame0 (seul supporté)
+    "platform": "frame0",                  // frame0 | penpot
     "export_format": "png",                // png | svg | pdf
     "export_scale": 2,                     // 1x, 2x, 3x (retina, ignoré par export-png)
     "naming_pattern": "{feature_id}-{screen_name}",
-    "frame0_api_port": 58320               // port HTTP API Frame0 desktop (export-png bypass)
+    "frame0_api_port": 58320,              // port HTTP API Frame0 desktop (export-png bypass, frame0 only)
+    "penpot_export_dir": null              // absolute path; default = features/{id}/wireframes/ (penpot only)
   },
   "testing": {
     "test_command": "pnpm test",

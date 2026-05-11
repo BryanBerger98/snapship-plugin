@@ -7,6 +7,41 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Penpot wireframe platform support
+
+- **`wireframes.platform`** accepte désormais `"penpot"` en plus de `"frame0"`
+  (schema config). Le skill `/wireframe` dispatche sur le helper correspondant
+  selon la config résolue à step-00.
+- **`skills/_shared/penpot-helper.sh`** (nouveau) — mirror de l'API de
+  `frame0-helper.sh` (actions `create-page`, `get-page`, `update-page`,
+  `delete-page`, `list-pages`, `add-shapes`, `export-png`). Chaque action
+  émet un descripteur MCP (exit 10) ciblant l'outil Penpot adéquat :
+  - Tous les CRUD passent par l'outil MCP `execute_code` avec un blob JS
+    construit côté helper (utilise `penpot.createPage()`, `createRectangle()`,
+    `createText()`, `createEllipse()`, `penpotUtils.getPageById()`, etc.).
+    Globals disponibles : `penpot`, `penpotUtils`, `storage`, `console`.
+  - `export-png` route vers l'outil MCP `export_shape` (params `shapeId`,
+    `format=png|svg`, `filePath` **absolu**). Penpot écrit le fichier
+    directement sur disque — pas de décode base64 local, pas de bypass
+    HTTP (contrairement à Frame0).
+- **`wireframes.penpot_export_dir`** (nouveau, schema config) — répertoire
+  par défaut pour les exports Penpot. Doit être absolu (contrainte Penpot
+  MCP). Défaut runtime : `{project_root}/.claude/product/features/{feature_id}/wireframes/`.
+- **Schéma shape unifié** entre frame0 et penpot pour `add-shapes` :
+  `{type:"text|rect|ellipse", name, x, y, width, height, text, fill}`. Les
+  helpers normalisent chacun vers leur SDK natif.
+- **`skills/wireframe/step-00-init.md`** — résout `wf_platform` (frame0 |
+  penpot | none) et persiste dans l'état du skill. Step-02 lit le helper
+  correspondant.
+- **`skills/wireframe/step-02-design.md`** — flow rendu plateforme-agnostique
+  (tableau de routing helper/export en tête, exemples par plateforme pour
+  `export-png`).
+- **Tests** : 60 nouveaux tests `tests/test-penpot-helper.sh` (validation
+  args par action, descripteur MCP shape pour `execute_code`/`export_shape`,
+  JS construction pour add-shapes, dry-run vs read-actions, format enum
+  png|svg, rejet path relatif, config-driven format default). 60/60
+  passing. Tests frame0 inchangés : 97/97 toujours OK.
+
 ### Changed — Wireframes export bypasses MCP via Frame0 HTTP API (breaking)
 
 - **Pourquoi** : Frame0 MCP `export_page_as_image` retourne la PNG dans un

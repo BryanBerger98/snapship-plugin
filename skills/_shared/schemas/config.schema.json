@@ -167,7 +167,7 @@
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["frame0"],
+          "enum": ["frame0", "penpot"],
           "default": "frame0"
         },
         "export_format": {
@@ -190,6 +190,10 @@
           "maximum": 65535,
           "default": 58320,
           "description": "Port of Frame0 desktop's local HTTP API. The `export-png` action bypasses MCP and POSTs `file:export-image` here. Override only if Frame0 was launched with --api-port=<N>."
+        },
+        "penpot_export_dir": {
+          "type": "string",
+          "description": "Absolute path where Penpot MCP writes exported PNG/SVG assets. Penpot's `export_shape` tool requires an absolute filePath. Defaults to `{project_root}/.claude/product/features/{feature_id}/wireframes/` resolved at runtime."
         }
       }
     },

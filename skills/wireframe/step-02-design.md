@@ -1,12 +1,24 @@
 ---
 step: 02-design
 next_step: 03-gallery
-description: Frame0 MCP loop — per screen×state, create page, add shapes, export PNG to local cache.
+description: Per screen×state, create page, add shapes, export PNG via the configured wireframe platform (frame0 | penpot).
 ---
 
 # step-02 — design
 
-Generate the actual wireframes. One Frame0 page per `(screen_id, state)`.
+Generate the actual wireframes. One page per `(screen_id, state)`.
+
+The skill picks the helper based on `config.wireframes.platform` resolved in
+step-00:
+
+| Platform | Helper script                                  | Export mechanism                                 |
+|----------|------------------------------------------------|--------------------------------------------------|
+| `frame0` | `skills/_shared/frame0-helper.sh`              | HTTP API bypass (`export-png`) — local decode    |
+| `penpot` | `skills/_shared/penpot-helper.sh`              | `export_shape` MCP tool writes file directly     |
+
+Below, `$helper` is the resolved helper path. Both helpers expose the same
+action surface (`create-page`, `add-shapes`, `export-png`) so the loop below
+is platform-agnostic — only the `export-png` call differs slightly.
 
 ## Per-screen loop
 
@@ -16,10 +28,10 @@ For each screen draft from step-01, and for each state in `states[]`:
    PNG filename stays unique and self-describing:
    ```bash
    page_title="${feature_slug}-${screen_id}-${state}"
-   bash skills/_shared/frame0-helper.sh create-page \
+   bash "$helper" create-page \
      --title="$page_title" \
      --project-root="$PWD"
-   # exits 10 with descriptor → invoke MCP, capture page_id
+   # exits 10 with descriptor → invoke MCP tool, capture page_id
    ```
 
 2. **Compose shapes**: build a JSON array of low-fi shapes representing the
@@ -27,38 +39,47 @@ For each screen draft from step-01, and for each state in `states[]`:
    - `signup-screen` → 1× heading, 2× input, 1× button, 1× link.
    - `dashboard` → 1× nav, 3-4× card, 1× empty-state placeholder.
 
-   Use the screen IDs from step-01 + states `(empty | filled | error | loading)`
-   as cues. Rely on the model's reasoning — do not hard-code a shape library.
+   Shape schema (shared across platforms — helpers normalize internally):
+   ```json
+   {"type":"text|rect|ellipse","name":"...","x":N,"y":N,"width":N,"height":N,"text":"...","fill":"#hex"}
+   ```
 
    ```bash
-   bash skills/_shared/frame0-helper.sh add-shapes \
+   bash "$helper" add-shapes \
      --page-id="$page_id" \
      --shapes-file=".tmp/shapes-${screen_id}-${state}.json" \
      --project-root="$PWD"
    ```
 
-3. **Export PNG** (bypasses MCP — the Frame0 MCP `export_page_as_image` tool
-   returns an `image` content block whose base64 is rendered visually by the
-   Claude Code harness and never surfaces as text, so it cannot be piped into
-   a script. `export-png` POSTs `file:export-image` directly to Frame0
-   desktop's local HTTP API (`http://localhost:58320/execute_command` by
-   default) and writes the decoded PNG to `--output-path`, named after the
-   page = feature+screen+state):
+3. **Export PNG**:
+
+   **frame0** — bypasses MCP, POSTs `file:export-image` to Frame0 desktop's
+   HTTP API and decodes the base64 locally:
    ```bash
    target=".claude/product/features/${feature_id}/wireframes/${page_title}.png"
-   bash skills/_shared/frame0-helper.sh export-png \
+   bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
      --format=png \
      --project-root="$PWD"
-   # local-only — exit 0 on success ({written:true,bytes:N}), 1 if Frame0
-   # desktop is unreachable, the API returned success:false, or decode failed.
+   # exit 0 on success ({written:true,bytes:N}), 1 if desktop unreachable.
    ```
+   Override port via `--api-port=N` or `wireframes.frame0_api_port`.
 
-   Override the port via `--api-port=N` or `wireframes.frame0_api_port` in
-   config (matches Frame0's `--api-port=` launch arg). The helper `mkdir -p`'s
-   the target directory and strips a `data:image/...;base64,` prefix if
-   present.
+   **penpot** — the Penpot MCP `export_shape` tool accepts an absolute
+   `filePath` and writes the asset itself. The helper just emits the
+   descriptor; the dispatcher invokes the MCP tool. Output path must be
+   absolute:
+   ```bash
+   target="$PWD/.claude/product/features/${feature_id}/wireframes/${page_title}.png"
+   bash "$helper" export-png \
+     --page-id="$page_id" \
+     --output-path="$target" \
+     --format=png \
+     --project-root="$PWD"
+   # exits 10 with descriptor; after MCP runs, the file exists at $target.
+   ```
+   Format enum is `png|svg` for penpot (no `jpeg`/`webp`/`pdf`).
 
 4. **Cache descriptor result**: append to `.wireframes-draft.json`:
    ```json
@@ -67,8 +88,8 @@ For each screen draft from step-01, and for each state in `states[]`:
        {
          "screen_id": "signup-screen",
          "pages": [
-           {"state": "empty",  "frame0_page_id": "...", "png_path": "..."},
-           {"state": "filled", "frame0_page_id": "...", "png_path": "..."}
+           {"state": "empty",  "platform_page_id": "...", "png_path": "..."},
+           {"state": "filled", "platform_page_id": "...", "png_path": "..."}
          ]
        }
      ]
@@ -77,25 +98,27 @@ For each screen draft from step-01, and for each state in `states[]`:
 
 ## Parallelism
 
-Frame0 MCP creates pages serially (page IDs cascade in some setups). Do **not**
-parallelise across screens — issue calls one at a time and wait for each
-descriptor result. Within a screen, all states share the same page family but
-separate pages.
+Both Frame0 and Penpot MCP create pages serially in practice (Penpot's plugin
+context shares storage between calls). Do **not** parallelise across screens —
+issue calls one at a time and wait for each descriptor result. Within a screen,
+all states share the same page family but separate pages.
 
 ## Dry-run
 
-`--dry-run` writes a placeholder PNG (1×1 transparent) and uses fake page IDs
-(`frame0_page_id: "DRY-{n}"`). `export-png --dry-run` returns
-`{written: false}` without hitting the HTTP API. This lets the rest of the
-pipeline (gallery + link) be tested without a running Frame0 desktop.
+`--dry-run` makes both helpers return mock descriptors with fake page IDs
+(`DRY-{n}`) and `written:false`. No MCP calls. No PNGs written. Lets the rest
+of the pipeline (gallery + link) be tested without a running design tool.
 
 ## Failure handling
 
-- Frame0 MCP timeout / 5xx → retry once with 5s backoff. Second failure → mark
-  progress `fail` and stop. The cached pages from earlier screens persist; resume
+- MCP timeout / 5xx → retry once with 5s backoff. Second failure → mark
+  progress `fail` and stop. Cached pages from earlier screens persist; resume
   picks up from the unprocessed screen.
-- Shape JSON rejected by Frame0 (invalid schema) → log the error verbatim with
-  the screen_id, mark progress `fail`.
+- Shape JSON rejected by the MCP server → log the error verbatim with the
+  screen_id, mark progress `fail`.
+- **Penpot specifics**: `export_shape` requires an absolute filePath and the
+  target shape must exist on the active page — verify `page_id` is current
+  before exporting (the helper's add-shapes JS calls `penpot.openPage()`).
 
 ## Append progress
 
@@ -112,7 +135,7 @@ bash skills/_shared/update-progress.sh \
 ## Acceptance check
 
 - Every `(screen_id, state)` pair has a `png_path` that exists on disk.
-- `frame0_page_id` is set (or `DRY-…` in dry-run).
+- `platform_page_id` is set (or `DRY-…` in dry-run).
 
 ## Next step
 

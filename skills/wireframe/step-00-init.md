@@ -24,7 +24,7 @@ Bootstrap a `/wireframe` run for a single feature.
 3. **Resolve `feature_id`**: same precedence as `/ticket` (single → use it; multi →
    AskUserQuestion; zero → abort with "Run `/define` first").
 
-4. **Require config + load + check Frame0**:
+4. **Require config + load + resolve platform**:
    ```bash
    [ -f "$PWD/snapship.config.json" ] || {
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
@@ -35,13 +35,16 @@ Bootstrap a `/wireframe` run for a single feature.
    ```
    - `wf_platform="none"` → log skip, exit cleanly with progress `skip` note
      `wireframes.platform=none`.
-   - `wf_platform="frame0"` → continue.
+   - `wf_platform="frame0"` → use `skills/_shared/frame0-helper.sh` downstream.
+   - `wf_platform="penpot"` → use `skills/_shared/penpot-helper.sh` downstream.
 
 5. **Pre-flight**:
    ```bash
    bash skills/_shared/check-mcp-required.sh --skill=wireframe --project-root="$PWD"
    ```
-   Frame0 MCP must be reachable. Surface the error verbatim if not.
+   The MCP server matching `wf_platform` (frame0-mcp-server or penpot-mcp)
+   must be reachable. Surface the error verbatim if not. Persist
+   `wf_platform` to skill state so step-02 picks the right helper.
 
 6. **Validate inputs**:
    - `tickets.json` exists for the feature (run `/ticket` first if not).
@@ -63,7 +66,7 @@ Bootstrap a `/wireframe` run for a single feature.
 
 - `feature_id` resolved.
 - `tickets.json` exists.
-- Frame0 MCP reachable (or platform=none → skip).
+- MCP for resolved platform reachable (frame0 or penpot), or platform=none → skip.
 
 ## Next step
 

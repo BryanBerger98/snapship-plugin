@@ -1,12 +1,12 @@
 # Skill `/wireframe`
 
-Génère wireframes Frame0 multi-écrans pour une feature. Lie wireframes aux tickets correspondants.
+Génère wireframes multi-écrans pour une feature via Frame0 ou Penpot MCP. Lie wireframes aux tickets correspondants.
 
 ## Frontmatter
 
 ```yaml
 name: wireframe
-description: Génère wireframes Frame0 multi-écrans pour une feature. Lie wireframes aux tickets correspondants.
+description: Génère wireframes Frame0/Penpot multi-écrans pour une feature. Lie wireframes aux tickets correspondants.
 argument-hint: "[-a] [-r] [--no-link] [--dry-run] <feature-id>"
 ```
 
@@ -16,6 +16,16 @@ argument-hint: "[-a] [-r] [--no-link] [--dry-run] <feature-id>"
 - `--no-link` skip étape link tickets/AFFiNE
 - `--dry-run` preview sans write calls
 
+## Plateformes supportées
+
+| Plateforme | Helper                                  | Export                                              |
+|------------|-----------------------------------------|-----------------------------------------------------|
+| `frame0`   | `skills/_shared/frame0-helper.sh`       | HTTP bypass desktop API + décode base64 local      |
+| `penpot`   | `skills/_shared/penpot-helper.sh`       | MCP `export_shape` (filePath absolu, écrit direct) |
+
+Résolu à step-00 via `config.wireframes.platform`. Les deux helpers exposent
+la même API d'actions (`create-page`, `add-shapes`, `export-png`, …).
+
 ## Frame0 MCP tools utilisés (28 dispo)
 
 - `add_page`, `update_page`, `duplicate_page`
@@ -23,6 +33,16 @@ argument-hint: "[-a] [-r] [--no-link] [--dry-run] <feature-id>"
 - `move_shape`, `align_shapes`, `group_shapes`
 - `export_page` (PNG)
 - `set_link`
+
+## Penpot MCP tools utilisés (3 + 1 export)
+
+- `execute_code` — JS arbitraire dans le contexte plugin (globals : `penpot`,
+  `penpotUtils`, `storage`, `console`). Couvre tous les CRUD pages/shapes :
+  `penpot.createPage()`, `createRectangle()`, `createText()`, `createEllipse()`,
+  `penpotUtils.getPageById()`, `findShapes()`, `removePage()`.
+- `query_docs` — introspection types/membres API (utile pour debug).
+- `get_overview` — instructions et hiérarchie File > Pages > Boards > Groups > Shapes.
+- `export_shape` — export PNG/SVG (paramètre `filePath` doit être absolu).
 
 ## Steps
 

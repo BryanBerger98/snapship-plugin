@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Generate low-fi wireframes for UI tickets via Frame0 MCP, build an AFFiNE Gallery page, and back-link wireframe URLs into the tickets.
+description: Generate low-fi wireframes for UI tickets via Frame0 or Penpot MCP, build an AFFiNE Gallery page, and back-link wireframe URLs into the tickets.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -13,7 +13,7 @@ wireframe pass before `/develop`.
 
 - A feature has `tickets.json` and at least one ticket touches UI files (heuristic
   in step-01).
-- Frame0 MCP is configured (see `config.wireframes.platform = "frame0"`).
+- Wireframe platform is configured: `config.wireframes.platform = "frame0"` or `"penpot"`.
 - `/define` has populated `prd-feature.md` so screen names + states are known.
 
 ## Pipeline
@@ -22,7 +22,7 @@ wireframe pass before `/develop`.
 |---|------|---------|
 | 00 | `step-00-init.md`    | Parse args, resolve feature, load tickets.json + config |
 | 01 | `step-01-filter.md`  | Identify UI tickets via keyword + file-extension heuristic |
-| 02 | `step-02-design.md`  | Frame0 MCP: per screen create page, add shapes, export PNG |
+| 02 | `step-02-design.md`  | Frame0 or Penpot MCP: per screen create page, add shapes, export PNG |
 | 03 | `step-03-gallery.md` | AFFiNE Gallery page: blob-upload PNGs, embed per screen + state |
 | 04 | `step-04-link.md`    | Update each UI ticket body with `wireframe_url` + `wireframe_screen` |
 
@@ -38,7 +38,7 @@ wireframe pass before `/develop`.
 ## Outputs
 
 - `.claude/product/features/{feature_id}/wireframes/{screen-id}-{state}.png` (local
-  cache of exported pages).
+  cache — frame0 decodes base64 locally; penpot writes file directly via MCP).
 - AFFiNE Gallery page (URL cached in `.docs-cache.json` under
   `wireframes_gallery.url`).
 - Each UI ticket in `tickets.json` gains `wireframe_screen` + `wireframe_url`.
