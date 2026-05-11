@@ -13,7 +13,7 @@
 # Penpot MCP tool (`execute_code` or `export_shape`) and packs the params.
 #
 # Actions:
-#   create-page    --title (--parent-id ignored — Penpot pages are file-scoped)
+#   create-page    --title (Penpot pages are file-scoped; no parent concept)
 #                  → tool=execute_code, JS: const p = penpot.createPage(); p.name = ...
 #   get-page       --page-id
 #                  → tool=execute_code, JS: returns penpotUtils.getPageById(...)
@@ -53,7 +53,6 @@ PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 ACTION=""
 PAGE_ID=""
 SHAPE_ID=""
-PARENT_ID=""
 TITLE=""
 SHAPES_JSON=""
 SHAPES_FILE=""
@@ -99,7 +98,6 @@ while [ $# -gt 0 ]; do
     --project-root=*)  PROJECT_ROOT="${1#--project-root=}" ;;
     --page-id=*)       PAGE_ID="${1#--page-id=}" ;;
     --shape-id=*)      SHAPE_ID="${1#--shape-id=}" ;;
-    --parent-id=*)     PARENT_ID="${1#--parent-id=}" ;;
     --title=*)         TITLE="${1#--title=}" ;;
     --shapes=*)        SHAPES_JSON="${1#--shapes=}" ;;
     --shapes-file=*)   SHAPES_FILE="${1#--shapes-file=}" ;;
