@@ -1,12 +1,15 @@
 ---
 step: 02-design
 next_step: 03-gallery
-description: Per screen×state, create page, add shapes, export PNG via the configured wireframe platform (frame0 | penpot).
+description: Per screen×state, create page, add shapes, export ONE asset (format from config) via the configured wireframe platform (frame0 | penpot).
 ---
 
 # step-02 — design
 
-Generate the actual wireframes. One page per `(screen_id, state)`.
+Generate the actual wireframes. One page per `(screen_id, state)`. **Exactly
+one export per page** in the format declared by `config.wireframes.export_format`
+(single-value enum — never run the export action twice to produce alternate
+formats).
 
 The skill picks the helper based on `config.wireframes.platform` resolved in
 step-00:
@@ -19,6 +22,17 @@ step-00:
 Below, `$helper` is the resolved helper path. Both helpers expose the same
 action surface (`create-page`, `add-shapes`, `export-png`) so the loop below
 is platform-agnostic — only the `export-png` call differs slightly.
+
+## Resolve export format (once, at start of step)
+
+```bash
+fmt=$(jq -r '.wireframes.export_format // "png"' .claude/product/.config-resolved.json)
+# fmt ∈ {png, svg, pdf} per config schema; helpers validate per-platform support.
+```
+
+`$fmt` is the **sole source of truth** for the output extension and helper
+format. Do not hardcode `png` in filenames or `--format` flags. Do not call
+`export-png` more than once per page.
 
 ## Per-screen loop
 
@@ -51,35 +65,43 @@ For each screen draft from step-01, and for each state in `states[]`:
      --project-root="$PWD"
    ```
 
-3. **Export PNG**:
+3. **Export** — invoke the helper's `export-png` action **once** with the
+   format resolved above. The action name is historical; it handles whatever
+   `$fmt` resolves to (helpers validate per-platform support and exit 2 if
+   the format is unsupported on the active platform).
 
-   **frame0** — bypasses MCP, POSTs `file:export-image` to Frame0 desktop's
-   HTTP API and decodes the base64 locally:
+   ### 3.a — frame0
+
+   The helper bypasses MCP, POSTs `file:export-image` to Frame0 desktop's
+   HTTP API and decodes the base64 locally. Output path may be relative.
+   Supported `$fmt` values: `png|jpeg|webp` (Frame0's HTTP API surface — no
+   `svg`/`pdf`; switch to `wireframes.platform = "penpot"` for SVG).
    ```bash
-   target=".claude/product/features/${feature_id}/wireframes/${page_title}.png"
+   target=".claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
-     --format=png \
      --project-root="$PWD"
    # exit 0 on success ({written:true,bytes:N}), 1 if desktop unreachable.
+   # Format is taken from config — DO NOT pass --format here.
    ```
    Override port via `--api-port=N` or `wireframes.frame0_api_port`.
 
-   **penpot** — the Penpot MCP `export_shape` tool accepts an absolute
-   `filePath` and writes the asset itself. The helper just emits the
-   descriptor; the dispatcher invokes the MCP tool. Output path must be
-   absolute:
+   ### 3.b — penpot
+
+   The Penpot MCP `export_shape` tool accepts an absolute `filePath` and
+   writes the asset itself. The helper emits the MCP descriptor; the
+   dispatcher invokes the tool. Output path must be absolute. Supported
+   `$fmt` values: `png|svg` (no `jpeg`/`webp`/`pdf`).
    ```bash
-   target="$PWD/.claude/product/features/${feature_id}/wireframes/${page_title}.png"
+   target="$PWD/.claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
-     --format=png \
      --project-root="$PWD"
    # exits 10 with descriptor; after MCP runs, the file exists at $target.
+   # Format is taken from config — DO NOT pass --format here.
    ```
-   Format enum is `png|svg` for penpot (no `jpeg`/`webp`/`pdf`).
 
 4. **Cache descriptor result**: append to `.wireframes-draft.json`:
    ```json
@@ -98,10 +120,11 @@ For each screen draft from step-01, and for each state in `states[]`:
 
 ## Parallelism
 
-Both Frame0 and Penpot MCP create pages serially in practice (Penpot's plugin
-context shares storage between calls). Do **not** parallelise across screens —
-issue calls one at a time and wait for each descriptor result. Within a screen,
-all states share the same page family but separate pages.
+Both supported platforms create pages serially in practice (Frame0 desktop has
+a single active document; Penpot's plugin context shares storage between
+calls). Do **not** parallelise across screens — issue calls one at a time and
+wait for each descriptor result. Within a screen, all states share the same
+page family but separate pages.
 
 ## Dry-run
 
@@ -111,14 +134,22 @@ of the pipeline (gallery + link) be tested without a running design tool.
 
 ## Failure handling
 
+Generic:
 - MCP timeout / 5xx → retry once with 5s backoff. Second failure → mark
   progress `fail` and stop. Cached pages from earlier screens persist; resume
   picks up from the unprocessed screen.
 - Shape JSON rejected by the MCP server → log the error verbatim with the
   screen_id, mark progress `fail`.
-- **Penpot specifics**: `export_shape` requires an absolute filePath and the
-  target shape must exist on the active page — verify `page_id` is current
-  before exporting (the helper's add-shapes JS calls `penpot.openPage()`).
+
+Platform-specific:
+- **frame0** — `export-png` exit 1 means Frame0 desktop is unreachable on the
+  configured HTTP port. Re-check `wireframes.frame0_api_port` and that the
+  desktop app is running. Resume to retry.
+- **penpot** — `export_shape` requires an absolute filePath and the target
+  shape must exist on the active page. The helper's `add-shapes` JS calls
+  `penpot.openPage()` so the page is current at export time. If the user
+  navigated away in the browser tab mid-run, the next call surfaces "No
+  plugin connected" — re-bind in the Penpot UI and resume.
 
 ## Append progress
 

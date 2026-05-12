@@ -7,6 +7,37 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — `/wireframe` exports a single asset per page (config-driven format)
+
+- **step-02-design.md** : ajout explicite "Exactly one export per page"
+  + bloc dédié "Resolve export format (once, at start of step)" qui lit
+  `config.wireframes.export_format` une seule fois et stocke dans `$fmt`.
+- Exemples d'invocation `export-png` débarrassés du `--format=png` codé en
+  dur ; le helper retombe automatiquement sur la config. Note "DO NOT
+  pass --format here" pour bloquer toute dérive.
+- Extension de fichier dérivée de `$fmt` (`${page_title}.${fmt}`) au lieu
+  de `.png` codé en dur — l'agent ne peut plus deviner qu'il faudrait
+  produire `.svg` en plus pour faire correspondre la config.
+- **Pourquoi** : un run récent avait produit simultanément des PNG et des
+  SVG car la doc hardcodait `--format=png` alors que la config disait
+  `svg`. Le modèle a interprété la divergence en exportant les deux.
+  La résolution unique côté config rend le format mono-source.
+
+### Changed — Skill `/wireframe` platform-neutral wording
+
+- **SKILL.md** : description et pipeline reformulés sans mention exclusive
+  de Frame0. Nouvelle table "Supported platforms" explicite le mapping
+  `wireframes.platform` → helper. Outputs/args neutralisés.
+- **step-00-init.md** : préflight Frame0 (§5.a) et Penpot (§5.b) clairement
+  séparés sous des en-têtes dédiés au lieu de prose mixte.
+- **step-02-design.md** : export PNG scindé en blocs §3.a (frame0, HTTP
+  bypass + format enum complet) et §3.b (penpot, `export_shape` filePath
+  absolu + format enum restreint). Failure handling éclaté générique vs
+  platform-specific.
+- **Pourquoi** : éviter les ambiguïtés quand l'utilisateur passe d'une
+  plateforme à l'autre — chaque section nommée renvoie sans équivoque
+  au comportement attendu pour son moteur.
+
 ### Added — Penpot file binding preflight
 
 - **`wireframes.penpot_file_id` + `penpot_file_name`** (schema config) —

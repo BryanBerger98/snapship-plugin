@@ -146,6 +146,7 @@ Persiste dans state file + plus tard meta.json.
 Pour chaque feature:
 
 1. **Compute PRD path**:
+
    ```bash
    YEAR=$(date +%Y)
    MONTH_YEAR=$(date +%m-%Y)
@@ -323,7 +324,7 @@ skills/doc-import/
 1. `/snap:init` (bootstrap config)
 2. `/snap:doc-import --source-page=<root>` (cette skill) → snap structure populée
 3. `/snap:define --feature=NN-...` (premier change post-import) → crée meta.json
-   + PRD + lie au journey existant via `domains.json`
+   - PRD + lie au journey existant via `domains.json`
 
 ## Scripts changes
 
@@ -350,6 +351,7 @@ domains-state.sh validate                                      # schema check
 ### `meta.schema.json` modifié
 
 Diff vs v0.1:
+
 - DROP: `affine_page_id`, `affine_url`, `notion_page_id`, `notion_url`
 - ADD: `domains` (array), `impacted_journeys` (array), `prd` (object)
 

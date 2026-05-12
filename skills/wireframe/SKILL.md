@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Generate low-fi wireframes for UI tickets via Frame0 or Penpot MCP, build an AFFiNE Gallery page, and back-link wireframe URLs into the tickets.
+description: Generate low-fi wireframes for UI tickets through a configured wireframe MCP platform (Frame0 or Penpot), build a Docs Gallery page, and back-link wireframe URLs into the tickets.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -9,21 +9,37 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 Run after `/ticket` when a feature's tickets.json has UI work that benefits from a
 wireframe pass before `/develop`.
 
+## Supported platforms
+
+The skill is platform-agnostic at the orchestration layer. Step-00 resolves
+`config.wireframes.platform` → a helper script; every later step calls the
+helper via the variable `$helper`. Platform-specific behavior is isolated to
+clearly labeled sections in each step.
+
+| `wireframes.platform` | Helper                              | Surface form        |
+|-----------------------|-------------------------------------|---------------------|
+| `frame0`              | `skills/_shared/frame0-helper.sh`   | Desktop app + MCP   |
+| `penpot`              | `skills/_shared/penpot-helper.sh`   | Web app + MCP plugin|
+| `none` (absent)       | —                                   | Skill skipped       |
+
+See step-00 (preflight + binding) and step-02 (page/shape/export semantics)
+for the platform-specific blocks.
+
 ## When to use
 
 - A feature has `tickets.json` and at least one ticket touches UI files (heuristic
   in step-01).
-- Wireframe platform is configured: `config.wireframes.platform = "frame0"` or `"penpot"`.
+- A wireframe platform is configured: `config.wireframes.platform ∈ {"frame0","penpot"}`.
 - `/define` has populated `prd-feature.md` so screen names + states are known.
 
 ## Pipeline
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`    | Parse args, resolve feature, load tickets.json + config |
+| 00 | `step-00-init.md`    | Parse args, resolve feature, load config, resolve platform + helper, run platform-specific preflight |
 | 01 | `step-01-filter.md`  | Identify UI tickets via keyword + file-extension heuristic |
-| 02 | `step-02-design.md`  | Frame0 or Penpot MCP: per screen create page, add shapes, export PNG |
-| 03 | `step-03-gallery.md` | AFFiNE Gallery page: blob-upload PNGs, embed per screen + state |
+| 02 | `step-02-design.md`  | Per screen: create page, add shapes, export PNG via resolved helper |
+| 03 | `step-03-gallery.md` | Docs Gallery page: blob-upload PNGs, embed per screen + state |
 | 04 | `step-04-link.md`    | Update each UI ticket body with `wireframe_url` + `wireframe_screen` |
 
 ## Args
@@ -33,13 +49,14 @@ wireframe pass before `/develop`.
 ```
 
 - `--feature` (required if multiple): target feature_id (partial-match).
-- `--dry-run`: render shapes locally and skip Frame0 / AFFiNE writes.
+- `--dry-run`: helpers return mock descriptors; no MCP calls, no PNGs written,
+  no docs writes.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/wireframes/{screen-id}-{state}.png` (local
-  cache — frame0 decodes base64 locally; penpot writes file directly via MCP).
-- AFFiNE Gallery page (URL cached in `.docs-cache.json` under
+- `.claude/product/features/{feature_id}/wireframes/{screen-id}-{state}.png`
+  (local cache — the resolved helper handles platform-specific write path).
+- Docs Gallery page (URL cached in `.docs-cache.json` under
   `wireframes_gallery.url`).
 - Each UI ticket in `tickets.json` gains `wireframe_screen` + `wireframe_url`.
 

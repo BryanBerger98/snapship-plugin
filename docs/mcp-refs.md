@@ -21,11 +21,13 @@
 - Persistent incremental knowledge graph (Tree-sitter parser, structural graph)
 - **Bundled via `.mcp.json` racine plugin** — auto-démarre quand snap activé. Pas de `claude mcp add` manuel.
 - **Prérequis binaire (non auto-installé par Claude Code):**
+
   ```bash
   pipx install code-review-graph   # recommandé
   # ou: pip install --user code-review-graph
   which code-review-graph          # doit résoudre
   ```
+
 - Usage:
   - `/develop` step-02-prepare: `get_impact_radius` warm-up sur fichiers ticket
   - `/qa` step-01-collect régression scope=impacted:
