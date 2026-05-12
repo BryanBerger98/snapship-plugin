@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "repository": { "platform": "github" },
+  "tickets": { "platform": "inherit" },
+  "documentation": { "platform": "affine" },
+  "wireframes": {
+    "platform": "penpot",
+    "penpot": {
+      "file_id": "11111111-2222-3333-4444-555555555555",
+      "export_dir": "/tmp/wireframes"
+    }
+  },
+  "design": {
+    "platform": "figma",
+    "export_format": "png",
+    "naming_pattern": "{feature_id}-{screen_name}-design",
+    "mode_defaults": {
+      "mockup_canvas": "desktop",
+      "design_system_source": "auto"
+    },
+    "figma": {
+      "file_key": "designABC",
+      "file_name": "Design System Figma",
+      "token_env": "FIGMA_ACCESS_TOKEN",
+      "bridge_kb_path": "/Users/dev/design-system-kb",
+      "bridge_transport": "official"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "repository": { "platform": "github" },
+  "tickets": { "platform": "inherit" },
+  "documentation": { "platform": "affine" },
+  "design": {
+    "platform": "penpot",
+    "penpot": {
+      "file_id": "99999999-8888-7777-6666-555555555555",
+      "file_name": "Hi-fi designs",
+      "export_dir": "/tmp/design",
+      "design_system_page": "Components"
+    }
+  }
+}

@@ -108,6 +108,20 @@
           "format": "uri",
           "description": "Lien Frame0 page ou AFFiNE gallery section"
         },
+        "design_screen": {
+          "type": "string",
+          "description": "Nom écran maquette haute-fidélité lié (skill /design)"
+        },
+        "design_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Lien page Penpot/Figma maquette haute-fidélité, ou AFFiNE design gallery section"
+        },
+        "design_mode": {
+          "type": "string",
+          "enum": ["mockup", "reused"],
+          "description": "Mode production maquette. mockup=nouvelle maquette générée /design. reused=maquette existante référencée."
+        },
         "depends_on": {
           "type": "array",
           "items": { "type": "string" },

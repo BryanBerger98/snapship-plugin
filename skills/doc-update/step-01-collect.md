@@ -87,7 +87,28 @@ fi
 If diff is empty, log a warning but continue — the AI can still patch from PRD
 alone (e.g. spec-only changes).
 
-### E. Build per-journey context bundle
+### E. Collect visual assets (wireframes + design)
+
+Surface any visual artifacts attached to this feature so the AI patch
+step can cross-reference them in journey docs.
+
+```bash
+WF_DIR=".claude/product/features/${FEATURE_ID}/wireframes"
+DS_DIR=".claude/product/features/${FEATURE_ID}/design"
+
+assets_json="$CACHE/assets.json"
+jq -n \
+  --argjson wf "$(find "$WF_DIR" -maxdepth 1 -type f \( -name '*.png' -o -name '*.svg' -o -name '*.pdf' \) 2>/dev/null \
+                   | jq -R . | jq -s 'map({path:., kind:"wireframe"})')" \
+  --argjson ds "$(find "$DS_DIR" -maxdepth 1 -type f \( -name '*.png' -o -name '*.svg' -o -name '*.pdf' \) 2>/dev/null \
+                   | jq -R . | jq -s 'map({path:., kind:"design"})')" \
+  '{wireframes:($wf // []), design:($ds // [])}' \
+  > "$assets_json"
+```
+
+Empty arrays are acceptable (feature without UI screens).
+
+### F. Build per-journey context bundle
 
 For each journey, emit a bundle the step-02 AI prompt will read:
 
@@ -104,12 +125,13 @@ for entry in $(echo "$JOURNEYS_RESOLVED" | jq -c '.[]'); do
     --arg journey "$(cat "$CACHE/journey-${domain}-${jslug}.md" 2>/dev/null || echo '')" \
     --arg diff "$(cat "$CACHE/feature.diff" 2>/dev/null || echo '')" \
     --arg mode "$AUTO_UPDATE_MODE" \
-    '{domain:$domain, journey_slug:$slug, prd:$prd, journey_current:$journey, git_diff:$diff, mode:$mode}' \
+    --argjson assets "$(cat "$CACHE/assets.json" 2>/dev/null || echo '{"wireframes":[],"design":[]}')" \
+    '{domain:$domain, journey_slug:$slug, prd:$prd, journey_current:$journey, git_diff:$diff, mode:$mode, assets:$assets}' \
     > "$bundle"
 done
 ```
 
-### F. Progress
+### G. Progress
 
 ```bash
 bash skills/_shared/update-progress.sh \
@@ -127,6 +149,8 @@ bash skills/_shared/update-progress.sh \
 - One `journey-*.md` file per impacted journey (may be empty for new journeys).
 - One `bundle-*.json` per impacted journey.
 - `feature.diff` exists (may be empty — warn but allow).
+- `assets.json` exists with `wireframes[]` and `design[]` arrays (empty
+  allowed for non-UI features).
 
 ## Next step
 

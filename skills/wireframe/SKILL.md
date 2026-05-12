@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Generate low-fi wireframes for UI tickets through a configured wireframe MCP platform (Frame0 or Penpot), build a Docs Gallery page, and back-link wireframe URLs into the tickets.
+description: Generate low-fi wireframes for UI tickets through a configured wireframe MCP platform (Frame0, Penpot, or Figma), build a Docs Gallery page, and back-link wireframe URLs into the tickets.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -16,11 +16,12 @@ The skill is platform-agnostic at the orchestration layer. Step-00 resolves
 helper via the variable `$helper`. Platform-specific behavior is isolated to
 clearly labeled sections in each step.
 
-| `wireframes.platform` | Helper                              | Surface form        |
-|-----------------------|-------------------------------------|---------------------|
-| `frame0`              | `skills/_shared/frame0-helper.sh`   | Desktop app + MCP   |
-| `penpot`              | `skills/_shared/penpot-helper.sh`   | Web app + MCP plugin|
-| `none` (absent)       | —                                   | Skill skipped       |
+| `wireframes.platform` | Helper                              | Surface form                                    |
+|-----------------------|-------------------------------------|-------------------------------------------------|
+| `frame0`              | `skills/_shared/frame0-helper.sh`   | Desktop app + MCP                               |
+| `penpot`              | `skills/_shared/penpot-helper.sh`   | Web app + MCP plugin                            |
+| `figma`               | `skills/_shared/figma-helper.sh`    | Figma Desktop + `figma-console-mcp` + Bridge plugin |
+| `none` (absent)       | —                                   | Skill skipped                                   |
 
 See step-00 (preflight + binding) and step-02 (page/shape/export semantics)
 for the platform-specific blocks.
@@ -29,7 +30,7 @@ for the platform-specific blocks.
 
 - A feature has `tickets.json` and at least one ticket touches UI files (heuristic
   in step-01).
-- A wireframe platform is configured: `config.wireframes.platform ∈ {"frame0","penpot"}`.
+- A wireframe platform is configured: `config.wireframes.platform ∈ {"frame0","penpot","figma"}`.
 - `/define` has populated `prd-feature.md` so screen names + states are known.
 
 ## Pipeline

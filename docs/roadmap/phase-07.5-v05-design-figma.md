@@ -12,13 +12,16 @@
 | Position pipeline | optionnel, parallèle ou séquentiel à `/wireframe`                                                                       |
 | Liaison fichiers  | indépendant par défaut ; auto-suggestion lien si `wireframes.platform == design.platform` (AskUserQuestion preflight)   |
 | Migration config  | breaking, pas de shim                                                                                                   |
-| Figma split       | `/wireframe` → figma-mcp (raw `figma_execute`) ; `/design` → Bridge (CSpec compile → figma-console-mcp)                 |
+| Serveur MCP Figma | **Unique** : `southleft/figma-console-mcp` (~100 outils, MIT, actif) pour `/wireframe` ET `/design`                       |
+| Couches Figma     | `/wireframe` → `figma-console-mcp` direct (outil `figma_execute`, JS Plugin API brut) ; `/design` → CLI `bridge-ds compile` (YAML CSpec → JS conforme système design) puis transport `official` = injection via `figma_execute` du même MCP, ou `console` = collage manuel DevTools |
+| Bridge            | **CLI séparé** (`noemuch/bridge`, MIT, v3.0.0), pas serveur MCP. Installé en dépendance Node.js. Plugin Claude Code parallèle.            |
 
-## 7.5.2 Spike amont (0.5j — bloquant)
+## 7.5.2 Validation préalable (0.5j — bloquant, livrée)
 
-- [ ] Valider surface réelle `figma-mcp` (`figma_execute`, `exportAsync`, retour base64 vs filePath)
-- [ ] Valider Bridge CLI runtime local : `setup`, `extract`, `compile`, `doctor`
-- [ ] Confirmer license + maintenance Bridge + figma-console-mcp (MIT, activité)
+- [x] **Serveur MCP Figma identifié** : `southleft/figma-console-mcp` (~100 outils, MIT, v1.23.0 mai 2026, 1.7k★). Outil principal `figma_execute` (JS Plugin API brut, retour JSON nœuds créés). Pas d'`exportAsync` natif côté MCP — exports via `figma_execute` injectant `node.exportAsync()` (retour base64 inline). Couleurs format `{r,g,b,a}` plages 0-1 (pas 0-255). Batch max 100 items/appel.
+- [x] **Bridge CLI confirmé** : `noemuch/bridge` (MIT, v3.0.0 mars 2026, 145★, TypeScript). Commandes `bridge-ds setup` / `compile` / `doctor` / `extract` / `cron`. Compile YAML CSpec → JSON scene graph + code JS Plugin API conforme système design (26 règles Figma appliquées). Distribution npm.
+- [x] **Prérequis utilisateur** : Figma Desktop lancé, plugin "Desktop Bridge" installé dans Figma (canal WebSocket ports 9223–9232), variable env `FIGMA_ACCESS_TOKEN` (token API personnel), Node.js 18+.
+- [x] **Décision verrouillée** : un seul serveur MCP Figma pour les deux skills ; Bridge = CLI compilateur séparé, sortie injectée via `figma_execute` du même MCP (transport `official`) ou collage manuel DevTools (transport `console`).
 
 ## 7.5.3 Sub-phase 1 — Config schema refactor (breaking)
 
@@ -34,7 +37,7 @@
     "export_format": "png|svg|pdf",
     "naming_pattern": "{feature_id}-{screen_name}-design",
     "penpot": {"file_id":null, "file_name":null, "export_dir":null, "design_system_page":"Components"},
-    "figma":  {"file_key":null, "file_name":null, "token_env":"FIGMA_TOKEN", "bridge_kb_path":null, "bridge_transport":"console"}
+    "figma":  {"file_key":null, "file_name":null, "token_env":"FIGMA_TOKEN", "bridge_kb_path":null, "bridge_transport":"official"}
   }
   ```
 
@@ -46,13 +49,13 @@
 ## 7.5.4 Sub-phase 2 — Helpers refactor + nouveaux
 
 - [ ] **Decouple helpers config** : `frame0-helper.sh` + `penpot-helper.sh` ne lisent plus la config ; tous les params (`--api-port`, `--file-id`, `--export-dir`, `--format`) passés explicitement skill-side
-- [ ] **`figma-helper.sh` (wireframe)** : mirror surface (`create-page`, `get-page`, `update-page`, `delete-page`, `list-pages`, `add-shapes`, `export-png`, `get-current-file`) ; backend descripteurs MCP `figma_execute` (raw Plugin API JS) + `exportAsync` ; params `--file-key`, `--page-id`, `--shapes-file`, `--output-path`, `--format`
-- [ ] **`figma-bridge-helper.sh` (design)** : surface Bridge (`ds-init`, `ds-update`, `mockup-compile`, `extract-ds`, `export-shape`) ; params `--kb-path`, `--scene-graph-file`, `--transport=console|official`, `--token-env=FIGMA_TOKEN`
+- [ ] **`figma-helper.sh` (wireframe)** : miroir surface penpot (`create-page`, `get-page`, `update-page`, `delete-page`, `list-pages`, `add-shapes`, `export-png`, `get-current-file`) ; backend = descripteurs MCP `figma_execute` du serveur `figma-console-mcp` (Plugin API JS construit côté helper, exports via `node.exportAsync()` injecté retour base64 inline → décodage et écriture disque côté helper) ; params `--file-key`, `--page-id`, `--shapes-file`, `--output-path`, `--format`
+- [ ] **`figma-bridge-helper.sh` (design)** : surface Bridge (`ds-init`, `ds-update`, `mockup-compile`, `extract-ds`, `export-shape`) ; backend = invocation CLI `bridge-ds compile` (YAML CSpec → JS Plugin API conforme système design) puis injection sortie selon transport : `official` = `figma_execute` du même `figma-console-mcp` (défaut), `console` = écriture fichier `.js` + instruction utilisateur collage DevTools Figma ; params `--kb-path`, `--scene-graph-file`, `--transport=official|console`, `--token-env=FIGMA_TOKEN`
 - [ ] **Tests** : `test-figma-helper.sh` (~60 tests, mirror penpot), `test-figma-bridge-helper.sh` (~40 tests axés compile descriptors + KB validation), refresh `test-frame0-helper.sh` / `test-penpot-helper.sh` post-decoupling
 
 ## 7.5.5 Sub-phase 3 — `/wireframe` skill — Figma + nested config + decouple
 
-- [ ] **step-00** : §5.c préflight figma (figma-mcp reachable + Figma Desktop running + `get-current-file` match `wireframes.figma.file_key`) ; résolution config nested propagée en variables shell
+- [ ] **step-00** : §5.c vérification préalable figma (`figma-console-mcp` joignable + Figma Desktop lancé + plugin "Desktop Bridge" connecté WebSocket + `get-current-file` correspond à `wireframes.figma.file_key`) ; résolution config nesté propagée en variables shell
 - [ ] **step-02** : §3.c export figma (`figma-helper.sh export-png` avec params explicites) ; tableau platform → helper → backend MAJ
 - [ ] **SKILL.md + docs/skills/wireframe.md** : 3 platforms
 

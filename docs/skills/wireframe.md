@@ -1,12 +1,12 @@
 # Skill `/wireframe`
 
-Génère wireframes multi-écrans pour une feature via Frame0 ou Penpot MCP. Lie wireframes aux tickets correspondants.
+Génère wireframes multi-écrans pour une feature via Frame0, Penpot ou Figma MCP. Lie wireframes aux tickets correspondants.
 
 ## Frontmatter
 
 ```yaml
 name: wireframe
-description: Génère wireframes Frame0/Penpot multi-écrans pour une feature. Lie wireframes aux tickets correspondants.
+description: Génère wireframes Frame0/Penpot/Figma multi-écrans pour une feature. Lie wireframes aux tickets correspondants.
 argument-hint: "[-a] [-r] [--no-link] [--dry-run] <feature-id>"
 ```
 
@@ -22,9 +22,14 @@ argument-hint: "[-a] [-r] [--no-link] [--dry-run] <feature-id>"
 |------------|-----------------------------------------|-----------------------------------------------------|
 | `frame0`   | `skills/_shared/frame0-helper.sh`       | HTTP bypass desktop API + décode base64 local      |
 | `penpot`   | `skills/_shared/penpot-helper.sh`       | MCP `export_shape` (filePath absolu, écrit direct) |
+| `figma`    | `skills/_shared/figma-helper.sh`        | `figma_execute` retourne base64 inline → `save-export` décode local |
 
-Résolu à step-00 via `config.wireframes.platform`. Les deux helpers exposent
+Résolu à step-00 via `config.wireframes.platform`. Les trois helpers exposent
 la même API d'actions (`create-page`, `add-shapes`, `export-png`, …).
+
+Helpers context-agnostic depuis v0.5 : aucune lecture de config — step-00
+résout les valeurs nichées (`api_port`, `penpot.file_id`, `figma.file_key`,
+`export_format`, …) et les passe explicitement à chaque appel.
 
 ## Frame0 MCP tools utilisés (28 dispo)
 
@@ -43,6 +48,37 @@ la même API d'actions (`create-page`, `add-shapes`, `export-png`, …).
 - `query_docs` — introspection types/membres API (utile pour debug).
 - `get_overview` — instructions et hiérarchie File > Pages > Boards > Groups > Shapes.
 - `export_shape` — export PNG/SVG (paramètre `filePath` doit être absolu).
+
+## Figma MCP tools utilisés (`figma-console-mcp`, ~100 dispo)
+
+Une seule MCP utilisée comme primitive universelle :
+
+- `figma_execute` — exécute du JS dans le contexte Figma Plugin API via la
+  Desktop Bridge plugin (WebSocket auto-discovery ports 9223–9232). Couvre :
+  - `figma.createPage()`, `figma.currentPage = page` — gestion pages
+  - `figma.createRectangle()`, `createText()`, `createEllipse()`,
+    `createFrame()` — shapes
+  - `figma.loadFontAsync({family:"Inter", style:"Regular"})` requis avant
+    tout texte
+  - `node.exportAsync({format, constraint:{type:"SCALE", value}})` →
+    `Uint8Array` → `figma.base64Encode(bytes)` retourné inline dans la
+    réponse MCP
+  - `figma.getNodeById(id)`, `figma.root.findAll()` — lookup
+- Couleurs : Figma utilise `{r,g,b}` 0–1 (pas 0–255). Le helper convertit
+  `#hex` → RGB en JS.
+
+### Prérequis Figma
+
+1. **Figma Desktop** lancé (pas le navigateur — la Bridge n'existe que sur
+   Desktop).
+2. **Desktop Bridge plugin** installé et actif : Figma → Plugins → Browse →
+   "Desktop Bridge" → Open. La plugin maintient le WebSocket que
+   `figma-console-mcp` interroge.
+3. **Token Figma** dans `$FIGMA_ACCESS_TOKEN` (ou variable nommée par
+   `wireframes.figma.token_env`). Utilisé par les paths REST de fallback.
+4. **File ouvert** : `figma-console-mcp` cible le fichier actuellement
+   chargé dans l'onglet Desktop. Step-00 compare `figma.fileKey` avec
+   `wireframes.figma.file_key` et halt si mismatch.
 
 ## Steps
 

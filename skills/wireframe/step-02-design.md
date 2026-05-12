@@ -1,7 +1,7 @@
 ---
 step: 02-design
 next_step: 03-gallery
-description: Per screen×state, create page, add shapes, export ONE asset (format from config) via the configured wireframe platform (frame0 | penpot).
+description: Per screen×state, create page, add shapes, export ONE asset (format from config) via the configured wireframe platform (frame0 | penpot | figma).
 ---
 
 # step-02 — design
@@ -18,10 +18,14 @@ step-00:
 |----------|------------------------------------------------|--------------------------------------------------|
 | `frame0` | `skills/_shared/frame0-helper.sh`              | HTTP API bypass (`export-png`) — local decode    |
 | `penpot` | `skills/_shared/penpot-helper.sh`              | `export_shape` MCP tool writes file directly     |
+| `figma`  | `skills/_shared/figma-helper.sh`               | `figma_execute` returns base64 inline → `save-export` decodes locally |
 
-Below, `$helper` is the resolved helper path. Both helpers expose the same
-action surface (`create-page`, `add-shapes`, `export-png`) so the loop below
-is platform-agnostic — only the `export-png` call differs slightly.
+Below, `$helper` is the resolved helper path. All three helpers expose the
+same action surface (`create-page`, `add-shapes`, `export-png`) so the loop
+below is platform-agnostic — only the export step differs per platform. Since
+v0.5 helpers are context-agnostic: pass resolved config values (`$api_port`,
+`$export_format`, `$figma_file_key`, …) explicitly — step-00 already resolved
+them from `snapship.config.json` and persisted them to skill state.
 
 ## Resolve export format (once, at start of step)
 
@@ -81,11 +85,10 @@ For each screen draft from step-01, and for each state in `states[]`:
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
-     --project-root="$PWD"
+     --format="$fmt" \
+     --api-port="$api_port"
    # exit 0 on success ({written:true,bytes:N}), 1 if desktop unreachable.
-   # Format is taken from config — DO NOT pass --format here.
    ```
-   Override port via `--api-port=N` or `wireframes.frame0_api_port`.
 
    ### 3.b — penpot
 
@@ -98,9 +101,35 @@ For each screen draft from step-01, and for each state in `states[]`:
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
-     --project-root="$PWD"
+     --format="$fmt" \
+     --file-id="$penpot_file_id"
    # exits 10 with descriptor; after MCP runs, the file exists at $target.
-   # Format is taken from config — DO NOT pass --format here.
+   ```
+
+   ### 3.c — figma
+
+   The Figma helper emits a `figma_execute` descriptor whose JS calls
+   `node.exportAsync({format, constraint:{type:"SCALE", value:scl}})` and
+   returns `{node_id, format, data: figma.base64Encode(bytes)}` inline.
+   The skill then invokes `save-export` to decode the base64 to disk.
+   Supported `$fmt` values: `png|svg|jpg|pdf`. Default scale is `2`.
+   ```bash
+   target=".claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
+
+   # Step 1: emit figma_execute descriptor (exit 10), MCP returns base64.
+   exec_result=$(bash "$helper" export-png \
+     --shape-id="$page_id" \
+     --output-path="$target" \
+     --format="$fmt" \
+     --scale=2 \
+     --file-key="$figma_file_key")
+   # → dispatcher invokes figma_execute, captures result.data (base64 string).
+
+   # Step 2: decode locally to disk.
+   bash "$helper" save-export \
+     --output-path="$target" \
+     --base64-data="$exec_data"
+   # exit 0 on success ({written:true,bytes:N}).
    ```
 
 4. **Cache descriptor result**: append to `.wireframes-draft.json`:
@@ -143,13 +172,19 @@ Generic:
 
 Platform-specific:
 - **frame0** — `export-png` exit 1 means Frame0 desktop is unreachable on the
-  configured HTTP port. Re-check `wireframes.frame0_api_port` and that the
+  configured HTTP port. Re-check `wireframes.frame0.api_port` and that the
   desktop app is running. Resume to retry.
 - **penpot** — `export_shape` requires an absolute filePath and the target
   shape must exist on the active page. The helper's `add-shapes` JS calls
   `penpot.openPage()` so the page is current at export time. If the user
   navigated away in the browser tab mid-run, the next call surfaces "No
   plugin connected" — re-bind in the Penpot UI and resume.
+- **figma** — `figma_execute` failures usually mean the Desktop Bridge
+  plugin disconnected (Figma Desktop closed, plugin disabled, or WebSocket
+  port range 9223–9232 blocked). Re-enable the plugin (Plugins → Browse →
+  "Desktop Bridge" → Open) and resume. If `save-export` fails with "no
+  base64 data", the previous `figma_execute` returned an error payload —
+  inspect the MCP transcript before retrying.
 
 ## Append progress
 

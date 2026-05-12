@@ -16,6 +16,7 @@ STEP_NUM=""
 STEP_NAME=""
 STATUS=""
 NOTE=""
+EXTRA=""
 SKILL=""
 
 usage() {
@@ -32,6 +33,7 @@ Options:
   --status=STATUS         Required. ok|fail|skip|retry|started.
   --skill=NAME            Optional. Skill emitting the entry (define|ticket|...).
   --note=TEXT             Optional. Free-form note appended after status.
+  --extra=JSON            Optional. JSON object — compact form appended to note.
   -h, --help              Show this help
 EOF
 }
@@ -45,6 +47,7 @@ while [ $# -gt 0 ]; do
     --status=*)       STATUS="${1#--status=}" ;;
     --skill=*)        SKILL="${1#--skill=}" ;;
     --note=*)         NOTE="${1#--note=}" ;;
+    --extra=*)        EXTRA="${1#--extra=}" ;;
     -h|--help)        usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -97,7 +100,20 @@ prefix="${prefix#/}"
 LINE="- [${NOW}]"
 [ -n "$prefix" ] && LINE="${LINE} ${prefix}"
 LINE="${LINE} ${STEP_NAME} — ${STATUS}"
-[ -n "$NOTE" ] && LINE="${LINE}: ${NOTE}"
+
+if [ -n "$EXTRA" ]; then
+  echo "$EXTRA" | jq -e 'type == "object"' >/dev/null 2>&1 || {
+    echo "ERROR: --extra must be a JSON object" >&2; exit 1;
+  }
+  EXTRA_COMPACT=$(echo "$EXTRA" | jq -c .)
+  if [ -n "$NOTE" ]; then
+    LINE="${LINE}: ${NOTE} ${EXTRA_COMPACT}"
+  else
+    LINE="${LINE}: ${EXTRA_COMPACT}"
+  fi
+elif [ -n "$NOTE" ]; then
+  LINE="${LINE}: ${NOTE}"
+fi
 
 printf '%s\n' "$LINE" >> "$PROGRESS"
 

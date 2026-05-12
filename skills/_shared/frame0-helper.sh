@@ -24,19 +24,20 @@
 #                  Local-only — bypasses MCP. POSTs `file:export-image` to the
 #                  Frame0 desktop HTTP API, decodes the returned base64, writes
 #                  the asset to --output-path. Requires Frame0 desktop running.
-#                  API port defaults to `wireframes.frame0_api_port` (config) or
-#                  58320. The base URL can be overridden for tests via
-#                  $SNAP_FRAME0_API_BASE; the entire HTTP call can be stubbed
-#                  via $SNAP_FRAME0_MOCK_RESPONSE_FILE (path to JSON body).
+#                  API port defaults to 58320 if --api-port omitted. The base URL
+#                  can be overridden for tests via $SNAP_FRAME0_API_BASE; the entire
+#                  HTTP call can be stubbed via $SNAP_FRAME0_MOCK_RESPONSE_FILE
+#                  (path to JSON body).
 #   save-export    --output-path --base64-data DATA|--base64-file PATH|--base64-stdin
 #                  Decode an arbitrary base64 payload (e.g. captured from a
 #                  Frame0 response) and write the binary asset to --output-path.
 #                  Strips a `data:image/...;base64,` prefix when present.
 #                  Local-only — never emits an MCP descriptor.
 #
-# Defaults for export_format / export_scale read from
-# config.wireframes.{export_format,export_scale} when not specified.
-# export-png ignores --scale (Frame0's HTTP API has no scale parameter).
+# Helper context-agnostic depuis v0.5: ne lit aucune configuration projet.
+# Les params (--format/--scale/--api-port) sont passés explicitement par le skill.
+# Défauts internes appliqués si arg absent: format=png, scale=2, api_port=58320.
+# export-png ignore --scale (l'API HTTP Frame0 n'a pas de paramètre scale).
 #
 # Output JSON shapes:
 #   mcp:  {"ok":false,"mode":"mcp","reason":"mcp_required","descriptor":{...}}  exit 10
@@ -133,19 +134,10 @@ case "$ACTION" in
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
-# Read config defaults for export.
-CFG_FORMAT=""
-CFG_SCALE=""
-CFG_API_PORT=""
-if [ -f "${PROJECT_ROOT}/snapship.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
-  CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
-  CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format    // ""')
-  CFG_SCALE=$(echo  "$CFG" | jq -r '.wireframes.export_scale     // ""')
-  CFG_API_PORT=$(echo "$CFG" | jq -r '.wireframes.frame0_api_port // ""')
-fi
-[ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="${CFG_FORMAT:-png}"
-[ -z "$EXPORT_SCALE"  ] && EXPORT_SCALE="${CFG_SCALE:-2}"
-[ -z "$API_PORT"      ] && API_PORT="${CFG_API_PORT:-58320}"
+# Internal defaults — helper context-agnostic, ne lit pas la config projet.
+[ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="png"
+[ -z "$EXPORT_SCALE"  ] && EXPORT_SCALE="2"
+[ -z "$API_PORT"      ] && API_PORT="58320"
 
 # Format enum depends on action:
 #   export-page (legacy MCP descriptor) keeps png/svg/pdf for backward compat

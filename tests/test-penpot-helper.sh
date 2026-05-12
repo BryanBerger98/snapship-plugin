@@ -195,18 +195,22 @@ OUT=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=get-page --page-id=p 2>&1)
 OUT=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=list-pages --query=x 2>&1)
 [ $? -eq 10 ] && ok "13.2 list-pages still emits descriptor" || ko "13.2"
 
-# --- config-driven export_format default ---------------------------------
+# --- helper context-agnostic depuis v0.5: ignore config ----------------------
 
 echo ""
-echo "[14] export_format reads config when unset"
+echo "[14] export_format défaut interne png, config projet ignorée"
 CFG_DIR=$(mktemp -d)
 cat > "$CFG_DIR/snapship.config.json" <<'EOF'
 {"version":"1.0","wireframes":{"platform":"penpot","export_format":"svg"}}
 EOF
-OUT=$(bash "$SCRIPT" --project-root="$CFG_DIR" --action=export-png --shape-id=s --output-path=/abs/x.svg 2>&1)
+# Sans --format: helper utilise défaut interne png (ignore config)
+OUT=$(bash "$SCRIPT" --project-root="$CFG_DIR" --action=export-png --shape-id=s --output-path=/abs/x.png 2>&1)
 RC=$?
-[ "$RC" -eq 10 ] && ok "14.1 config format ok" || ko "14.1 rc=$RC"
-echo "$OUT" | jq -e '.descriptor.params.format == "svg"' >/dev/null && ok "14.2 format from config" || ko "14.2"
+[ "$RC" -eq 10 ] && ok "14.1 descriptor emitted" || ko "14.1 rc=$RC"
+echo "$OUT" | jq -e '.descriptor.params.format == "png"' >/dev/null && ok "14.2 default png (config ignored)" || ko "14.2"
+# Avec --format=svg explicite: helper utilise valeur passée
+OUT=$(bash "$SCRIPT" --action=export-png --shape-id=s --output-path=/abs/x.svg --format=svg 2>&1)
+echo "$OUT" | jq -e '.descriptor.params.format == "svg"' >/dev/null && ok "14.3 explicit --format=svg" || ko "14.3"
 trash "$CFG_DIR" 2>/dev/null || rm -rf "$CFG_DIR"
 
 # --- get-current-file preflight ------------------------------------------

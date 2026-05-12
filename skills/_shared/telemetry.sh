@@ -20,6 +20,7 @@ CYCLE=""
 SEVERITY=""
 FEATURE=""
 NOTE=""
+EXTRA=""
 LOG_PATH=""
 
 usage() {
@@ -40,6 +41,7 @@ Optional:
   --cycle=N               Review/QA cycle number
   --severity=LEVEL        info|minor|major|critical (when applicable)
   --note=TEXT             Free-form note
+  --extra=JSON            JSON object merged into event as .extra
   --log-path=PATH         Override default log path
   -h, --help              Show this help
 
@@ -58,6 +60,7 @@ while [ $# -gt 0 ]; do
     --cycle=*)       CYCLE="${1#--cycle=}" ;;
     --severity=*)    SEVERITY="${1#--severity=}" ;;
     --note=*)        NOTE="${1#--note=}" ;;
+    --extra=*)       EXTRA="${1#--extra=}" ;;
     --log-path=*)    LOG_PATH="${1#--log-path=}" ;;
     -h|--help)       usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
@@ -116,6 +119,15 @@ fi
 
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+# Validate --extra is JSON object if provided; normalize empty → null.
+if [ -n "$EXTRA" ]; then
+  echo "$EXTRA" | jq -e 'type == "object"' >/dev/null 2>&1 || {
+    echo "ERROR: --extra must be a JSON object" >&2; exit 1;
+  }
+else
+  EXTRA="null"
+fi
+
 EVENT=$(jq -nc \
   --arg ts "$NOW" \
   --arg skill "$SKILL" \
@@ -126,7 +138,8 @@ EVENT=$(jq -nc \
   --arg feature "$FEATURE" \
   --arg cycle "$CYCLE" \
   --arg severity "$SEVERITY" \
-  --arg note "$NOTE" '
+  --arg note "$NOTE" \
+  --argjson extra "$EXTRA" '
   {ts: $ts, skill: $skill, step: $step, status: $status}
   | if $duration != "" then .duration_ms = ($duration | tonumber) else . end
   | if $ticket   != "" then .ticket = $ticket else . end
@@ -134,6 +147,7 @@ EVENT=$(jq -nc \
   | if $cycle    != "" then .cycle = ($cycle | tonumber) else . end
   | if $severity != "" then .severity = $severity else . end
   | if $note     != "" then .note = $note else . end
+  | if $extra    != null then .extra = $extra else . end
 ')
 
 printf '%s\n' "$EVENT" >> "$LOG_PATH"

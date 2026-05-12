@@ -39,7 +39,8 @@
 #                    "openFile" API exists; the binding is the tab + plugin
 #                    connection).
 #
-# Defaults for export_format read from config.wireframes.export_format.
+# Helper context-agnostic depuis v0.5: ne lit aucune configuration projet.
+# Le skill passe --format explicitement; défaut interne png si absent.
 #
 # Output JSON shapes:
 #   mcp:  {"ok":false,"mode":"mcp","reason":"mcp_required","descriptor":{...}}  exit 10
@@ -120,13 +121,9 @@ case "$ACTION" in
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
-# Read config defaults.
-CFG_FORMAT=""
-if [ -f "${PROJECT_ROOT}/snapship.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
-  CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
-  CFG_FORMAT=$(echo "$CFG" | jq -r '.wireframes.export_format // ""')
-fi
-[ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="${CFG_FORMAT:-png}"
+# Helper context-agnostic depuis v0.5: ne lit pas la config projet.
+# Le skill passe --format explicitement; défaut interne png si absent.
+[ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="png"
 
 # Penpot export_shape supports png/svg only.
 if [ "$ACTION" = "export-png" ]; then

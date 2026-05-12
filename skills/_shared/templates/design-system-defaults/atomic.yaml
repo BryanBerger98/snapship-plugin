@@ -1,0 +1,152 @@
+# Atomic-level design system primitives.
+# Consumed by /design ds-init / ds-update (Bridge CSpec on figma, native shapes on penpot).
+# Tokens reference design-system/tokens.yaml if present, else fall back to inline values.
+
+version: 1
+level: atomic
+namespace: ds
+
+tokens:
+  color:
+    primary: "#3B82F6"      # blue-500
+    primary-hover: "#2563EB"
+    primary-disabled: "#93C5FD"
+    surface: "#FFFFFF"
+    surface-muted: "#F3F4F6"
+    text: "#111827"
+    text-muted: "#6B7280"
+    text-inverse: "#FFFFFF"
+    border: "#E5E7EB"
+    danger: "#EF4444"
+    success: "#10B981"
+  font:
+    family: "Inter, system-ui, sans-serif"
+    size:
+      xs: 12
+      sm: 14
+      md: 16
+      lg: 18
+      xl: 24
+      "2xl": 32
+    weight:
+      regular: 400
+      medium: 500
+      semibold: 600
+      bold: 700
+  spacing:
+    xs: 4
+    sm: 8
+    md: 16
+    lg: 24
+    xl: 32
+    "2xl": 48
+  radius:
+    sm: 4
+    md: 8
+    lg: 12
+    pill: 9999
+  shadow:
+    sm: "0 1px 2px rgba(0,0,0,0.05)"
+    md: "0 4px 6px rgba(0,0,0,0.1)"
+    lg: "0 10px 15px rgba(0,0,0,0.1)"
+
+components:
+  - name: Label
+    description: Single-line text token, used inside molecular components.
+    props:
+      text:
+        type: string
+        required: true
+      variant:
+        type: enum
+        values: [default, muted, danger, success]
+        default: default
+      size:
+        type: enum
+        values: [xs, sm, md, lg, xl]
+        default: md
+    style:
+      font_family: "{{tokens.font.family}}"
+      font_size:
+        bind: "{{tokens.font.size[props.size]}}"
+      color:
+        bind:
+          default: "{{tokens.color.text}}"
+          muted: "{{tokens.color.text-muted}}"
+          danger: "{{tokens.color.danger}}"
+          success: "{{tokens.color.success}}"
+
+  - name: Icon
+    description: 24×24 vector glyph placeholder. Hi-fi runs replace with real SVGs.
+    props:
+      name:
+        type: string
+        required: true
+      size:
+        type: number
+        default: 24
+    style:
+      width: "{{props.size}}"
+      height: "{{props.size}}"
+      fill: "{{tokens.color.text}}"
+
+  - name: Input
+    description: Form input field, single line.
+    props:
+      placeholder:
+        type: string
+        required: true
+      type:
+        type: enum
+        values: [text, email, password, number]
+        default: text
+      state:
+        type: enum
+        values: [default, focus, error, disabled]
+        default: default
+    style:
+      width: 320
+      height: 40
+      background: "{{tokens.color.surface}}"
+      border:
+        bind:
+          default: "{{tokens.color.border}}"
+          focus: "{{tokens.color.primary}}"
+          error: "{{tokens.color.danger}}"
+          disabled: "{{tokens.color.border}}"
+      radius: "{{tokens.radius.md}}"
+      padding_x: "{{tokens.spacing.md}}"
+
+  - name: Button
+    description: Primary action button.
+    props:
+      label:
+        type: string
+        required: true
+      variant:
+        type: enum
+        values: [primary, secondary, ghost, danger]
+        default: primary
+      state:
+        type: enum
+        values: [default, hover, disabled, loading]
+        default: default
+      icon_left:
+        type: string
+        required: false
+    style:
+      height: 40
+      padding_x: "{{tokens.spacing.lg}}"
+      radius: "{{tokens.radius.md}}"
+      background:
+        bind:
+          primary: "{{tokens.color.primary}}"
+          secondary: "{{tokens.color.surface-muted}}"
+          ghost: "transparent"
+          danger: "{{tokens.color.danger}}"
+      color:
+        bind:
+          primary: "{{tokens.color.text-inverse}}"
+          secondary: "{{tokens.color.text}}"
+          ghost: "{{tokens.color.text}}"
+          danger: "{{tokens.color.text-inverse}}"

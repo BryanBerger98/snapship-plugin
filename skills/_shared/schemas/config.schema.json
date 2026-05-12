@@ -17,6 +17,7 @@
     "tickets": { "$ref": "#/$defs/tickets" },
     "documentation": { "$ref": "#/$defs/documentation" },
     "wireframes": { "$ref": "#/$defs/wireframes" },
+    "design": { "$ref": "#/$defs/design" },
     "testing": { "$ref": "#/$defs/testing" },
     "naming": { "$ref": "#/$defs/naming" },
     "ai": { "$ref": "#/$defs/ai" },
@@ -164,10 +165,11 @@
     "wireframes": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Configuration skill /wireframe. Blocs platform-specific (`frame0`, `penpot`, `figma`) consultés selon `platform`.",
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["frame0", "penpot"],
+          "enum": ["frame0", "penpot", "figma"],
           "default": "frame0"
         },
         "export_format": {
@@ -184,24 +186,138 @@
           "type": "string",
           "default": "{feature_id}-{screen_name}"
         },
-        "frame0_api_port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535,
-          "default": 58320,
-          "description": "Port of Frame0 desktop's local HTTP API. The `export-png` action bypasses MCP and POSTs `file:export-image` here. Override only if Frame0 was launched with --api-port=<N>."
+        "frame0": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=frame0",
+          "properties": {
+            "api_port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "default": 58320,
+              "description": "Port API HTTP locale Frame0 Desktop. L'action `export-png` court-circuite MCP et POST `file:export-image` ici. Override seulement si Frame0 lancé avec --api-port=<N>."
+            },
+            "export_source_dir": {
+              "type": "string",
+              "description": "Chemin absolu où Frame0 Desktop écrit les exports avant que le helper ne les déplace vers la destination feature. Par défaut résolu runtime (cwd Frame0)."
+            }
+          }
         },
-        "penpot_export_dir": {
-          "type": "string",
-          "description": "Absolute path where Penpot MCP writes exported PNG/SVG assets. Penpot's `export_shape` tool requires an absolute filePath. Defaults to `{project_root}/.claude/product/features/{feature_id}/wireframes/` resolved at runtime."
+        "penpot": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=penpot",
+          "properties": {
+            "export_dir": {
+              "type": "string",
+              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.claude/product/features/{feature_id}/wireframes/` résolu runtime."
+            },
+            "file_id": {
+              "type": "string",
+              "description": "UUID fichier Penpot ciblé par le projet. Quand défini, /wireframe step-00 vérifie `penpot.currentFile.id` contre cette valeur et halt avec message clair si l'utilisateur a le mauvais fichier ouvert dans l'onglet navigateur Penpot. Penpot MCP ne peut pas ouvrir de fichier par programme — utilisateur doit naviguer manuellement."
+            },
+            "file_name": {
+              "type": "string",
+              "description": "Nom de fichier lisible affiché dans l'erreur de mismatch (informationnel ; pas utilisé pour matching)."
+            }
+          }
         },
-        "penpot_file_id": {
+        "figma": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=figma. Serveur MCP cible: figma-console-mcp (southleft).",
+          "properties": {
+            "file_key": {
+              "type": "string",
+              "description": "Clé fichier Figma ciblée par le projet. Quand définie, /wireframe step-00 vérifie `figma_get_current_file` contre cette valeur et halt si fichier différent ouvert dans Figma Desktop."
+            },
+            "file_name": {
+              "type": "string",
+              "description": "Nom de fichier lisible affiché dans l'erreur de mismatch (informationnel)."
+            },
+            "token_env": {
+              "type": "string",
+              "default": "FIGMA_ACCESS_TOKEN",
+              "description": "Nom variable env où chercher le token API Figma personnel. Le helper vérifie présence avant invocation MCP."
+            }
+          }
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Configuration skill /design. Optionnel — section absente = skill désactivé. Blocs platform-specific consultés selon `platform`.",
+      "properties": {
+        "platform": {
           "type": "string",
-          "description": "Optional Penpot file UUID this project targets. When set, /wireframe step-00 preflights `penpot.currentFile.id` against this value and halts with a clear message if the user has the wrong file open in their Penpot browser tab. Penpot MCP cannot open files programmatically — user must navigate manually."
+          "enum": ["penpot", "figma"],
+          "description": "Plateforme cible pour maquettes haute-fidélité. Frame0 exclu (low-fi seulement)."
         },
-        "penpot_file_name": {
+        "export_format": {
           "type": "string",
-          "description": "Human-readable file name shown in the mismatch error (purely informational; not used for matching)."
+          "enum": ["png", "svg", "pdf"],
+          "default": "png"
+        },
+        "naming_pattern": {
+          "type": "string",
+          "default": "{feature_id}-{screen_name}-design"
+        },
+        "mode_defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mockup_canvas": {
+              "type": "string",
+              "enum": ["mobile-portrait", "mobile-landscape", "desktop", "tablet"],
+              "default": "mobile-portrait"
+            },
+            "design_system_source": {
+              "type": "string",
+              "enum": ["auto", "file", "none"],
+              "default": "auto",
+              "description": "auto=détection (file présent → file, sinon none). file=lit système design fichier configuré. none=mockup libre sans contrainte."
+            }
+          }
+        },
+        "penpot": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=penpot. Helper réutilisé: penpot-helper.sh.",
+          "properties": {
+            "file_id": { "type": "string" },
+            "file_name": { "type": "string" },
+            "export_dir": { "type": "string" },
+            "design_system_page": {
+              "type": "string",
+              "default": "Components",
+              "description": "Nom page Penpot où le système design est stocké (composants, tokens). Utilisé en lecture pour mockup, en écriture pour ds-init/ds-update."
+            }
+          }
+        },
+        "figma": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Utilisé seulement si platform=figma. Helper: figma-bridge-helper.sh (CLI Bridge → injection via figma-console-mcp).",
+          "properties": {
+            "file_key": { "type": "string" },
+            "file_name": { "type": "string" },
+            "token_env": {
+              "type": "string",
+              "default": "FIGMA_ACCESS_TOKEN"
+            },
+            "bridge_kb_path": {
+              "type": "string",
+              "description": "Chemin base de connaissance Bridge (KB) sur disque. Compilateur `bridge-ds compile` lit ce dossier pour résoudre tokens + composants système design."
+            },
+            "bridge_transport": {
+              "type": "string",
+              "enum": ["official", "console"],
+              "default": "official",
+              "description": "Transport sortie compilation Bridge. official=injection automatique via figma-console-mcp figma_execute. console=écriture fichier .js + collage manuel console DevTools Figma."
+            }
+          }
         }
       }
     },
@@ -355,6 +471,27 @@
             },
             "severity_on_mismatch": { "$ref": "#/$defs/severity" }
           }
+        },
+        "design_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Vérification parité maquette hi-fi vs implémentation (skill /design). Opt-in.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "mode": {
+              "type": "string",
+              "enum": ["asset-presence", "playwright"],
+              "default": "asset-presence",
+              "description": "asset-presence = vérifie juste que l'asset design existe sur disque. playwright = diff visuel hi-fi (futur)."
+            },
+            "diff_threshold_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 5
+            },
+            "severity_on_mismatch": { "$ref": "#/$defs/severity" }
+          }
         }
       }
     },
@@ -369,6 +506,8 @@
         "post_ticket": { "type": "string" },
         "pre_wireframe": { "type": "string" },
         "post_wireframe": { "type": "string" },
+        "pre_design": { "type": "string" },
+        "post_design": { "type": "string" },
         "pre_develop": { "type": "string" },
         "post_develop": { "type": "string" },
         "pre_qa": { "type": "string" },

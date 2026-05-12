@@ -20,7 +20,11 @@
 #   - case-insensitive
 #   - if multiple matches and no exact, fail with exit 1 + suggestion list
 #
-# Usage: resume-state.sh next --skill=define [--feature=01]
+# Usage: resume-state.sh next --skill=define [--feature=01] [--mode=NAME]
+#
+# --mode=NAME (optional) narrows the match to progress lines whose note
+# encodes "mode":"NAME" — used by /design where ds-init|ds-update|mockup
+# share the same skill name but resume independently.
 
 set -euo pipefail
 
@@ -28,10 +32,13 @@ PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 
 usage() {
   cat <<'EOF'
-Usage: resume-state.sh next --skill=NAME [--feature=PARTIAL] [--project-root=PATH]
+Usage: resume-state.sh next --skill=NAME [--feature=PARTIAL] [--mode=NAME] [--project-root=PATH]
 
 Resolve the next step for a --resume invocation. Reads progress.md (global +
 per-feature) and infers the next step from the last successful entry for the skill.
+
+--mode=NAME narrows the match to lines whose note encodes "mode":"NAME"
+(used by /design ds-init|ds-update|mockup which share the skill name).
 
 Output (stdout): JSON {next_step, feature_id, matched, reason}
 Exit codes: 0 = match, 1 = no in-flight run, 2 = bad args
@@ -39,11 +46,12 @@ EOF
 }
 
 cmd_next() {
-  local skill="" feature=""
+  local skill="" feature="" mode=""
   for a in "$@"; do
     case "$a" in
       --skill=*)        skill="${a#--skill=}" ;;
       --feature=*)      feature="${a#--feature=}" ;;
+      --mode=*)         mode="${a#--mode=}" ;;
       --project-root=*) PROJECT_ROOT="${a#--project-root=}" ;;
       -h|--help)        usage; return 0 ;;
       *) echo "ERROR: unknown arg: $a" >&2; return 2 ;;
@@ -155,10 +163,13 @@ cmd_next() {
   last_line=$(grep -E "^\- \[" "$scan_file" 2>/dev/null \
     | grep -E " ${skill} step-[0-9]{2} " \
     | grep -E " — (ok|skip)(:|$)" \
+    | { if [ -n "$mode" ]; then grep -E "\"mode\":\"${mode}\""; else cat; fi; } \
     | tail -n 1 || true)
 
   if [ -z "$last_line" ]; then
-    jq -n --arg r "no successful $skill step in $scan_file" --arg fid "$resolved_feature" \
+    local why="no successful $skill step in $scan_file"
+    [ -n "$mode" ] && why="${why} (mode=${mode})"
+    jq -n --arg r "$why" --arg fid "$resolved_feature" \
       '{"next_step":"step-00-init", "feature_id":$fid, "matched":false, "reason":$r}'
     return 1
   fi

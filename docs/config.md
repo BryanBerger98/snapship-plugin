@@ -134,8 +134,8 @@
     //    chaque skill via _shared/run-lifecycle-script.sh aux moments lifecycle skill.
     // Définir uniquement scripts utiles. Clés absentes = skip implicite.
     // Scripts supportés: pre_define, post_define, pre_ticket, post_ticket,
-    //                    pre_wireframe, post_wireframe, pre_develop, post_develop,
-    //                    pre_qa, post_qa
+    //                    pre_wireframe, post_wireframe, pre_design, post_design,
+    //                    pre_develop, post_develop, pre_qa, post_qa
     // Valeur = path script exécutable (recoit context JSON sur stdin).
     // Exemple:
     // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
@@ -214,7 +214,7 @@ MCP/CLI gèrent indépendamment:
 
 ## Lifecycle scripts custom (≠ hooks Claude Code)
 
-`pre_<skill>` exécuté avant step-00, `post_<skill>` après dernier step. Scripts supportés: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
+`pre_<skill>` exécuté avant step-00, `post_<skill>` après dernier step. Scripts supportés: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
 
 Orchestrés explicitement par chaque skill via `_shared/run-lifecycle-script.sh` — scripts shell user, **pas** des hooks Claude Code natifs (qui eux opèrent au niveau session/tool: `SessionStart`, `PreToolUse`, etc.).
 

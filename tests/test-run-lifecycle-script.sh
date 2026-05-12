@@ -189,10 +189,10 @@ echo "[14] all hooks accepted"
 TMP=$(mktemp -d)
 mk_project "$TMP" "" ""
 all_ok=1
-for h in pre_define post_define pre_ticket post_ticket pre_wireframe post_wireframe pre_develop post_develop pre_qa post_qa; do
+for h in pre_define post_define pre_ticket post_ticket pre_wireframe post_wireframe pre_design post_design pre_develop post_develop pre_qa post_qa; do
   bash "$SCRIPT" --hook="$h" --project-root="$TMP" >/dev/null 2>&1 || { all_ok=0; break; }
 done
-[ $all_ok -eq 1 ] && ok "14.1 all 10 hooks accepted" || ko "14.1"
+[ $all_ok -eq 1 ] && ok "14.1 all 12 hooks accepted" || ko "14.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 unset TMP
 

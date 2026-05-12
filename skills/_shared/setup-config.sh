@@ -34,6 +34,7 @@ REPO_URL=""
 TICKETS_PLATFORM=""
 DOCS_PLATFORM=""
 WIRE_PLATFORM=""
+DESIGN_PLATFORM=""
 LANG_OVERRIDE=""
 
 usage() {
@@ -54,7 +55,8 @@ Options:
   --repository-url=URL
   --tickets-platform=github|gitlab|jira
   --docs-platform=affine|notion
-  --wireframes-platform=frame0
+  --wireframes-platform=frame0|penpot|figma
+  --design-platform=penpot|figma  (optionnel — active skill /design)
   --lang=fr|en
   -h, --help               Show this help
 
@@ -76,6 +78,7 @@ while [ $# -gt 0 ]; do
     --tickets-platform=*)        TICKETS_PLATFORM="${1#--tickets-platform=}" ;;
     --docs-platform=*)           DOCS_PLATFORM="${1#--docs-platform=}" ;;
     --wireframes-platform=*)     WIRE_PLATFORM="${1#--wireframes-platform=}" ;;
+    --design-platform=*)         DESIGN_PLATFORM="${1#--design-platform=}" ;;
     --lang=*)                    LANG_OVERRIDE="${1#--lang=}" ;;
     -h|--help)                   usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
@@ -217,6 +220,7 @@ OVERRIDES=$(jq -nc \
   --arg tp "$TICKETS_PLATFORM" \
   --arg dp "$DOCS_PLATFORM" \
   --arg wp "$WIRE_PLATFORM" \
+  --arg dsp "$DESIGN_PLATFORM" \
   --arg lg "$LANG_OVERRIDE" '
   {}
   | if $rp != "" then .repository      = (.repository // {}      | .platform = $rp) else . end
@@ -224,6 +228,7 @@ OVERRIDES=$(jq -nc \
   | if $tp != "" then .tickets         = (.tickets // {}         | .platform = $tp) else . end
   | if $dp != "" then .documentation   = (.documentation // {}   | .platform = $dp) else . end
   | if $wp != "" then .wireframes      = (.wireframes // {}      | .platform = $wp) else . end
+  | if $dsp != "" then .design         = (.design // {}          | .platform = $dsp) else . end
   | if $lg != "" then .defaults        = (.defaults // {}        | .lang     = $lg) else . end
 ')
 

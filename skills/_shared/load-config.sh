@@ -96,6 +96,13 @@ DEFAULTS=$(cat <<'JSON'
       "severity_on_mismatch": "major"
     }
   },
+  "wireframes": {
+    "platform": "frame0",
+    "export_format": "png",
+    "export_scale": 2,
+    "naming_pattern": "{feature_id}-{screen_name}",
+    "frame0": { "api_port": 58320 }
+  },
   "lifecycle_scripts": {},
   "templates": {
     "tickets": {
@@ -215,6 +222,35 @@ RESOLVED=$(echo "$MERGED" | jq '
       | (if (.documentation | has("auto_update_on_qa_success")) | not then
         .documentation.auto_update_on_qa_success = true
       else . end)
+    else . end)
+  # wireframes.figma.token_env default (v0.5)
+  | (if (.wireframes // null) != null and (.wireframes.figma // null) != null then
+      (if (.wireframes.figma | has("token_env")) | not then
+        .wireframes.figma.token_env = "FIGMA_ACCESS_TOKEN"
+      else . end)
+    else . end)
+  # design defaults — résolus seulement si bloc design présent (skill opt-in)
+  | (if (.design // null) != null then
+      (if (.design | has("export_format")) | not then .design.export_format = "png" else . end)
+      | (if (.design | has("naming_pattern")) | not then .design.naming_pattern = "{feature_id}-{screen_name}-design" else . end)
+      | .design.mode_defaults = (
+          (.design.mode_defaults // {})
+          | (if has("mockup_canvas") | not then .mockup_canvas = "mobile-portrait" else . end)
+          | (if has("design_system_source") | not then .design_system_source = "auto" else . end)
+        )
+      | (if (.design.platform // "") == "penpot" and (.design.penpot // null) != null then
+          .design.penpot = (
+            .design.penpot
+            | (if has("design_system_page") | not then .design_system_page = "Components" else . end)
+          )
+        else . end)
+      | (if (.design.platform // "") == "figma" and (.design.figma // null) != null then
+          .design.figma = (
+            .design.figma
+            | (if has("token_env") | not then .token_env = "FIGMA_ACCESS_TOKEN" else . end)
+            | (if has("bridge_transport") | not then .bridge_transport = "official" else . end)
+          )
+        else . end)
     else . end)
 ')
 

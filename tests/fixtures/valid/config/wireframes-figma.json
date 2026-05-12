@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "repository": { "platform": "github" },
+  "tickets": { "platform": "inherit" },
+  "documentation": { "platform": "affine" },
+  "wireframes": {
+    "platform": "figma",
+    "export_format": "png",
+    "naming_pattern": "{feature_id}-{screen_name}",
+    "figma": {
+      "file_key": "abc123XYZ",
+      "file_name": "Project Wireframes",
+      "token_env": "FIGMA_ACCESS_TOKEN"
+    }
+  }
+}

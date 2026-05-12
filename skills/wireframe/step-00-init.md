@@ -9,9 +9,11 @@ description: Parse args, resolve feature_id, load tickets.json + config, resolve
 Bootstrap a `/wireframe` run for a single feature.
 
 The skill supports multiple wireframe MCP platforms. Step-00 resolves which
-one (`frame0` | `penpot`), runs the platform-specific preflight, and
-persists `wf_platform` + `$helper` to skill state so every later step is
-platform-agnostic.
+one (`frame0` | `penpot` | `figma`), runs the platform-specific preflight, and
+persists `wf_platform` + `$helper` + resolved platform config (api_port,
+file_id, file_key, …) to skill state so every later step is platform-agnostic.
+Helpers are context-agnostic since v0.5 — step-00 reads the nested config
+once and downstream steps pass values explicitly.
 
 ## Tasks
 
@@ -37,6 +39,26 @@ platform-agnostic.
    }
    bash skills/_shared/load-config.sh --project-root="$PWD" > /tmp/cfg.json
    wf_platform=$(jq -r '.wireframes.platform // "none"' /tmp/cfg.json)
+
+   # Resolve platform-specific nested values once — helpers no longer read config.
+   case "$wf_platform" in
+     frame0)
+       api_port=$(jq -r '.wireframes.frame0.api_port // 58320' /tmp/cfg.json)
+       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       ;;
+     penpot)
+       penpot_file_id=$(jq -r '.wireframes.penpot.file_id // ""' /tmp/cfg.json)
+       penpot_file_name=$(jq -r '.wireframes.penpot.file_name // ""' /tmp/cfg.json)
+       penpot_export_dir=$(jq -r '.wireframes.penpot.export_dir // ""' /tmp/cfg.json)
+       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       ;;
+     figma)
+       figma_file_key=$(jq -r '.wireframes.figma.file_key // ""' /tmp/cfg.json)
+       figma_file_name=$(jq -r '.wireframes.figma.file_name // ""' /tmp/cfg.json)
+       figma_token_env=$(jq -r '.wireframes.figma.token_env // "FIGMA_TOKEN"' /tmp/cfg.json)
+       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       ;;
+   esac
    ```
 
    Platform → helper resolution:
@@ -44,8 +66,9 @@ platform-agnostic.
    | `wf_platform` | `helper` (set for downstream steps)               | Pre-flight section |
    |---------------|---------------------------------------------------|--------------------|
    | `none`        | n/a — log skip, exit cleanly with progress `skip` | n/a                |
-   | `frame0`      | `skills/_shared/frame0-helper.sh`                 | §5.a                |
-   | `penpot`      | `skills/_shared/penpot-helper.sh`                 | §5.b                |
+   | `frame0`      | `skills/_shared/frame0-helper.sh`                 | §5.a               |
+   | `penpot`      | `skills/_shared/penpot-helper.sh`                 | §5.b               |
+   | `figma`       | `skills/_shared/figma-helper.sh`                  | §5.c               |
 
 5. **Pre-flight MCP** (common to all platforms):
    ```bash
@@ -57,8 +80,9 @@ platform-agnostic.
 ### 5.a — Pre-flight (frame0 only)
 
 Frame0 desktop must be running and its local HTTP API reachable. The
-`export-png` action calls `http://localhost:<frame0_api_port>/execute_command`
-(default port `58320`, overridable via `wireframes.frame0_api_port` config).
+`export-png` action calls `http://localhost:<api_port>/execute_command`
+(default `58320`, configurable via `wireframes.frame0.api_port`). The
+resolved value is in shell var `$api_port` (set in step 4).
 
 No further preflight: Frame0's MCP server runs as a child process and the
 "current file" is implicit (Frame0 desktop has one active document).
@@ -70,30 +94,78 @@ whatever the user has open in the Penpot browser tab where the MCP plugin
 is loaded and connected. Verify the binding before any write:
 
 ```bash
-bash "$helper" --action=get-current-file --project-root="$PWD"
+bash "$helper" --action=get-current-file
 # exit 10 → dispatcher invokes execute_code, receives {id, name}.
 # If MCP server replies "No plugin connected" → halt with the message:
 #   "Open the target file in Penpot, load the MCP plugin, click
 #    'Connect to MCP server'. Re-run /wireframe."
 ```
 
-Then, if `config.wireframes.penpot_file_id` is set:
-- Compare returned `id` to the configured value.
+Then, if `$penpot_file_id` (resolved from `wireframes.penpot.file_id`) is set:
+- Compare returned `id` to `$penpot_file_id`.
 - **Mismatch** → halt with:
   ```
   ERROR: Wrong Penpot file open in browser tab.
-    expected: <penpot_file_name> (<penpot_file_id>)
-    got:      <current name>     (<current id>)
+    expected: $penpot_file_name ($penpot_file_id)
+    got:      <current name>    (<current id>)
   Navigate to the correct file in Penpot, then re-run /wireframe.
   ```
 - **Match** → continue.
 
-If no `penpot_file_id` in config: show `AskUserQuestion` "Use this Penpot
+If `$penpot_file_id` empty: show `AskUserQuestion` "Use this Penpot
 file: <name> (<id>)?" with options Yes / No / Save to config. "Save to
-config" writes the id+name back to `snapship.config.json`.
+config" writes the id+name to `wireframes.penpot.{file_id,file_name}`.
 
-6. **Persist platform state**: write `wf_platform` + resolved `$helper` path
-   to the skill state file so step-02 reads them without re-resolving config.
+### 5.c — Pre-flight (figma only)
+
+Figma Desktop must be running with the **Desktop Bridge** plugin loaded and
+connected (WebSocket ports 9223–9232 auto-discovered by `figma-console-mcp`).
+The MCP server itself is registered globally and reaches Figma through that
+bridge plugin.
+
+Verify the connection by calling `get-current-file` — the JS executed via
+`figma_execute` returns `{id: figma.fileKey, name: figma.root.name}` from
+whatever file is open in Figma Desktop:
+
+```bash
+bash "$helper" --action=get-current-file --file-key="$figma_file_key"
+# exit 10 → dispatcher invokes figma_execute; on connection failure surface
+# the MCP error verbatim plus this hint:
+#   "Open Figma Desktop, install/enable the 'Desktop Bridge' plugin
+#    (Plugins → Browse → 'Desktop Bridge'), open the target file, then
+#    re-run /wireframe."
+```
+
+Then, if `$figma_file_key` (from `wireframes.figma.file_key`) is set:
+- Compare returned `id` to `$figma_file_key`.
+- **Mismatch** → halt with:
+  ```
+  ERROR: Wrong Figma file open in Desktop.
+    expected: $figma_file_name ($figma_file_key)
+    got:      <current name>   (<current id>)
+  Open the correct file in Figma Desktop, then re-run /wireframe.
+  ```
+- **Match** → continue.
+
+If `$figma_file_key` empty: `AskUserQuestion` "Use this Figma file: <name>
+(<id>)?" — Yes / No / Save to config. "Save to config" writes
+`wireframes.figma.{file_key,file_name}`.
+
+Also verify the token env var (default `FIGMA_TOKEN`, override
+`wireframes.figma.token_env`) is set — `figma-console-mcp` uses it for any
+REST-API fallback paths:
+```bash
+if [ -z "${!figma_token_env:-}" ]; then
+  echo "ERROR: env var \$$figma_token_env not set (Figma access token required)." >&2
+  exit 1
+fi
+```
+
+6. **Persist platform state**: write `wf_platform`, resolved `$helper` path,
+   and all resolved nested config values (`api_port`, `penpot_file_id`,
+   `figma_file_key`, `export_format`, etc.) to the skill state file so step-02
+   reads them without re-resolving config and passes them explicitly to the
+   context-agnostic helpers.
 
 7. **Validate inputs**:
    - `tickets.json` exists for the feature (run `/ticket` first if not).
@@ -117,7 +189,10 @@ config" writes the id+name back to `snapship.config.json`.
 - `tickets.json` exists.
 - `wf_platform` resolved (or `none` → skip).
 - MCP for resolved platform reachable.
-- Platform-specific binding verified (file id for penpot; nothing extra for frame0).
+- Platform-specific binding verified:
+  - frame0: HTTP API reachable on `$api_port`.
+  - penpot: plugin connected + file id match (or AskUserQuestion).
+  - figma: Desktop Bridge plugin connected + file key match (or AskUserQuestion) + token env set.
 
 ## Next step
 

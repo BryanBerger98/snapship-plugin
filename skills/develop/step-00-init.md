@@ -58,7 +58,28 @@ feature (session/daemon loop).
      and `agents/snap-developer.md` exist (verified once via the `Task` tool dispatch
      in step-03a; here we only confirm the files are present).
 
-6. **Append progress**:
+6. **Design handoff hint**. After feature is resolved, scan
+   `tickets.json` for any ticket carrying `design_url` (or
+   `wireframe_url`). If at least one is present, surface a one-liner:
+
+   ```bash
+   handoff=$(jq -r '
+     [.tickets[] | select((.design_url // "") != "" or (.wireframe_url // "") != "")
+                 | {id:(.platform_id // .local_id),
+                    title,
+                    url:(.design_url // .wireframe_url),
+                    kind:(if .design_url != null and .design_url != "" then "design" else "wireframe" end)}]
+     | if length > 0 then
+         "Design handoff: " + (map("[\(.kind)] \(.id) \(.title) → \(.url)") | join("; "))
+       else empty end
+   ' "$tickets_file" 2>/dev/null || true)
+   [ -n "$handoff" ] && echo "$handoff"
+   ```
+
+   No behaviour change — pure informational surface so the developer
+   agent knows visuals exist before writing code.
+
+7. **Append progress**:
 
    ```bash
    bash skills/_shared/update-progress.sh \

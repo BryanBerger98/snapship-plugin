@@ -34,7 +34,7 @@ FEATURE_ID=""
 CONTINUE="false"
 EMIT_JSON="false"
 
-VALID_HOOKS=(pre_define post_define pre_ticket post_ticket pre_wireframe post_wireframe pre_develop post_develop pre_qa post_qa)
+VALID_HOOKS=(pre_define post_define pre_ticket post_ticket pre_wireframe post_wireframe pre_design post_design pre_develop post_develop pre_qa post_qa)
 
 usage() {
   cat <<EOF

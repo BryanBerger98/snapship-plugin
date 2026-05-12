@@ -58,7 +58,45 @@ overall = max(technical.severity, functional.severity, security.severity)
 **No fix loop here.** Retrigger is a verification pass, not a second QA cycle.
 If it fails, the ticket is blocked and the user decides next move.
 
-### D. Persist
+### D. Design parity check (opt-in)
+
+Runs when `qa.design_check.enabled=true` AND the ticket carries
+`design_url` (or `design_screen` + on-disk asset). Lightweight gate —
+asset must exist on disk; richer visual diff is a follow-up.
+
+```bash
+dc_enabled=$(jq -r '.qa.design_check.enabled // false' /tmp/cfg.json)
+dc_mode=$(jq -r '.qa.design_check.mode // "asset-presence"' /tmp/cfg.json)
+dc_sev=$(jq -r '.qa.design_check.severity_on_mismatch // "minor"' /tmp/cfg.json)
+
+if [ "$dc_enabled" = "true" ]; then
+  asset=$(jq -r --arg lid "$lid" \
+    '.tickets[] | select(.local_id==$lid)
+     | (.design_screen // "")' "$tickets_file")
+  if [ -n "$asset" ]; then
+    design_dir=".claude/product/features/${feature_id}/design"
+    case "$dc_mode" in
+      asset-presence)
+        if ! find "$design_dir" -maxdepth 1 -name "${asset}*" -print -quit 2>/dev/null | grep -q .; then
+          # Promote overall severity if asset missing.
+          overall=$(printf '%s\n%s\n' "$overall" "$dc_sev" | \
+            awk 'BEGIN{r={"none":0,"info":1,"minor":2,"major":3,"critical":4}}
+                 {if(!seen)s=$0;else{if(r[$0]>r[s])s=$0}seen=1}END{print s}')
+          design_check_fail="asset missing for screen '$asset' in $design_dir"
+        fi
+        ;;
+      playwright)
+        # Reserved — visual diff not implemented yet.
+        :
+        ;;
+    esac
+  fi
+fi
+```
+
+If `design_check_fail` set, surface it in the ticket's blocked feedback.
+
+### E. Persist
 
 ```bash
 jq --arg lid "$lid" --arg sev "$overall" --argjson v "$verdicts_json" \

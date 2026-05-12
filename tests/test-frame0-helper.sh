@@ -120,33 +120,18 @@ rc=$?
 [ "$(echo "$out" | jq -r '.descriptor.params.parent_id')" = "root" ]        && ok "14.5 parent"   || ko "14.5"
 
 echo ""
-echo "[15] export-page defaults from config"
-TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
-{
-  "$schema": "./skills/_shared/schemas/config.schema.json",
-  "version": "1.0",
-  "wireframes": { "platform":"frame0", "export_format":"svg", "export_scale":3 }
-}
-JSON
-out=$(bash "$SCRIPT" --action=export-page --page-id=p --output-path=/tmp/o --project-root="$TMP")
-[ "$(echo "$out" | jq -r '.descriptor.params.format')" = "svg" ]            && ok "15.1 fmt"   || ko "15.1"
-[ "$(echo "$out" | jq -r '.descriptor.params.scale')" = "3" ]               && ok "15.2 scale" || ko "15.2"
-[ "$(echo "$out" | jq -r '.descriptor.params.scale | type')" = "number" ]   && ok "15.3 numeric" || ko "15.3"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+echo "[15] export-page internal defaults (helper context-agnostic depuis v0.5)"
+out=$(bash "$SCRIPT" --action=export-page --page-id=p --output-path=/tmp/o)
+[ "$(echo "$out" | jq -r '.descriptor.params.format')" = "png" ]            && ok "15.1 fmt defaults png"   || ko "15.1"
+[ "$(echo "$out" | jq -r '.descriptor.params.scale')" = "2" ]               && ok "15.2 scale defaults 2"   || ko "15.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.scale | type')" = "number" ]   && ok "15.3 numeric"            || ko "15.3"
 
 echo ""
-echo "[16] flag overrides config"
-TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
-{ "$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","export_format":"svg","export_scale":3 } }
-JSON
+echo "[16] explicit --format/--scale flags"
 out=$(bash "$SCRIPT" --action=export-page --page-id=p --output-path=/tmp/o \
-  --format=png --scale=1 --project-root="$TMP")
-[ "$(echo "$out" | jq -r '.descriptor.params.format')" = "png" ] && ok "16.1 fmt override" || ko "16.1"
-[ "$(echo "$out" | jq -r '.descriptor.params.scale')"  = "1"   ] && ok "16.2 scale override" || ko "16.2"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+  --format=svg --scale=3)
+[ "$(echo "$out" | jq -r '.descriptor.params.format')" = "svg" ] && ok "16.1 fmt explicit" || ko "16.1"
+[ "$(echo "$out" | jq -r '.descriptor.params.scale')"  = "3"   ] && ok "16.2 scale explicit" || ko "16.2"
 
 echo ""
 echo "[17] list-pages limit numeric"
@@ -406,16 +391,23 @@ rc=$?
 echo "$out" | grep -q "HTTP call" && ok "42.2 surfaces HTTP error" || ko "42.2"
 
 echo ""
-echo "[43] export-png reads frame0_api_port from config"
+echo "[43] export-png --api-port flag (helper context-agnostic — pas de lecture config)"
 TMP=$(mktemp -d)
+out=$(bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" \
+        --api-port=59999 --dry-run)
+[ "$(echo "$out" | jq -r '.result.api_base')" = "http://localhost:59999" ] \
+  && ok "43.1 port from flag" || ko "43.1"
+
+echo ""
+echo "[43b] export-png defaults to port 58320 sans --api-port (config ignorée)"
 cat > "$TMP/snapship.config.json" <<'JSON'
 { "$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
-  "wireframes":{ "platform":"frame0","frame0_api_port":59999 } }
+  "wireframes":{ "platform":"frame0","frame0":{"api_port":59999} } }
 JSON
 out=$(bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" \
         --project-root="$TMP" --dry-run)
-[ "$(echo "$out" | jq -r '.result.api_base')" = "http://localhost:59999" ] \
-  && ok "43.1 port from config" || ko "43.1"
+[ "$(echo "$out" | jq -r '.result.api_base')" = "http://localhost:58320" ] \
+  && ok "43b.1 helper ignore config, default 58320" || ko "43b.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 echo ""
