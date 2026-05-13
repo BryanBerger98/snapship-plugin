@@ -44,7 +44,7 @@ share this step.
      figma)
        ds_file_key=$(jq -r '.design.figma.file_key // ""' /tmp/cfg.json)
        ds_file_name=$(jq -r '.design.figma.file_name // ""' /tmp/cfg.json)
-       ds_token_env=$(jq -r '.design.figma.token_env // "FIGMA_TOKEN"' /tmp/cfg.json)
+       ds_token_env=$(jq -r '.design.figma.token_env // "FIGMA_ACCESS_TOKEN"' /tmp/cfg.json)
        ds_kb_path=$(jq -r '.design.figma.bridge_kb_path // ".claude/product/design-system/kb"' /tmp/cfg.json)
        ds_transport=$(jq -r '.design.figma.bridge_transport // "official"' /tmp/cfg.json)
        export_format=$(jq -r '.design.export_format // "png"' /tmp/cfg.json)
@@ -111,13 +111,22 @@ returned `id` to `$ds_file_id`. Mismatch → halt with binding error.
 
 ### 6.b — Pre-flight (figma only)
 
-Figma Desktop + Desktop Bridge plugin connected. Token env required:
+Figma Desktop + Desktop Bridge plugin connected. Token chargé depuis
+`.env.snapship` racine projet (jamais depuis shell env directement — secrets
+isolés per-project, gitignored). Clé par défaut `FIGMA_ACCESS_TOKEN`, override
+via `design.figma.token_env`.
 
 ```bash
-if [ -z "${!ds_token_env:-}" ]; then
-  echo "ERROR: env var \$$ds_token_env not set (Figma access token required)." >&2
+ds_token=$(bash skills/_shared/load-env.sh \
+  --project-root="$PWD" --key="$ds_token_env" 2>/dev/null || true)
+if [ -z "$ds_token" ]; then
+  echo "ERROR: $ds_token_env absent de $PWD/.env.snapship." >&2
+  echo "Créer le fichier avec: $ds_token_env=figd_<votre-pat-figma>" >&2
+  echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1
 fi
+# Export pour figma-console-mcp + bridge-ds CLI (lus depuis env par enfants).
+export "$ds_token_env=$ds_token"
 
 bash skills/_shared/figma-helper.sh --action=get-current-file --file-key="$ds_file_key"
 # exit 10 → dispatcher invokes figma_execute → {id: figma.fileKey, name: figma.root.name}

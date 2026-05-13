@@ -1,3 +1,7 @@
+# Secrets per-projet (Figma PAT, etc.) — lu par skills/_shared/load-env.sh
+.env.snapship
+.env.snapship.*
+
 # Telemetry (NDJSON append-only, gitignored)
 skills/_shared/telemetry.log
 skills/_shared/telemetry.log.*

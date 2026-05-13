@@ -295,6 +295,35 @@ MCP/CLI gèrent indépendamment:
 // Pas d'auto-link (platforms différentes) — design.figma demande binding séparé
 ```
 
+## Secrets : `.env.snapship`
+
+Les secrets (Figma PAT, autres tokens) **ne vivent pas dans `snapship.config.json`**
+(commit-friendly). Ils sont lus depuis `.env.snapship` à la racine du projet
+(gitignored par défaut).
+
+**Format :** `KEY=VALUE` par ligne. Commentaires `#`. Quotes `"…"` / `'…'`
+strippées automatiquement. Pas de substitution shell.
+
+```bash
+# .env.snapship — gitignored, secrets per-projet
+FIGMA_ACCESS_TOKEN=figd_abc123def456
+# OPENAI_API_KEY="sk-…"
+```
+
+**Résolution :** skills `/design` (figma) et `/wireframe` (figma) appellent
+`skills/_shared/load-env.sh --project-root="$PWD" --key=<NAME>` où `<NAME>`
+provient de `design.figma.token_env` / `wireframes.figma.token_env` (défaut
+`FIGMA_ACCESS_TOKEN`). Valeur exportée dans l'env pour
+`figma-console-mcp` + `bridge-ds` CLI.
+
+**Erreurs courantes :**
+- Fichier absent → skill halt avec instruction création.
+- Clé absente → skill halt avec instruction ajout.
+- Token Figma invalide → MCP server retourne 401 (cas distinct).
+
+**Générer un Figma PAT :** Figma → Settings → Personal access tokens → Generate
+new token. Scope: lecture file + (si bridge mode `extract-ds`) édition file.
+
 ## Lifecycle scripts custom (≠ hooks Claude Code)
 
 `pre_<skill>` exécuté avant step-00, `post_<skill>` après dernier step. Scripts supportés: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.

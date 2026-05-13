@@ -10,7 +10,7 @@
 #
 # Helper context-agnostic depuis v0.5: ne lit aucune configuration projet. Les
 # params (--kb-path, --transport, --token-env) sont passés explicitement par le
-# skill. Défauts internes: transport=official, token-env=FIGMA_TOKEN.
+# skill. Défauts internes: transport=official, token-env=FIGMA_ACCESS_TOKEN.
 #
 # Pour tests: env var SNAP_BRIDGE_DS_BIN override le binaire bridge-ds (stub
 # possible). Si non défini, helper cherche `bridge-ds` sur PATH.
@@ -26,7 +26,7 @@
 #   mockup-compile --kb-path=DIR --scene-graph-file=YAML (--transport=...) (--output-js=PATH)
 #                  → bridge-ds compile <yaml> --kb=<kb>. Compile mockup CSpec.
 #                    Routing identique ds-update.
-#   extract-ds     --kb-path=DIR --file-key=KEY (--token-env=FIGMA_TOKEN)
+#   extract-ds     --kb-path=DIR --file-key=KEY (--token-env=FIGMA_ACCESS_TOKEN)
 #                  → bridge-ds extract --kb=DIR --file-key=KEY. Pull DS Figma → KB.
 #                    Requiert variable env nommée par --token-env définie.
 #   export-shape   --node-id=ID --output-path=PATH (--format png|svg|jpg|pdf, --scale 1..4)
@@ -74,7 +74,7 @@ Options:
   --kb-path=DIR              Répertoire base de connaissance Bridge
   --scene-graph-file=PATH    Fichier YAML CSpec mockup (mockup-compile)
   --transport=MODE           official|console (défaut interne: official)
-  --token-env=NAME           Nom var env contenant token Figma (défaut: FIGMA_TOKEN)
+  --token-env=NAME           Nom var env contenant token Figma (défaut: FIGMA_ACCESS_TOKEN)
   --output-js=PATH           Fichier .js (transport console) ; défaut <kb-path>/build/out.js
   --node-id=ID               Figma node ID (export-shape)
   --output-path=PATH         Chemin asset exporté (export-shape)
@@ -116,7 +116,7 @@ esac
 
 # Defaults internes — pas de lecture config.
 [ -z "$TRANSPORT"  ] && TRANSPORT="official"
-[ -z "$TOKEN_ENV"  ] && TOKEN_ENV="FIGMA_TOKEN"
+[ -z "$TOKEN_ENV"  ] && TOKEN_ENV="FIGMA_ACCESS_TOKEN"
 [ -z "$EXPORT_FORMAT" ] && EXPORT_FORMAT="png"
 [ -z "$EXPORT_SCALE"  ] && EXPORT_SCALE="2"
 

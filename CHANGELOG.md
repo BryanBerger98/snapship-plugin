@@ -7,6 +7,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed — secrets isolés via `.env.snapship`
+
+- **Token Figma chargé depuis `.env.snapship`** (racine projet, gitignored)
+  au lieu de la shell env directement. Skills `/design` figma + `/wireframe`
+  figma appellent `skills/_shared/load-env.sh --project-root="$PWD"
+  --key=<NAME>` puis exportent la valeur pour `figma-console-mcp` +
+  `bridge-ds`. Clé par défaut `FIGMA_ACCESS_TOKEN` (override toujours via
+  `design.figma.token_env` / `wireframes.figma.token_env`).
+- **Nouveau helper `skills/_shared/load-env.sh`** — parser KEY=VALUE simple
+  (commentaires `#`, quotes strippées, pas de substitution shell).
+  Mode `--key=NAME` retourne valeur ou exit 1. Mode sans `--key` dump tout
+  (utilisable avec `eval`). Tests : 12/12 pass.
+- **`.gitignore`** — ajoute `.env.snapship` + `.env.snapship.*` (secrets
+  per-projet ne doivent jamais être commit).
+- **`figma-bridge-helper.sh`** — défaut `--token-env` aligné sur
+  `FIGMA_ACCESS_TOKEN` (était `FIGMA_TOKEN` legacy).
+- **Docs** — `docs/config.md` nouvelle section "Secrets : `.env.snapship`"
+  (format + résolution + erreurs courantes). `docs/skills/design.md` +
+  `docs/skills/wireframe.md` mis à jour pour pointer sur le nouveau flux.
+- **Raison** : config commit-friendly (`snapship.config.json`) ne doit pas
+  contenir de secrets. Pattern habituel `.env.<nom>` pour secrets per-projet
+  isolés (Vercel, Next.js, etc.).
+
 ## [0.6.0] — 2026-05-13
 
 ### Added — `/design --mode=ds-extract` (LLM-driven React → YAML CSpec one-shot)

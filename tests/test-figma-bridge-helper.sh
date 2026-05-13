@@ -17,7 +17,7 @@ TMP=$(mktemp -d)
 cleanup() { [ -d "$TMP" ] && { trash "$TMP" 2>/dev/null || rm -rf "$TMP"; }; }
 trap cleanup EXIT
 
-unset SNAP_DRY_RUN SNAP_PROJECT_ROOT FIGMA_TOKEN 2>/dev/null || true
+unset SNAP_DRY_RUN SNAP_PROJECT_ROOT FIGMA_ACCESS_TOKEN FIGMA_TOKEN 2>/dev/null || true
 
 # --- bridge-ds stub binary ----------------------------------------------
 # Simule les sorties principales de bridge-ds pour les tests.
@@ -239,17 +239,17 @@ bash "$SCRIPT" --action=mockup-compile --kb-path="$TMP/kb11" --scene-graph-file=
 echo ""
 echo "[14] extract-ds requires --token-env var set"
 mkdir -p "$TMP/kb14"
-# FIGMA_TOKEN unset (default)
+# FIGMA_ACCESS_TOKEN unset (default)
 bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC >/dev/null 2>&1
 [ $? -eq 1 ] && ok "14.1 missing token env exit 1" || ko "14.1"
 
-# Set FIGMA_TOKEN → success
-OUT=$(FIGMA_TOKEN="figd_test" bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC 2>&1)
+# Set FIGMA_ACCESS_TOKEN → success
+OUT=$(FIGMA_ACCESS_TOKEN="figd_test" bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC 2>&1)
 RC=$?
 [ "$RC" -eq 0 ] && ok "14.2 exit 0 when token set" || ko "14.2 rc=$RC"
 echo "$OUT" | jq -e '.ok == true' >/dev/null && ok "14.3 ok=true" || ko "14.3"
 echo "$OUT" | jq -e '.result.file_key == "ABC"' >/dev/null && ok "14.4 file_key" || ko "14.4"
-echo "$OUT" | jq -e '.result.token_env == "FIGMA_TOKEN"' >/dev/null && ok "14.5 token_env" || ko "14.5"
+echo "$OUT" | jq -e '.result.token_env == "FIGMA_ACCESS_TOKEN"' >/dev/null && ok "14.5 token_env" || ko "14.5"
 
 # Custom --token-env
 OUT=$(MY_FIGMA_TOKEN="x" bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC --token-env=MY_FIGMA_TOKEN 2>&1)
@@ -259,7 +259,7 @@ echo "$OUT" | jq -e '.result.token_env == "MY_FIGMA_TOKEN"' >/dev/null && ok "14
 
 echo ""
 echo "[15] extract-ds bridge-ds failure → exit 1"
-SNAP_BRIDGE_STUB_FAIL_EXTRACT=1 FIGMA_TOKEN=x bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC >/dev/null 2>&1
+SNAP_BRIDGE_STUB_FAIL_EXTRACT=1 FIGMA_ACCESS_TOKEN=x bash "$SCRIPT" --action=extract-ds --kb-path="$TMP/kb14" --file-key=ABC >/dev/null 2>&1
 [ $? -eq 1 ] && ok "15.1 exit 1" || ko "15.1"
 
 # --- [16] compile failure handling --------------------------------------

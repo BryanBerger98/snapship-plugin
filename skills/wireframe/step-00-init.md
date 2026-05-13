@@ -55,7 +55,7 @@ once and downstream steps pass values explicitly.
      figma)
        figma_file_key=$(jq -r '.wireframes.figma.file_key // ""' /tmp/cfg.json)
        figma_file_name=$(jq -r '.wireframes.figma.file_name // ""' /tmp/cfg.json)
-       figma_token_env=$(jq -r '.wireframes.figma.token_env // "FIGMA_TOKEN"' /tmp/cfg.json)
+       figma_token_env=$(jq -r '.wireframes.figma.token_env // "FIGMA_ACCESS_TOKEN"' /tmp/cfg.json)
        export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
        ;;
    esac
@@ -151,14 +151,20 @@ If `$figma_file_key` empty: `AskUserQuestion` "Use this Figma file: <name>
 (<id>)?" — Yes / No / Save to config. "Save to config" writes
 `wireframes.figma.{file_key,file_name}`.
 
-Also verify the token env var (default `FIGMA_TOKEN`, override
-`wireframes.figma.token_env`) is set — `figma-console-mcp` uses it for any
-REST-API fallback paths:
+Also load the token from `.env.snapship` at project root (clé par défaut
+`FIGMA_ACCESS_TOKEN`, override via `wireframes.figma.token_env`). Le fichier
+`.env.snapship` est gitignored — secrets isolés per-project. `figma-console-mcp`
+lit la var env pour ses fallbacks REST :
 ```bash
-if [ -z "${!figma_token_env:-}" ]; then
-  echo "ERROR: env var \$$figma_token_env not set (Figma access token required)." >&2
+figma_token=$(bash skills/_shared/load-env.sh \
+  --project-root="$PWD" --key="$figma_token_env" 2>/dev/null || true)
+if [ -z "$figma_token" ]; then
+  echo "ERROR: $figma_token_env absent de $PWD/.env.snapship." >&2
+  echo "Créer le fichier avec: $figma_token_env=figd_<votre-pat-figma>" >&2
+  echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1
 fi
+export "$figma_token_env=$figma_token"
 ```
 
 6. **Persist platform state**: write `wf_platform`, resolved `$helper` path,

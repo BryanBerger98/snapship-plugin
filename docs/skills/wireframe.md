@@ -74,8 +74,11 @@ Une seule MCP utilisée comme primitive universelle :
 2. **Desktop Bridge plugin** installé et actif : Figma → Plugins → Browse →
    "Desktop Bridge" → Open. La plugin maintient le WebSocket que
    `figma-console-mcp` interroge.
-3. **Token Figma** dans `$FIGMA_ACCESS_TOKEN` (ou variable nommée par
-   `wireframes.figma.token_env`). Utilisé par les paths REST de fallback.
+3. **Token Figma** dans `.env.snapship` racine projet (clé
+   `FIGMA_ACCESS_TOKEN` par défaut, override `wireframes.figma.token_env`).
+   Chargé via `skills/_shared/load-env.sh` puis exporté dans l'env pour
+   `figma-console-mcp` (paths REST fallback). Fichier gitignored. Voir
+   [docs/config.md → Secrets](../config.md#secrets--envsnapship).
 4. **File ouvert** : `figma-console-mcp` cible le fichier actuellement
    chargé dans l'onglet Desktop. Step-00 compare `figma.fileKey` avec
    `wireframes.figma.file_key` et halt si mismatch.
