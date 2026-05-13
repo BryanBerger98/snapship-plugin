@@ -46,8 +46,6 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 ACTION=""
 PAGE_ID=""
 PARENT_ID=""
@@ -104,7 +102,7 @@ EOF
 while [ $# -gt 0 ]; do
   case "$1" in
     --action=*)        ACTION="${1#--action=}" ;;
-    --project-root=*)  PROJECT_ROOT="${1#--project-root=}" ;;
+    --project-root=*)  ;; # accepted for caller compat; helper is context-agnostic since v0.5
     --page-id=*)       PAGE_ID="${1#--page-id=}" ;;
     --parent-id=*)     PARENT_ID="${1#--parent-id=}" ;;
     --title=*)         TITLE="${1#--title=}" ;;

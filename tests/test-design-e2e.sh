@@ -15,7 +15,6 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESOLVER="${ROOT}/skills/_shared/design-mode-resolver.sh"
-FIGMA="${ROOT}/skills/_shared/figma-helper.sh"
 BRIDGE="${ROOT}/skills/_shared/figma-bridge-helper.sh"
 PENPOT="${ROOT}/skills/_shared/penpot-helper.sh"
 DOCS="${ROOT}/skills/_shared/docs-adapter.sh"
