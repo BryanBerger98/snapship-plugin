@@ -7,6 +7,127 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-13
+
+### Added — `/design` skill (3 modes : ds-init, ds-update, mockup)
+
+- **Nouveau skill `/design`** — optionnel, parallèle ou séquentiel à
+  `/wireframe`. 6 steps end-to-end (init → ds-bootstrap → source-resolve →
+  mockup → gallery → link). Mode auto-résolu en step-00 :
+  - `ds-init` — bootstrap design system depuis
+    `_shared/templates/design-system-defaults/{atomic,molecular,organism}.yaml`.
+  - `ds-update` — diff specs vs file → patch in place (upsert composants
+    par nom, cache `.design-cache.json` avec `specs_hash`).
+  - `mockup` — par `(screen_id, state)`, frame hi-fi appliquant composants
+    DS, export asset, lien tickets UI.
+- **Plateformes supportées** : `penpot` (helper `penpot-helper.sh` réutilisé,
+  fidélité contrôlée skill) ou `figma` (helper `figma-bridge-helper.sh` via
+  CLI `bridge-ds`). `frame0` exclu (low-fi only).
+- **Auto-link wireframes ↔ design** — si `wireframes.platform == design.platform`
+  ET binding wireframes défini ET `design.{plat}.{file_id|file_key}` null →
+  `AskUserQuestion` step-00 propose de réutiliser le même fichier.
+- **Mode resolver** (`_shared/design-mode-resolver.sh`) — heuristique par
+  signal (DS file binding vide + YAML defaults → `ds-init` ; binding set +
+  diff specs → `ds-update` ; `--feature` ou tickets UI unflagged → `mockup`).
+  Ambiguïté → `AskUserQuestion`.
+- **Préflight** : MCP (`check-mcp-required.sh --skill=design`),
+  Penpot (`get-current-file` vs `design.penpot.file_id`),
+  Figma (token env + `figma.fileKey` vs `design.figma.file_key` +
+  `bridge-ds` joignable).
+- **Templates bundlés** : `_shared/templates/docs-defaults/design-gallery.md`,
+  `_shared/templates/design-system-defaults/{atomic,molecular,organism}.yaml`.
+- **`figma-bridge-helper.sh`** (nouveau) — surface : `ds-init`, `ds-update`,
+  `mockup-compile`, `extract-ds`, `export-shape`. Backend : invocation CLI
+  `bridge-ds compile` (YAML CSpec → JS Plugin API conforme système design) +
+  injection selon transport (`official` = `figma_execute` du
+  `figma-console-mcp` ; `console` = écriture `.js` + collage manuel
+  DevTools). Tests : `tests/test-figma-bridge-helper.sh` (76/76 pass).
+- **Tickets schema** — ajout champs optionnels `design_screen`, `design_url`,
+  `design_mode` (`mockup|reused`) sur `tickets[]`.
+- **Lifecycle hooks** `pre_design` / `post_design` ajoutés à
+  `lifecycle_scripts` enum.
+- **`/develop` step-00** — banner designer-handoff si `tickets[].design_url`
+  présent (non bloquant si absent).
+- **`/qa` step-04** — option `design_check` (opt-in
+  `qa.design_check.enabled`). Mode `asset-presence` (défaut) ou `playwright`
+  (futur).
+- **`/snap:doc-update`** — ingère assets design en plus des wireframes dans
+  bundles journey.
+- **`resume-state.sh --skill=design`** — state per-mode (`ds-init`,
+  `ds-update`, `mockup` resument indépendamment).
+- Tests : nouvelles suites `test-design-e2e.sh` (19/19), 
+  `test-design-mode-resolver.sh` (15/15).
+
+### Added — Figma platform pour `/wireframe`
+
+- **`wireframes.platform`** accepte `"figma"` (en plus de `"frame0"` /
+  `"penpot"`). Helper `figma-helper.sh` expose la même surface que les
+  autres helpers (`create-page`, `get-page`, `update-page`, `delete-page`,
+  `list-pages`, `add-shapes`, `export-png`, `get-current-file`, plus
+  `save-export` pour décoder le base64 inline retourné par
+  `figma_execute`).
+- **Backend** — MCP unique `figma-console-mcp` (southleft, MIT, ~100 tools)
+  via outil `figma_execute` (JS Plugin API brut, retour JSON nœuds créés).
+  Couleurs converties `#hex` → `{r,g,b}` 0–1 côté helper (convention
+  Figma). Exports via `node.exportAsync()` retour base64 inline →
+  `save-export` décode et écrit disque.
+- **Prérequis utilisateur** — Figma Desktop lancé, plugin "Desktop Bridge"
+  installé (canal WebSocket ports 9223–9232), `$FIGMA_ACCESS_TOKEN` (ou
+  variable nommée `wireframes.figma.token_env`), Node.js 18+.
+- **Préflight step-00** — `get-current-file` compare `figma.fileKey` à
+  `wireframes.figma.file_key`. Mismatch → halt clair. Vide → flow
+  AskUserQuestion (Save to config).
+- Tests : `tests/test-figma-helper.sh` (116/116 pass).
+
+### Changed — Config schema nested per-platform (breaking)
+
+- **`wireframes`** : les clés platform-specific deviennent des blocs nested
+  (`wireframes.{frame0,penpot,figma}`). `additionalProperties: false`
+  rejette les anciennes clés plates.
+- **`design`** : nouvelle section parallèle à `wireframes`. Optionnelle,
+  absente = skill `/design` désactivé.
+- **Helpers context-agnostic** — `frame0-helper.sh`, `penpot-helper.sh`,
+  `figma-helper.sh`, `figma-bridge-helper.sh` ne lisent plus la config.
+  Tous les params (`--api-port`, `--file-id`, `--file-key`, `--export-dir`,
+  `--format`, `--kb-path`, `--transport`, `--token-env`) sont passés
+  explicitement skill-side. `step-00` résout les valeurs nested et persiste
+  dans l'état du skill.
+- **`setup-config.sh` wizard** — sections design opt-in.
+- **`load-config.sh`** — defaults injectés sur les blocs nested
+  (`wireframes.figma.token_env`, `design.export_format`,
+  `design.naming_pattern`, `design.mode_defaults.*`, `design.figma.*`,
+  `design.penpot.design_system_page`). Lecture des clés plates v0.4
+  supprimée.
+
+#### Mapping migration v0.4 → v0.5
+
+| v0.4 (plat)                       | v0.5 (nested)                        |
+| --------------------------------- | ------------------------------------ |
+| `wireframes.frame0_api_port`      | `wireframes.frame0.api_port`         |
+| `wireframes.export_source_dir`    | `wireframes.frame0.export_source_dir`|
+| `wireframes.penpot_export_dir`    | `wireframes.penpot.export_dir`       |
+| `wireframes.penpot_file_id`       | `wireframes.penpot.file_id`          |
+| `wireframes.penpot_file_name`     | `wireframes.penpot.file_name`        |
+| —                                 | `wireframes.figma.{file_key,file_name,token_env}` (nouveau) |
+| —                                 | `design.*` (nouvelle section)        |
+| —                                 | `tickets[].design_screen / design_url / design_mode` (nouveau) |
+
+### Added — Migration script v0.4 → v0.5
+
+- **`scripts/migrate-config-v04-to-v05.sh`** (jq one-shot, non-bundlé
+  runtime). Lit `snapship.config.json` v0.4, écrit v0.5 nested. Idempotent
+  (no-op si déjà v0.5). Backup `.bak` créé.
+- Tests : `tests/test-migrate-config-v04-to-v05.sh` (17/17 pass), couvre
+  no-op idempotent, mapping complet, validation post-migration contre
+  schema v0.5.
+
+### Changed — Helpers shared structured metadata
+
+- **`telemetry.sh`** et **`update-progress.sh`** acceptent désormais
+  `--extra=JSON` (objet JSON merge dans l'event/log NDJSON). Permet aux
+  steps de logguer du contexte structuré (mode design, specs_count,
+  linked_tickets, …) sans inflater l'API en arguments.
+
 ### Fixed — `/wireframe` exports a single asset per page (config-driven format)
 
 - **step-02-design.md** : ajout explicite "Exactly one export per page"

@@ -138,6 +138,26 @@
 
 Mode update configurable: `diff` (default — patch sections impactées) ou `rewrite` (regenerate full journey doc). PRD jamais touché par cette skill.
 
+### Config nested per-platform (v0.5 — breaking)
+
+**Issue:** v0.4 mélangeait des clés platform-specific à plat dans `wireframes` (`frame0_api_port`, `penpot_export_dir`, `penpot_file_id`, …). Pattern non-scalable : ajouter Figma aurait poursuivi l'inflation latérale (`figma_file_key`, `figma_token_env`, …), et le schema n'aurait pas pu exprimer le couplage "ce champ n'a de sens que pour platform=X".
+
+**Choix:** nester chaque platform-specific sous `wireframes.{frame0,penpot,figma}` + créer une section parallèle `design.{penpot,figma}`. Bump 0.4 → 0.5.0, pas de shim de compatibilité (plugin pilote, cohérent avec décision v0.2). `additionalProperties: false` au niveau bloc rejette les anciennes clés plates.
+
+**Why:** scalabilité (ajouter une plateforme = un sous-bloc, pas N clés top-level), schema-correctness (`additionalProperties:false` exclut le bruit), parité `/wireframe` ↔ `/design` (mêmes blocs Penpot/Figma).
+
+**How to apply:** migration utilisateur via `scripts/migrate-config-v04-to-v05.sh` (jq one-shot, non bundlé runtime). Mapping ancien → nouveau documenté `docs/config.md` + `CHANGELOG.md` v0.5.0.
+
+### Bridge réservé `/design` Figma (v0.5)
+
+**Issue:** deux usages distincts pour Figma — `/wireframe` (low-fi, équivalent Frame0/Penpot, descripteurs MCP directs) et `/design` (hi-fi, mockups conformes système design). Tenter d'unifier sous Bridge pour les deux aurait imposé la chaîne YAML CSpec → JS compilé au wireframe alors qu'il a juste besoin de `figma_execute` brut.
+
+**Choix:** un seul serveur MCP Figma (`southleft/figma-console-mcp`) partagé entre les deux skills. Bridge CLI (`noemuch/bridge-ds`, MIT v3.0.0) utilisé **uniquement** par `/design` Figma. `/wireframe figma` consomme `figma_execute` direct via `figma-helper.sh`. `/design figma` compile YAML CSpec → JS via Bridge puis injecte via le même `figma_execute` (transport `official`) ou via collage manuel DevTools (transport `console`).
+
+**Why:** Bridge apporte la conformité 26-règles + tokens DS pour les hi-fi, inutile sur low-fi. Un seul MCP évite la duplication de prérequis Desktop Bridge plugin. Bridge en CLI séparé (pas serveur MCP) évite un MCP supplémentaire à booter — le plugin Claude Code installe `bridge-ds` en dépendance Node.js parallèle.
+
+**How to apply:** `wireframes.figma` → helper `figma-helper.sh` + `figma_execute` direct. `design.figma` → helper `figma-bridge-helper.sh` + Bridge compile + transport. Préflight `bridge-ds doctor` côté `/design` step-00.
+
 ### Slug vs titre
 
 **Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `domains.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).

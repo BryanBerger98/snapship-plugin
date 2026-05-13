@@ -1,7 +1,7 @@
 {
   "name": "snap",
-  "version": "0.4.0",
-  "description": "Workflow produit Claude Code: 5 skills enchaînables (define → ticket → wireframe → develop → qa). Adaptatif plateformes tickets (GitHub/GitLab/JIRA), docs (AFFiNE/Notion), wireframes (Frame0).",
+  "version": "0.5.0",
+  "description": "Workflow produit Claude Code: 6 skills enchaînables (define → ticket → wireframe → design → develop → qa). Adaptatif plateformes tickets (GitHub/GitLab/JIRA), docs (AFFiNE/Notion), wireframes (Frame0/Penpot/Figma) et design hi-fi (Penpot/Figma via Bridge).",
   "author": {
     "name": "Bryan Berger",
     "email": "contact@bryanberger.dev"
@@ -14,9 +14,13 @@
     "product-management",
     "tickets",
     "wireframes",
+    "design",
     "code-review",
     "qa",
     "affine",
-    "frame0"
+    "notion",
+    "frame0",
+    "penpot",
+    "figma"
   ]
 }

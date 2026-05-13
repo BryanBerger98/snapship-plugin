@@ -14,8 +14,8 @@
 | 5 | [Templates bundlés](phase-05-templates.md) | livré |
 | 6 | [Skills (build order strict)](phase-06-skills.md) | livré |
 | 7 | [Plugin manifest finalization](phase-07-plugin-manifest.md) | livré |
-| 7.5 | [v0.5 `/design` + Figma + config nested](phase-07.5-v05-design-figma.md) | planifié, **bloquant Phase 8** |
-| 8 | [Dogfooding](phase-08-dogfooding.md) | en attente Phase 7.5 |
+| 7.5 | [v0.5 `/design` + Figma + config nested](phase-07.5-v05-design-figma.md) | livré (2026-05-13) |
+| 8 | [Dogfooding](phase-08-dogfooding.md) | gate ouvert |
 | 9 | [Documentation utilisateur](phase-09-user-docs.md) | à venir |
 | 10 | [Marketplace `bryanberger`](phase-10-marketplace.md) | à venir |
 | 11 | [Install user-side (3 méthodes)](phase-11-install.md) | à venir |

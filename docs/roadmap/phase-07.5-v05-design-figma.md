@@ -1,4 +1,4 @@
-# Phase 7.5 — v0.5 `/design` skill + Figma platform + config nested (planifié, bloquant Phase 8)
+# Phase 7.5 — v0.5 `/design` skill + Figma platform + config nested (livrée — 2026-05-13, gate Phase 8 ouvert)
 
 **Objectif:** ajouter `/design` (skill optionnel parallèle à `/wireframe`, 3 modes : `ds-init`, `ds-update`, `mockup`), ouvrir `/wireframe` à Figma (via figma-mcp), introduire Bridge comme transport `/design` Figma, refactorer la config pour nester les blocs platform-specific (élimine pattern `{platform}_{key}` à plat). **Doit livrer avant Phase 8 — dogfooding consomme l'API v0.5.0.**
 
@@ -25,10 +25,10 @@
 
 ## 7.5.3 Sub-phase 1 — Config schema refactor (breaking)
 
-- [ ] **`wireframes` nested** : `frame0_api_port` → `wireframes.frame0.api_port` ; `penpot_export_dir` / `penpot_file_id` / `penpot_file_name` → `wireframes.penpot.{export_dir,file_id,file_name}` ; `export_source_dir` → `wireframes.frame0.export_source_dir`
-- [ ] **`wireframes.figma`** ajouté : `{file_key, file_name, token_env}`
-- [ ] **`wireframes.platform`** enum élargi : `frame0|penpot|figma`
-- [ ] **Nouvelle section `design`** :
+- [x] **`wireframes` nested** : `frame0_api_port` → `wireframes.frame0.api_port` ; `penpot_export_dir` / `penpot_file_id` / `penpot_file_name` → `wireframes.penpot.{export_dir,file_id,file_name}` ; `export_source_dir` → `wireframes.frame0.export_source_dir`
+- [x] **`wireframes.figma`** ajouté : `{file_key, file_name, token_env}`
+- [x] **`wireframes.platform`** enum élargi : `frame0|penpot|figma`
+- [x] **Nouvelle section `design`** :
 
   ```jsonc
   "design": {
@@ -41,58 +41,58 @@
   }
   ```
 
-- [ ] **`tickets.schema.json`** : ajout champs optionnels `tickets[].{design_screen, design_url, design_mode}` (`mockup|reused`)
-- [ ] **`load-config.sh`** : defaults nested + design ; suppression lecture clés plates
-- [ ] **`setup-config.sh`** : wizard MAJ sections design opt-in
-- [ ] Fixtures tests refresh complet
+- [x] **`tickets.schema.json`** : ajout champs optionnels `tickets[].{design_screen, design_url, design_mode}` (`mockup|reused`)
+- [x] **`load-config.sh`** : defaults nested + design ; suppression lecture clés plates
+- [x] **`setup-config.sh`** : wizard MAJ sections design opt-in
+- [x] Fixtures tests refresh complet
 
 ## 7.5.4 Sub-phase 2 — Helpers refactor + nouveaux
 
-- [ ] **Decouple helpers config** : `frame0-helper.sh` + `penpot-helper.sh` ne lisent plus la config ; tous les params (`--api-port`, `--file-id`, `--export-dir`, `--format`) passés explicitement skill-side
-- [ ] **`figma-helper.sh` (wireframe)** : miroir surface penpot (`create-page`, `get-page`, `update-page`, `delete-page`, `list-pages`, `add-shapes`, `export-png`, `get-current-file`) ; backend = descripteurs MCP `figma_execute` du serveur `figma-console-mcp` (Plugin API JS construit côté helper, exports via `node.exportAsync()` injecté retour base64 inline → décodage et écriture disque côté helper) ; params `--file-key`, `--page-id`, `--shapes-file`, `--output-path`, `--format`
-- [ ] **`figma-bridge-helper.sh` (design)** : surface Bridge (`ds-init`, `ds-update`, `mockup-compile`, `extract-ds`, `export-shape`) ; backend = invocation CLI `bridge-ds compile` (YAML CSpec → JS Plugin API conforme système design) puis injection sortie selon transport : `official` = `figma_execute` du même `figma-console-mcp` (défaut), `console` = écriture fichier `.js` + instruction utilisateur collage DevTools Figma ; params `--kb-path`, `--scene-graph-file`, `--transport=official|console`, `--token-env=FIGMA_TOKEN`
-- [ ] **Tests** : `test-figma-helper.sh` (~60 tests, mirror penpot), `test-figma-bridge-helper.sh` (~40 tests axés compile descriptors + KB validation), refresh `test-frame0-helper.sh` / `test-penpot-helper.sh` post-decoupling
+- [x] **Decouple helpers config** : `frame0-helper.sh` + `penpot-helper.sh` ne lisent plus la config ; tous les params (`--api-port`, `--file-id`, `--export-dir`, `--format`) passés explicitement skill-side
+- [x] **`figma-helper.sh` (wireframe)** : miroir surface penpot (`create-page`, `get-page`, `update-page`, `delete-page`, `list-pages`, `add-shapes`, `export-png`, `get-current-file`) ; backend = descripteurs MCP `figma_execute` du serveur `figma-console-mcp` (Plugin API JS construit côté helper, exports via `node.exportAsync()` injecté retour base64 inline → décodage et écriture disque côté helper) ; params `--file-key`, `--page-id`, `--shapes-file`, `--output-path`, `--format`
+- [x] **`figma-bridge-helper.sh` (design)** : surface Bridge (`ds-init`, `ds-update`, `mockup-compile`, `extract-ds`, `export-shape`) ; backend = invocation CLI `bridge-ds compile` (YAML CSpec → JS Plugin API conforme système design) puis injection sortie selon transport : `official` = `figma_execute` du même `figma-console-mcp` (défaut), `console` = écriture fichier `.js` + instruction utilisateur collage DevTools Figma ; params `--kb-path`, `--scene-graph-file`, `--transport=official|console`, `--token-env=FIGMA_TOKEN`
+- [x] **Tests** : `test-figma-helper.sh` (~60 tests, mirror penpot), `test-figma-bridge-helper.sh` (~40 tests axés compile descriptors + KB validation), refresh `test-frame0-helper.sh` / `test-penpot-helper.sh` post-decoupling
 
 ## 7.5.5 Sub-phase 3 — `/wireframe` skill — Figma + nested config + decouple
 
-- [ ] **step-00** : §5.c vérification préalable figma (`figma-console-mcp` joignable + Figma Desktop lancé + plugin "Desktop Bridge" connecté WebSocket + `get-current-file` correspond à `wireframes.figma.file_key`) ; résolution config nesté propagée en variables shell
-- [ ] **step-02** : §3.c export figma (`figma-helper.sh export-png` avec params explicites) ; tableau platform → helper → backend MAJ
-- [ ] **SKILL.md + docs/skills/wireframe.md** : 3 platforms
+- [x] **step-00** : §5.c vérification préalable figma (`figma-console-mcp` joignable + Figma Desktop lancé + plugin "Desktop Bridge" connecté WebSocket + `get-current-file` correspond à `wireframes.figma.file_key`) ; résolution config nesté propagée en variables shell
+- [x] **step-02** : §3.c export figma (`figma-helper.sh export-png` avec params explicites) ; tableau platform → helper → backend MAJ
+- [x] **SKILL.md + docs/skills/wireframe.md** : 3 platforms
 
 ## 7.5.6 Sub-phase 4 — `/design` skill (nouveau)
 
-- [ ] **Args** : `/design [--resume|-r] [--feature=ID] [--mode=ds-init|ds-update|mockup] [--dry-run]`
-- [ ] **Mode resolver step-00** : auto-detect (`ds-init` si DS absent, `ds-update` si diff specs/file, `mockup` si feature_id + tickets UI, AskUserQuestion sinon)
-- [ ] **Pipeline 6 steps** :
+- [x] **Args** : `/design [--resume|-r] [--feature=ID] [--mode=ds-init|ds-update|mockup] [--dry-run]`
+- [x] **Mode resolver step-00** : auto-detect (`ds-init` si DS absent, `ds-update` si diff specs/file, `mockup` si feature_id + tickets UI, AskUserQuestion sinon)
+- [x] **Pipeline 6 steps** :
   - step-00 init (parse args, resolve feature+mode, load config.design, préflight platform-specific, liaison auto si platform match)
   - step-01 ds-bootstrap (modes ds-init / ds-update)
   - step-02 source-resolve (mode mockup — détecte wireframes existants, sinon part des tickets)
   - step-03 mockup (per screen×state : frame hi-fi, applique composants DS, export asset)
   - step-04 gallery (page Docs `design-gallery` séparée wireframes-gallery)
   - step-05 link (tickets `design_url` + `design_screen` + `design_mode`)
-- [ ] **Préflight `design`** : platform enum `penpot|figma` (frame0 exclu — low-fi only)
-- [ ] **Liaison auto** : si `wireframes.platform == design.platform` ET binding wireframes défini ET `design.{plat}.file_id` null → AskUserQuestion (Yes / No, fichier séparé / Save link in config)
-- [ ] **Helpers usage** : Penpot → `penpot-helper.sh` (réutilisé, fidélité contrôlée skill-side) ; Figma → `figma-bridge-helper.sh`
-- [ ] **Templates créés** : `_shared/templates/docs-defaults/design-gallery.md`, `_shared/templates/design-system-defaults/{atomic,molecular,organism}.yaml`
-- [ ] **Tests** : `test-design-e2e.sh` (3 sub-suites : ds-init, ds-update, mockup) ; `test-design-mode-resolver.sh` (heuristique mode auto)
+- [x] **Préflight `design`** : platform enum `penpot|figma` (frame0 exclu — low-fi only)
+- [x] **Liaison auto** : si `wireframes.platform == design.platform` ET binding wireframes défini ET `design.{plat}.file_id` null → AskUserQuestion (Yes / No, fichier séparé / Save link in config)
+- [x] **Helpers usage** : Penpot → `penpot-helper.sh` (réutilisé, fidélité contrôlée skill-side) ; Figma → `figma-bridge-helper.sh`
+- [x] **Templates créés** : `_shared/templates/docs-defaults/design-gallery.md`, `_shared/templates/design-system-defaults/{atomic,molecular,organism}.yaml`
+- [x] **Tests** : `test-design-e2e.sh` (3 sub-suites : ds-init, ds-update, mockup) ; `test-design-mode-resolver.sh` (heuristique mode auto)
 
 ## 7.5.7 Sub-phase 5 — Wiring workflow
 
-- [ ] **`resume-state.sh`** : dispatch `--skill=design` (état per-mode)
-- [ ] **Lifecycle scripts** : `pre_design` / `post_design` enum + doc
-- [ ] **`/develop` step-00** : check `tickets[].design_url` présent → mention designer-handoff dans review thread (non bloquant si absent)
-- [ ] **`/qa` step-04** : option `design_check` (compare implem vs design asset si présent, opt-in `qa.design_check.enabled`)
-- [ ] **`/snap:doc-update`** : ingère assets design en plus des wireframes pour update doc fonctionnelle
+- [x] **`resume-state.sh`** : dispatch `--skill=design` (état per-mode)
+- [x] **Lifecycle scripts** : `pre_design` / `post_design` enum + doc
+- [x] **`/develop` step-00** : check `tickets[].design_url` présent → mention designer-handoff dans review thread (non bloquant si absent)
+- [x] **`/qa` step-04** : option `design_check` (compare implem vs design asset si présent, opt-in `qa.design_check.enabled`)
+- [x] **`/snap:doc-update`** : ingère assets design en plus des wireframes pour update doc fonctionnelle
 
 ## 7.5.8 Sub-phase 6 — Docs, migration, CI
 
-- [ ] **`docs/config.md`** : schema nested + section design + exemples (Penpot, Figma, mixed)
-- [ ] **`docs/skills/design.md`** : nouveau (mirror `docs/skills/wireframe.md`)
-- [ ] **`docs/skills/wireframe.md`** : figma platform ajouté
-- [ ] **`docs/decisions.md`** : "config nested per platform", "Bridge réservé `/design` Figma"
-- [ ] **`CHANGELOG.md`** : entry BREAKING v0.5.0 avec mapping migration explicite (tableau ancien → nouveau)
-- [ ] **Migration utilisateur** : breaking, doc mapping CHANGELOG ; optionnel `scripts/migrate-config-v04-to-v05.sh` (jq-based one-shot, non-bundlé)
-- [ ] **CI** : shellcheck nouveaux helpers ; JSON schema validation fixtures nested ; tests E2E matrice wireframe (3 platforms × dry-run + mock MCP) + design (3 modes × 2 platforms = 6 paths)
+- [x] **`docs/config.md`** : schema nested + section design + exemples (Penpot, Figma, mixed)
+- [x] **`docs/skills/design.md`** : nouveau (mirror `docs/skills/wireframe.md`)
+- [x] **`docs/skills/wireframe.md`** : figma platform ajouté
+- [x] **`docs/decisions.md`** : "config nested per platform", "Bridge réservé `/design` Figma"
+- [x] **`CHANGELOG.md`** : entry BREAKING v0.5.0 avec mapping migration explicite (tableau ancien → nouveau)
+- [x] **Migration utilisateur** : breaking, doc mapping CHANGELOG ; optionnel `scripts/migrate-config-v04-to-v05.sh` (jq-based one-shot, non-bundlé)
+- [x] **CI** : shellcheck nouveaux helpers ; JSON schema validation fixtures nested ; tests E2E matrice wireframe (3 platforms × dry-run + mock MCP) + design (3 modes × 2 platforms = 6 paths)
 
 ## 7.5.9 Estimation effort
 

@@ -72,6 +72,27 @@ jobs:
       - name: Test frame0-helper.sh
         run: bash tests/test-frame0-helper.sh
 
+      - name: Test penpot-helper.sh
+        run: bash tests/test-penpot-helper.sh
+
+      - name: Test figma-helper.sh
+        run: bash tests/test-figma-helper.sh
+
+      - name: Test figma-bridge-helper.sh
+        run: bash tests/test-figma-bridge-helper.sh
+
+      - name: Test design-mode-resolver.sh
+        run: bash tests/test-design-mode-resolver.sh
+
+      - name: Test domains-state.sh
+        run: bash tests/test-domains-state.sh
+
+      - name: Test resolve-template.sh
+        run: bash tests/test-resolve-template.sh
+
+      - name: Test migrate-config-v04-to-v05.sh
+        run: bash tests/test-migrate-config-v04-to-v05.sh
+
       - name: Validate agents frontmatter
         run: bash tests/test-agents.sh
 
@@ -107,6 +128,9 @@ jobs:
 
       - name: E2E /qa
         run: bash tests/test-qa-e2e.sh
+
+      - name: E2E /design
+        run: bash tests/test-design-e2e.sh
 
   shellcheck:
     name: Shell scripts

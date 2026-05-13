@@ -2,7 +2,7 @@
 
 **Localisation:** racine projet (committable, partagée avec équipe).
 
-**Sections:** `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `defaults`.
+**Sections:** `repository`, `tickets`, `documentation`, `wireframes`, `design`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `templates`, `defaults`.
 
 ## Schéma complet
 
@@ -61,14 +61,46 @@
     }
   },
   "wireframes": {                          // optionnel, absent = /wireframe désactivé
-    "platform": "frame0",                  // frame0 | penpot
+    "platform": "frame0",                  // frame0 | penpot | figma
     "export_format": "png",                // png | svg | pdf
     "export_scale": 2,                     // 1x, 2x, 3x (retina, ignoré par export-png)
     "naming_pattern": "{feature_id}-{screen_name}",
-    "frame0_api_port": 58320,              // port HTTP API Frame0 desktop (export-png bypass, frame0 only)
-    "penpot_export_dir": null,             // absolute path; default = features/{id}/wireframes/ (penpot only)
-    "penpot_file_id": null,                // UUID Penpot file ciblé (preflight step-00, penpot only)
-    "penpot_file_name": null               // nom humain pour message d'erreur mismatch (informationnel)
+    "frame0": {                            // consulté seulement si platform=frame0
+      "api_port": 58320,                   // port HTTP API Frame0 desktop (export-png bypass)
+      "export_source_dir": null            // absolu, par défaut résolu runtime (cwd Frame0)
+    },
+    "penpot": {                            // consulté seulement si platform=penpot
+      "export_dir": null,                  // absolu (Penpot MCP exige filePath absolu) ; défaut runtime = features/{id}/wireframes/
+      "file_id": null,                     // UUID file ciblé (preflight step-00)
+      "file_name": null                    // nom humain pour message d'erreur mismatch
+    },
+    "figma": {                             // consulté seulement si platform=figma
+      "file_key": null,                    // clé file ciblé (preflight step-00 vs figma.fileKey)
+      "file_name": null,                   // nom humain pour mismatch
+      "token_env": "FIGMA_ACCESS_TOKEN"    // variable env du token Figma personnel
+    }
+  },
+  "design": {                              // optionnel, absent = /design désactivé. Bloc parallèle wireframes
+    "platform": "penpot",                  // penpot | figma (frame0 exclu — low-fi only)
+    "export_format": "png",                // png | svg | pdf
+    "naming_pattern": "{feature_id}-{screen_name}-design",
+    "mode_defaults": {
+      "mockup_canvas": "mobile-portrait",  // mobile-portrait | mobile-landscape | desktop | tablet
+      "design_system_source": "auto"       // auto | file | none — auto = file si présent, sinon none
+    },
+    "penpot": {                            // consulté seulement si platform=penpot. Helper réutilisé: penpot-helper.sh
+      "file_id": null,
+      "file_name": null,
+      "export_dir": null,
+      "design_system_page": "Components"   // page Penpot stockant composants/tokens
+    },
+    "figma": {                             // consulté seulement si platform=figma. Helper: figma-bridge-helper.sh
+      "file_key": null,
+      "file_name": null,
+      "token_env": "FIGMA_ACCESS_TOKEN",
+      "bridge_kb_path": null,              // base de connaissance Bridge sur disque (compile lit tokens + composants)
+      "bridge_transport": "official"       // official = injection auto via figma_execute. console = collage manuel DevTools
+    }
   },
   "testing": {
     "test_command": "pnpm test",
@@ -209,14 +241,76 @@ MCP/CLI gèrent indépendamment:
 | `/define`    | `documentation`, `ai`                                   | Setup interactif documentation |
 | `/ticket`    | `tickets`, `repository`, `naming`                       | Setup interactif tickets       |
 | `/wireframe` | `wireframes`, `documentation`                           | Erreur si `wireframes` absent  |
+| `/design`    | `design`, `documentation`                               | Skill skippé silencieusement si `design` absent (optionnel) |
 | `/develop`   | `repository`, `tickets`, `testing`, `naming`, `develop` | Setup interactif si manquant   |
 | `/qa`        | `tickets`, `testing`, `qa`                              | Setup interactif si manquant   |
+
+## Exemples wireframes + design
+
+**Penpot uniquement (wireframe low-fi + design hi-fi mockup dans même fichier)**
+
+```jsonc
+"wireframes": {
+  "platform": "penpot",
+  "penpot": { "file_id": "abc-uuid", "file_name": "MyProduct — Wireframes" }
+},
+"design": {
+  "platform": "penpot",
+  "penpot": { "file_id": "abc-uuid", "design_system_page": "Components" }
+}
+// step-00 /design détecte file_id identique → AskUserQuestion auto-link Yes
+```
+
+**Figma uniquement (mockups hi-fi via Bridge, pas de wireframes)**
+
+```jsonc
+"design": {
+  "platform": "figma",
+  "figma": {
+    "file_key": "X9YZ...",
+    "file_name": "MyProduct — Design",
+    "token_env": "FIGMA_ACCESS_TOKEN",
+    "bridge_kb_path": ".claude/product/design-system/kb",
+    "bridge_transport": "official"
+  }
+}
+```
+
+**Mixed (Frame0 wireframes + Figma design)**
+
+```jsonc
+"wireframes": {
+  "platform": "frame0",
+  "frame0": { "api_port": 58320 }
+},
+"design": {
+  "platform": "figma",
+  "figma": { "file_key": "...", "bridge_kb_path": ".claude/product/design-system/kb" }
+}
+// Pas d'auto-link (platforms différentes) — design.figma demande binding séparé
+```
 
 ## Lifecycle scripts custom (≠ hooks Claude Code)
 
 `pre_<skill>` exécuté avant step-00, `post_<skill>` après dernier step. Scripts supportés: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
 
 Orchestrés explicitement par chaque skill via `_shared/run-lifecycle-script.sh` — scripts shell user, **pas** des hooks Claude Code natifs (qui eux opèrent au niveau session/tool: `SessionStart`, `PreToolUse`, etc.).
+
+## Migration v0.4 → v0.5
+
+Breaking — `wireframes.{frame0,penpot,figma}` blocs nested ; section `design` ajoutée ; champs `tickets[].{design_screen,design_url,design_mode}` ajoutés au schema tickets.
+
+Outil : `scripts/migrate-config-v04-to-v05.sh <path/to/snapship.config.json>` (jq one-shot, non-bundlé runtime).
+
+| Ancien (v0.4 plat)                        | Nouveau (v0.5 nested)                    |
+| ----------------------------------------- | ---------------------------------------- |
+| `wireframes.frame0_api_port`              | `wireframes.frame0.api_port`             |
+| `wireframes.export_source_dir`            | `wireframes.frame0.export_source_dir`    |
+| `wireframes.penpot_export_dir`            | `wireframes.penpot.export_dir`           |
+| `wireframes.penpot_file_id`               | `wireframes.penpot.file_id`              |
+| `wireframes.penpot_file_name`             | `wireframes.penpot.file_name`            |
+| —                                         | `wireframes.figma.{file_key,file_name,token_env}` (nouveau) |
+| —                                         | `design.{platform,export_format,mode_defaults,penpot,figma}` (nouveau) |
 
 Skill passe contexte JSON via stdin (feature_id, ticket_ids, etc.).
 
