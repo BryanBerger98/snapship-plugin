@@ -7,6 +7,64 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-05-13
+
+### Added — `/design --mode=ds-extract` (LLM-driven React → YAML CSpec one-shot)
+
+- **Nouveau mode `ds-extract`** sur le skill `/design` — Claude lit les
+  composants React existants sous `design.extract.source` et émet
+  directement les YAML CSpec sous `design-system/specs/`. Bootstrap
+  one-shot code → YAML → Figma. Après init, **Figma = source de vérité**
+  (pas de reverse sync). Pour propager Figma → code, utiliser Figma Dev
+  Mode + Code Connect (hors scope).
+- **LLM-driven, stack-agnostic.** Pas de parser dédié, pas de Node CLI,
+  pas de build. Marche sur Tailwind+cva, styled-components, CSS Modules,
+  MUI, vanilla CSS, et patterns custom (HOC, render props). Trade-off
+  assumé : non-déterministe, mais relu par user avant push Figma.
+- **Mode explicit-only** — `ds-extract` n'est jamais auto-résolu par
+  `step-00`. Doit être passé via `--mode=ds-extract` explicitement, pour
+  éviter de re-générer le YAML après que Figma soit devenu source de
+  vérité (sinon `ds-update` clobber les édits design).
+- **Flag `--chain-init`** — enchaîne automatiquement dans `ds-init` après
+  extract (pipeline complet code → YAML → Figma en une commande).
+- **Classification atomic/molecular/organism** par analyse graphe
+  d'imports (fixed-point) avec override commentaire
+  `// @ds-category: organism`.
+- **Si Tailwind détecté** — Claude lit `tailwind.config.{ts,mjs,cjs,js}`
+  pour mapper classes → tokens (`bg-brand-500` → `{colors.brand.500}`).
+- **`skills/design/step-01b-ds-extract.md`** (nouveau step) — instructions
+  LLM-driven : validation source, pre-flight Figma confirmation, lecture
+  composants, classification, émission YAML, persiste
+  `.design-cache.json` flag `extract.ran_at`, chaîne dans step-01 si
+  `--chain-init`.
+- **Config `design.extract`** (opt-in) — trois clés seulement :
+  `source` (`src/components`), `out` (`design-system/specs`),
+  `category_override_marker` (`@ds-category`). Défauts résolus par
+  `load-config.sh` uniquement si bloc présent (skill désactivé sinon).
+- **`setup-config.sh`** — nouveaux flags wizard
+  `--design-extract-opt-in=true|false` + flags granulaires
+  `--design-extract-source`, `--design-extract-out`. Tests : 35/35 pass.
+- **`skills/design/SKILL.md`** + `step-00-init.md` mis à jour — `ds-extract`
+  ajouté à la table des modes, parse args supporte `--mode=ds-extract` +
+  `--chain-init`, mode resolver short-circuit (skip auto-detect pour
+  `ds-extract`), routing `step-00` → `step-01b` → optionnellement `step-01`.
+
+### Added — Schema config v0.6
+
+- **`design.extract`** ajouté au JSON Schema (`config.schema.json`) avec
+  `additionalProperties: false`, défauts inline. 30/30 schema tests pass.
+- **`load-config.sh`** — bloc `design.extract` résolu uniquement si présent
+  dans la config (skill désactivé par défaut). 47/47 tests pass.
+
+### Docs
+
+- **`docs/skills/design.md`** — section `ds-extract` ajoutée avec flow
+  LLM-driven, config opt-in, contrainte Figma-source-of-truth post-init.
+- **`docs/config.md`** — bloc `design.extract` documenté.
+- **`docs/decisions.md`** — décision "v0.6 — ds-extract one-shot React → YAML"
+  ajoutée (rationale LLM-driven vs parser AST, explicit-only, no reverse sync).
+- **`docs/roadmap/phase-07.6-ds-extract.md`** — spec Phase 7.6.
+
 ## [0.5.0] — 2026-05-13
 
 ### Added — `/design` skill (3 modes : ds-init, ds-update, mockup)

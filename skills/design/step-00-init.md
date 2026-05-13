@@ -1,7 +1,7 @@
 ---
 step: 00-init
-next_step: 01-ds-bootstrap | 02-source-resolve
-description: Parse args, resolve feature+mode, load config.design nested, run platform preflight (penpot|figma), auto-link wireframes binding if platform matches.
+next_step: 01b-ds-extract | 01-ds-bootstrap | 02-source-resolve
+description: Parse args, resolve feature+mode, load config.design nested, run platform preflight (penpot|figma), auto-link wireframes binding if platform matches. ds-extract is explicit-only (no auto-resolve).
 ---
 
 # step-00 — init
@@ -11,7 +11,7 @@ share this step.
 
 ## Tasks
 
-1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--mode=ds-init|ds-update|mockup`, `--dry-run`.
+1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--mode=ds-extract|ds-init|ds-update|mockup`, `--dry-run`, `--chain-init` (only honored with `--mode=ds-extract`).
 
 2. **Resume short-circuit**: delegate to `resume-state.sh`:
    ```bash
@@ -66,7 +66,11 @@ share this step.
    ```
 
 4. **Resolve mode** (the mode resolver):
-   - If `--mode` provided → use it.
+   - If `--mode=ds-extract` → route directly to `step-01b-ds-extract.md`.
+     **Skip** auto-detection — `ds-extract` is never inferred (it would
+     clobber Figma edits with re-extracted YAML). Skip platform preflight
+     for the dry-run path; require it only when `--chain-init` is set.
+   - Else if `--mode` provided → use it.
    - Else, auto-detect by signal precedence:
 
    | Signal                                                                     | Mode      |
@@ -191,5 +195,6 @@ bash skills/_shared/update-progress.sh \
 
 ## Next step
 
+- `mode == ds-extract` → `step-01b-ds-extract.md` (then optionally chains into `step-01-ds-bootstrap.md` with `--chain-init`)
 - `mode ∈ {ds-init, ds-update}` → `step-01-ds-bootstrap.md`
 - `mode == mockup` → `step-02-source-resolve.md`

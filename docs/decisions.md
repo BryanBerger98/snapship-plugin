@@ -158,6 +158,20 @@ Mode update configurable: `diff` (default — patch sections impactées) ou `rew
 
 **How to apply:** `wireframes.figma` → helper `figma-helper.sh` + `figma_execute` direct. `design.figma` → helper `figma-bridge-helper.sh` + Bridge compile + transport. Préflight `bridge-ds doctor` côté `/design` step-00.
 
+### `/design ds-extract` one-shot React → YAML (v0.6 — non-breaking)
+
+**Issue:** users avec composants React existants veulent bootstrap un DS Figma sans réécrire chaque composant à la main. Sans tooling, ils doivent rédiger les YAML CSpec manuellement (~40 composants = effort prohibitif).
+
+**Choix:** ajouter un quatrième mode `ds-extract` au skill `/design`. Implémentation **LLM-driven** : Claude lit les composants sous `design.extract.source` et émet directement `design-system/specs/{atomic,molecular,organism}.yaml`. Pas de parser dédié, pas de build, pas de Node CLI. Classification atomic/molecular/organism par analyse graphe d'imports + override commentaire `// @ds-category:`. Flag `--chain-init` enchaîne automatiquement dans `ds-init`.
+
+**Why LLM-driven (vs parser AST dédié):** premier prototype avait un Node CLI sous `tools/ds-extract/` (ts-morph + `tailwindcss/resolveConfig`, classification fixed-point, 25 tests vitest). Sur-ingénieré pour un mode one-shot. Avantages LLM : (1) zero tooling — aucun build, aucun `node_modules`, aucune dépendance npm ; (2) stack-agnostic — Tailwind+cva, styled-components, CSS Modules, MUI, vanilla CSS, peu importe ; (3) adapte aux patterns custom (HOC, render props) ; (4) cohérent avec la philosophie du plugin (helpers shell = actions déterministes ; logique métier = Claude). Contrepartie acceptée : non-déterministe (deux runs peuvent diverger), mais relu par user avant push Figma. One-shot, pas re-run.
+
+**Why one-shot (pas reverse-sync):** approche one-shot évite la complexité d'un reverse-sync bidirectionnel (Figma ↔ code = N×N fragile). Après ds-extract + ds-init, **Figma devient source de vérité** ; propager Figma → code passe par Figma Dev Mode + Code Connect (hors scope plugin).
+
+**Why explicit-only:** `ds-extract` n'est jamais auto-résolu par `step-00`. Sans cette barrière, re-run accidentel après édits Figma → YAML re-extrait → ds-update push → écrase les décisions design. Le flag `--mode=ds-extract` force l'intention utilisateur.
+
+**How to apply:** config opt-in `design.extract` (absent par défaut = mode désactivé). Trois clés seulement : `source`, `out`, `category_override_marker`. Pas de `tailwind_config` (Claude détecte via Glob). Pas de `warn_on_arbitrary_values` (Claude reporte automatiquement dans `warnings:` du YAML).
+
 ### Slug vs titre
 
 **Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `domains.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).

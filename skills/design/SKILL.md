@@ -11,12 +11,15 @@ modes share the same skill scaffold:
 
 | Mode         | Purpose                                                                                   | Typical trigger                      |
 |--------------|-------------------------------------------------------------------------------------------|--------------------------------------|
-| `ds-init`    | Bootstrap a design system file from `_shared/templates/design-system-defaults/*.yaml`     | First run, no DS file configured     |
+| `ds-extract` | **Explicit only.** Claude reads existing React components → emits YAML CSpec under `design-system/specs/`. Bootstrap one-shot code → YAML → Figma. Stack-agnostic (Tailwind+cva, styled-components, CSS Modules, etc.). After init, Figma is source of truth. | User has existing React components and no DS file yet |
+| `ds-init`    | Bootstrap a design system file from `design-system/specs/*.yaml` (or bundled templates if absent) | First run, no DS file configured     |
 | `ds-update`  | Diff design-system specs vs current file → patch in place                                 | Specs changed, DS file out of date   |
 | `mockup`     | Per screen×state: hi-fi mockup applying DS components, export asset, link to tickets      | After `/ticket` (and optionally `/wireframe`) |
 
-`step-00` resolves the mode automatically (or asks via `AskUserQuestion` if
-ambiguous).
+`step-00` resolves `ds-init`/`ds-update`/`mockup` automatically (or asks via
+`AskUserQuestion` if ambiguous). `ds-extract` is **never auto-resolved** —
+must be passed via `--mode=ds-extract` explicitly, to avoid clobbering Figma
+edits with regenerated YAML.
 
 ## Supported platforms
 
@@ -39,27 +42,34 @@ ambiguous).
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`           | Parse args, resolve feature+mode, load `config.design`, platform preflight, auto-link wireframes binding if platforms match |
-| 01 | `step-01-ds-bootstrap.md`   | Modes `ds-init` / `ds-update` only — Bridge-compile DS YAML → push/patch the DS file |
-| 02 | `step-02-source-resolve.md` | Mode `mockup` only — detect existing wireframes (`wireframes_url`) or fall back to tickets-only source |
-| 03 | `step-03-mockup.md`         | Mode `mockup` only — per screen×state: frame, components, export asset |
-| 04 | `step-04-gallery.md`        | Mode `mockup` only — Docs `design-gallery` page (separate from `wireframes-gallery`) |
-| 05 | `step-05-link.md`           | Mode `mockup` only — tickets[] gain `design_url` + `design_screen` + `design_mode` |
+| 00  | `step-00-init.md`           | Parse args, resolve feature+mode, load `config.design`, platform preflight, auto-link wireframes binding if platforms match |
+| 01b | `step-01b-ds-extract.md`    | Mode `ds-extract` only — Claude reads `design.extract.source` → emits YAML CSpec. Chains into step-01 if `--chain-init`. |
+| 01  | `step-01-ds-bootstrap.md`   | Modes `ds-init` / `ds-update` only — Bridge-compile DS YAML → push/patch the DS file |
+| 02  | `step-02-source-resolve.md` | Mode `mockup` only — detect existing wireframes (`wireframes_url`) or fall back to tickets-only source |
+| 03  | `step-03-mockup.md`         | Mode `mockup` only — per screen×state: frame, components, export asset |
+| 04  | `step-04-gallery.md`        | Mode `mockup` only — Docs `design-gallery` page (separate from `wireframes-gallery`) |
+| 05  | `step-05-link.md`           | Mode `mockup` only — tickets[] gain `design_url` + `design_screen` + `design_mode` |
 
+`ds-extract` stops after step-01b (or chains into step-01 with `--chain-init`).
 `ds-init` / `ds-update` runs stop after step-01.
 
 ## Args
 
 ```
-/design [--resume|-r] [--feature=NN-slug] [--mode=ds-init|ds-update|mockup] [--dry-run]
+/design [--resume|-r] [--feature=NN-slug] [--mode=ds-extract|ds-init|ds-update|mockup] [--dry-run] [--chain-init]
 ```
 
 - `--feature` (required for `mockup` if multiple features): target feature_id (partial-match).
-- `--mode` (optional): force a mode. Auto-resolved by step-00 if absent.
+- `--mode` (optional): force a mode. Auto-resolved by step-00 if absent (except `ds-extract`, explicit only).
 - `--dry-run`: helpers return mock descriptors; no MCP calls, no assets written, no docs writes.
+- `--chain-init` (mode `ds-extract` only): chain into `ds-init` after extract without manual intervention.
 
 ## Outputs
 
+- **`ds-extract`** — `design-system/specs/{atomic,molecular,organism}.yaml`
+  written from React components. `.design-cache.json` flag set
+  (`extract.ran_at`). If `--chain-init` was passed, pipeline continues with
+  `ds-init`.
 - **`ds-init`** — DS file populated with atomic/molecular/organism components.
   Path/id cached in `config.design.{platform}.{file_id|file_key}` if "Save to
   config" chosen.

@@ -15,6 +15,7 @@
 | 6 | [Skills (build order strict)](phase-06-skills.md) | livré |
 | 7 | [Plugin manifest finalization](phase-07-plugin-manifest.md) | livré |
 | 7.5 | [v0.5 `/design` + Figma + config nested](phase-07.5-v05-design-figma.md) | livré (2026-05-13) |
+| 7.6 | [v0.6 `/design ds-extract` (LLM-driven React → YAML)](phase-07.6-ds-extract.md) | livré (2026-05-13) |
 | 8 | [Dogfooding](phase-08-dogfooding.md) | gate ouvert |
 | 9 | [Documentation utilisateur](phase-09-user-docs.md) | à venir |
 | 10 | [Marketplace `bryanberger`](phase-10-marketplace.md) | à venir |
@@ -34,6 +35,7 @@
 | 6     | E2E test suite passe par skill (mock MCP + real MCP)                         |
 | 7     | `claude plugin validate .` passe sur `.claude-plugin/plugin.json`            |
 | 7.5   | v0.5.0 livré : config nested + figma + /design 3 modes, tous tests verts     |
+| 7.6   | v0.6.0 : `/design ds-extract` LLM-driven React → YAML CSpec (stack-agnostic), chain-init optionnel, tests verts |
 | 8     | 1 feature complète shipped via snap en dogfood (incluant /design)            |
 | 9     | User non-impliqué installe + run premier `/define` sans aide                 |
 | 10    | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
@@ -57,6 +59,7 @@
 | 6.5   | 2j      | code-review-graph + Playwright tests   |
 | 7     | 0.5j    | Migration `.claude-plugin/` schema     |
 | 7.5   | 11.5j   | Bridge CLI + figma_execute runtime, scope /design ambitieux |
+| 7.6   | 1.5j    | LLM-driven extract (stack-agnostic, no parser tooling)      |
 | 8     | 2j      | Bugs prod réels                        |
 | 9     | 1.5j    | Screencast prod                        |
 | 10    | 1j      | Repo `bryanberger/claude-plugins` + CI |
@@ -66,3 +69,5 @@
 **Total v0.1.0:** ~22-25j dev focus (≈ +0.5j vs avant pour setup marketplace `bryanberger`).
 
 **Total v0.5.0** (avec Phase 7.5 livrée avant dogfooding) : ~33-37j dev focus.
+
+**Total v0.6.0** (Phase 7.6 ajoutée — ds-extract LLM-driven) : ~34-38j dev focus.

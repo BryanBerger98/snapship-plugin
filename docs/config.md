@@ -100,6 +100,11 @@
       "token_env": "FIGMA_ACCESS_TOKEN",
       "bridge_kb_path": null,              // base de connaissance Bridge sur disque (compile lit tokens + composants)
       "bridge_transport": "official"       // official = injection auto via figma_execute. console = collage manuel DevTools
+    },
+    "extract": {                           // optionnel, opt-in mode ds-extract (LLM-driven React → YAML CSpec). v0.6.0
+      "source": "src/components",          // racine composants React à lire
+      "out": "design-system/specs",        // dossier sortie YAML (atomic/molecular/organism)
+      "category_override_marker": "@ds-category" // marker commentaire pour override classification atomic|molecular|organism
     }
   },
   "testing": {
