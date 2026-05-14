@@ -160,6 +160,18 @@ Mode update configurable: `diff` (default — patch sections impactées) ou `rew
 
 **How to apply:** `design.figma` → helper `figma-helper.sh` + `figma_execute` direct, identique à `wireframes.figma`. Lecture DS optionnelle via `design.mode_defaults.design_system_source` (`none|file|auto`) — le DS est **lu** en référence, jamais écrit. Configs v0.5/v0.6 : retirer `design.extract` et `design.figma.{bridge_kb_path,bridge_transport}` (rejetés par `additionalProperties:false`).
 
+### Templates repo-native `.github` / `.gitlab` (Unreleased)
+
+**Issue:** `/ticket` et `/develop` rendaient toujours leurs tickets/PR depuis les templates bundlés (ou un override config explicite). Un projet qui a déjà ses conventions dans `.github/ISSUE_TEMPLATE/` ou `.gitlab/merge_request_templates/` voyait son style maison ignoré — friction à l'adoption, output qui ne ressemble pas au reste du dépôt.
+
+**Choix:** ajouter une couche intermédiaire **repo-native** entre l'override config et le bundlé. Ordre de résolution : `override config > repo-native > bundlé`. Nouveau helper `detect-repo-templates.sh` scanne les conventions GitHub/GitLab (markdown uniquement, formulaires YAML ignorés). `resolve-template.sh` émet désormais du JSON `{path, source, render_mode}` ; `render_mode` vaut `mustache` (config/bundlé, placeholders `{{var}}`) ou `scaffold` (repo-native, squelette markdown rempli section par section). Couche activée par `templates.use_repo_native` (défaut `true`).
+
+**Why:** réutiliser ce que l'équipe a déjà défini = output cohérent avec le dépôt, zéro config pour le cas courant. Le mode `scaffold` évite de plaquer la structure bundlée sur un template maison : on garde l'ordre des sections et les checklists du dépôt. Un override config explicite gagne toujours — l'utilisateur garde le contrôle. JIRA n'a aucune convention repo-native fichier (pas de `.jira/`, pas de template file-based dans l'API REST) → reste sur config/bundlé. `review-thread` et `aggregated-feedback` sont des artefacts internes snap, sans équivalent repo-native.
+
+**Décisions de cadrage:** (1) précédence `config > repo-native > bundlé` ; (2) `review-thread` garde le template bundlé snap (pas de convention hôte pour un commentaire de cycle de review) ; (3) markdown seul — si un dépôt n'a que des formulaires d'issue YAML, on retombe sur le bundlé (pas de parseur de schéma de formulaire).
+
+**How to apply:** rien à faire — `use_repo_native` vaut `true` par défaut. Pour désactiver : `templates.use_repo_native: false`. Pour forcer un template précis : `templates.tickets.*` / `templates.pr` (override explicite, prioritaire).
+
 ### Slug vs titre
 
 **Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `domains.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).

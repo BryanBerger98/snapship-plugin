@@ -133,9 +133,11 @@ JSON
   bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=03 --step-name=enrich --status=ok --skill=ticket >/dev/null
 
   # step-04: format — resolve template via resolve-template.sh (kind=ticket type=user-story)
-  local tpl
-  tpl=$(SNAP_PROJECT_ROOT="$DIR" bash "${ROOT}/skills/_shared/resolve-template.sh" \
-    --kind=ticket --type=user-story --platform="${platform}" --project-root="$DIR" 2>/dev/null) || tpl=""
+  # Resolver emits JSON {path, source, render_mode}; extract the path.
+  local tpl tpl_json
+  tpl_json=$(SNAP_PROJECT_ROOT="$DIR" bash "${ROOT}/skills/_shared/resolve-template.sh" \
+    --kind=ticket --type=user-story --platform="${platform}" --project-root="$DIR" 2>/dev/null) || tpl_json=""
+  tpl=$(printf '%s' "$tpl_json" | jq -r '.path // empty' 2>/dev/null) || tpl=""
   if [ -z "$tpl" ] || [ ! -f "$tpl" ]; then
     ko "${platform}.04 template missing" "$tpl"
     return

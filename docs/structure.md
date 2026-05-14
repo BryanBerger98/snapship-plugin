@@ -93,7 +93,8 @@ snapship-plugin/  (plugin repo)
 │       ├── setup-product-dir.sh
 │       ├── update-index.sh
 │       ├── update-progress.sh
-│       ├── resolve-template.sh              # résout user override > bundlé pour ticket/pr/review-thread/aggregated-feedback
+│       ├── resolve-template.sh              # résout override config > repo-native > bundlé → JSON {path, source, render_mode}
+│       ├── detect-repo-templates.sh         # détecte les templates .github/.gitlab (issue/PR), markdown only
 │       ├── render-template.sh               # rendu Mustache-subset {{var}} {{#list}} {{^missing}} {{!comment}} {{&unescaped}}
 │       ├── templates/
 │       │   ├── tickets/                     # par type + plateforme

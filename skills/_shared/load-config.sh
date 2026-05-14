@@ -105,6 +105,7 @@ DEFAULTS=$(cat <<'JSON'
   },
   "lifecycle_scripts": {},
   "templates": {
+    "use_repo_native": true,
     "tickets": {
       "user_story": null,
       "bug": null,

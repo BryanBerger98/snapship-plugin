@@ -46,7 +46,7 @@ fichiers.
 | 01 | `step-01-load.md`      | Lit `prd-feature.md`, extrait les critères d'acceptation + le scope. |
 | 02 | `step-02-decompose.md` | Découpe la feature en stories atomiques (5-30 min, 1-5 fichiers). |
 | 03 | `step-03-enrich.md`    | Agents parallèles : codebase / docs / recherche web par story.    |
-| 04 | `step-04-format.md`    | Rend chaque story via `templates/ticket-{platform}.md`.           |
+| 04 | `step-04-format.md`    | Rend chaque story via le template résolu (override config > repo-native `.github`/`.gitlab` > bundlé). |
 | 05 | `step-05-push.md`      | Pousse via `tickets-adapter.sh` (MCP > CLI).                      |
 | 06 | `step-06-index.md`     | Met en cache `tickets.json` + met à jour le `meta.json` de la feature. |
 

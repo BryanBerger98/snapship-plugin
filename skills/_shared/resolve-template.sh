@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# resolve-template.sh — Resolve template path: user override > bundled default.
+# resolve-template.sh — Resolve a template: config override > repo-native > bundled.
 #
-# Reads `templates.*` from snapship.config.json (via load-config.sh). If the
-# user has set a path, resolve it against project root; if absent, fall back
-# to the bundled template under skills/_shared/templates/.
+# Resolution order:
+#   1. Config override — templates.<key> in snapship.config.json. Resolved
+#      against project root; mustache-rendered (render-template.sh).
+#   2. Repo-native — host template under .github/.gitlab (ticket/pr only).
+#      Gated by templates.use_repo_native (default true). Filled as a scaffold
+#      (Claude fills the sections), not mustache-rendered.
+#   3. Bundled — default template under skills/_shared/templates/. Mustache.
 #
-# Output: absolute path to the resolved template on stdout.
+# Output: a JSON object on stdout:
+#   {"path":"<abs>","source":"config|repo-native|bundled","render_mode":"mustache|scaffold"}
+#
 # Exit codes:
 #   0 = success
 #   1 = invalid args / unknown kind / missing required arg
-#   2 = template file not found (user override or bundled)
+#   2 = template file not found (config override or bundled)
 #
 # Usage:
 #   resolve-template.sh --kind=ticket --type=user-story --platform=github
@@ -35,7 +41,7 @@ usage() {
   cat <<'EOF'
 Usage: resolve-template.sh --kind=KIND [--type=TYPE] [--platform=PLATFORM] [--project-root=PATH]
 
-Resolve a template path (user override > bundled).
+Resolve a template (config override > repo-native > bundled).
 
 Options:
   --kind=KIND               One of: ticket | pr | review-thread | aggregated-feedback
@@ -48,15 +54,19 @@ Options:
   -h, --help                Show this help
 
 Resolution:
-  1. Read templates.<key> from resolved config.
-  2. If set (non-null) → resolve relative to project root, fail if file missing.
-  3. Else → bundled path under skills/_shared/templates/.
+  1. Config override — templates.<key> from resolved config. Mustache.
+  2. Repo-native — .github/.gitlab host template (ticket/pr only). Scaffold.
+  3. Bundled — default under skills/_shared/templates/. Mustache.
+
+Output (JSON on stdout):
+  {"path":"...","source":"config|repo-native|bundled","render_mode":"mustache|scaffold"}
 
 Config keys per kind:
   ticket           → templates.tickets.<type>     (user_story|bug|epic)
   pr               → templates.pr
   review-thread    → templates.review_thread
   aggregated-feedback → templates.aggregated_feedback
+  (repo-native layer gated by templates.use_repo_native, default true)
 EOF
 }
 
@@ -131,6 +141,13 @@ case "$KIND" in
   aggregated-feedback) BUNDLED="${SCRIPT_DIR}/templates/aggregated-feedback.md" ;;
 esac
 
+emit() {
+  # $1=path  $2=source  $3=render_mode
+  jq -nc --arg path "$1" --arg source "$2" --arg mode "$3" \
+    '{path:$path, source:$source, render_mode:$mode}'
+}
+
+# 1. Config override.
 if [ -n "$USER_OVERRIDE" ]; then
   case "$USER_OVERRIDE" in
     /*) RESOLVED="$USER_OVERRIDE" ;;
@@ -140,13 +157,41 @@ if [ -n "$USER_OVERRIDE" ]; then
     echo "ERROR: template override not found: ${RESOLVED} (config key ${JQ_PATH#.})" >&2
     exit 2
   fi
-  printf '%s\n' "$RESOLVED"
+  emit "$RESOLVED" "config" "mustache"
   exit 0
 fi
 
+# 2. Repo-native (.github/.gitlab) — ticket + pr only, gated by config.
+# Note: jq's `//` treats false as empty, so test equality explicitly.
+USE_REPO_NATIVE=$(echo "$CONFIG_JSON" | jq -r 'if .templates.use_repo_native == false then "false" else "true" end')
+if [ "$USE_REPO_NATIVE" = "true" ]; then
+  REPO_NATIVE=""
+  case "$KIND" in
+    ticket)
+      REPO_NATIVE=$(bash "${SCRIPT_DIR}/detect-repo-templates.sh" \
+        --kind=ticket --type="$TYPE" --platform="$PLATFORM" \
+        --project-root="$PROJECT_ROOT")
+      ;;
+    pr)
+      case "$PLATFORM" in
+        github|gitlab)
+          REPO_NATIVE=$(bash "${SCRIPT_DIR}/detect-repo-templates.sh" \
+            --kind=pr --platform="$PLATFORM" \
+            --project-root="$PROJECT_ROOT")
+          ;;
+      esac
+      ;;
+  esac
+  if [ -n "$REPO_NATIVE" ]; then
+    emit "$REPO_NATIVE" "repo-native" "scaffold"
+    exit 0
+  fi
+fi
+
+# 3. Bundled default.
 if [ ! -f "$BUNDLED" ]; then
   echo "ERROR: bundled template missing: ${BUNDLED}" >&2
   exit 2
 fi
-
-printf '%s\n' "$BUNDLED"
+emit "$BUNDLED" "bundled" "mustache"
+exit 0

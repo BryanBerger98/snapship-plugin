@@ -7,6 +7,33 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — templates repo-native (`.github` / `.gitlab`)
+
+- **`/ticket` et `/develop` réutilisent les templates de l'hôte.** Avant le
+  fallback bundlé, le plugin scanne les conventions GitHub/GitLab :
+  `.github/ISSUE_TEMPLATE/*.md` (+ legacy `.github/ISSUE_TEMPLATE.md`),
+  `.gitlab/issue_templates/*.md`, `.github/PULL_REQUEST_TEMPLATE.md`
+  (+ racine, `docs/`, forme répertoire), `.gitlab/merge_request_templates/*.md`.
+- **Nouveau helper `skills/_shared/detect-repo-templates.sh`** — détecte le
+  template repo-native (`--kind=ticket|pr`), mappe le nom de fichier au type
+  (`bug`/`epic`/`user-story`), ignore les formulaires d'issue YAML
+  (`.yml`/`.yaml`). JIRA : aucune convention repo-native → toujours vide.
+- **`resolve-template.sh` émet désormais du JSON** `{path, source, render_mode}`
+  au lieu d'un simple chemin. Ordre de résolution : **override config >
+  repo-native > bundlé**. `render_mode=mustache` (config/bundlé, rendu par
+  `render-template.sh`) ou `scaffold` (repo-native, squelette markdown rempli
+  section par section en gardant le style maison).
+- **Nouvelle clé config `templates.use_repo_native`** (booléen, défaut `true`).
+  `false` → ignore entièrement la couche repo-native. Un override explicite
+  (`templates.tickets.*`, `templates.pr`) gagne toujours.
+- **`review-thread` et `aggregated-feedback`** restent sur override config ou
+  bundlé : ce sont des artefacts internes snap, sans convention repo-native.
+- **Tests** — nouveau `tests/test-detect-repo-templates.sh` (27 cas),
+  `tests/test-resolve-template.sh` étendu pour la sortie JSON + la précédence +
+  `use_repo_native=false` (37 cas). Étape CI ajoutée.
+- **Docs** — `docs/templates.md`, `docs/config.md`, `docs/scripts.md`,
+  `docs/skills/ticket.md`, `docs/skills/develop.md`, `docs/decisions.md`.
+
 ### Removed — `/design` réduit aux maquettes, retrait du tooling Bridge CLI (breaking)
 
 - **`/design` ne fait plus qu'une seule chose : des maquettes hi-fi.**

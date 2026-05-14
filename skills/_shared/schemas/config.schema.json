@@ -507,8 +507,13 @@
     "templates": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Override paths to user-customized markdown templates. Path is relative to project root (or absolute). Null/absent = bundled default in skills/_shared/templates/.",
+      "description": "Template resolution. Order: explicit override path > repo-native (.github/.gitlab) > bundled default in skills/_shared/templates/. Override paths are relative to project root (or absolute).",
       "properties": {
+        "use_repo_native": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true (default), reuse host-native markdown templates found under .github/.gitlab (issue templates, PULL_REQUEST_TEMPLATE) before falling back to bundled defaults. Explicit override paths below always win. Set false to ignore repo-native templates entirely."
+        },
         "tickets": {
           "type": "object",
           "additionalProperties": false,

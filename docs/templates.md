@@ -1,8 +1,28 @@
 # Templates
 
-Le plugin résout les templates en deux temps : **bundlé par défaut**, **override
-utilisateur** via `snapship.config.json` → `templates.*`. Tous les chemins sont
-résolus par `_shared/resolve-template.sh` (user override > bundlé).
+Le plugin résout les templates via `_shared/resolve-template.sh`, qui retourne
+un objet JSON `{path, source, render_mode}`. Trois sources, dans l'ordre de
+priorité :
+
+1. **Override config** — chemin explicite dans `snapship.config.json` →
+   `templates.*`. `render_mode=mustache`.
+2. **Repo-native** — template markdown de l'hôte sous `.github`/`.gitlab`
+   (`ISSUE_TEMPLATE`, `PULL_REQUEST_TEMPLATE`, `issue_templates`,
+   `merge_request_templates`). Détecté par `_shared/detect-repo-templates.sh`,
+   activé par `templates.use_repo_native` (défaut `true`). Concerne uniquement
+   `ticket` et `pr` ; JIRA n'a pas de convention repo-native.
+   `render_mode=scaffold`.
+3. **Bundlé** — template par défaut sous `_shared/templates/`.
+   `render_mode=mustache`.
+
+`render_mode` indique au skill comment remplir le template :
+
+- **`mustache`** → rendu variable par `_shared/render-template.sh` (placeholders
+  `{{var}}` substitués depuis le contexte JSON).
+- **`scaffold`** → le fichier est un squelette markdown statique (pas de
+  placeholders). Le skill retire le frontmatter YAML éventuel, garde l'ordre des
+  sections / checklists de l'équipe, et remplit chaque section depuis le
+  contexte ticket/PR. Objectif : respecter le style maison du dépôt.
 
 ## Catalogue
 
@@ -21,14 +41,42 @@ résolus par `_shared/resolve-template.sh` (user override > bundlé).
 > pages générées idempotemment par `/snap:doc-import` ou `/snap:define`
 > (étape publish).
 
+## Templates repo-native (`.github` / `.gitlab`)
+
+Quand `templates.use_repo_native` vaut `true` (défaut), `/ticket` et `/develop`
+réutilisent les templates markdown déjà présents dans le dépôt avant de
+retomber sur le bundlé. Conventions scannées (`detect-repo-templates.sh`) :
+
+| Kind | Plateforme | Emplacements |
+|------|-----------|--------------|
+| `ticket` | `github` | `.github/ISSUE_TEMPLATE/*.md`, legacy `.github/ISSUE_TEMPLATE.md` |
+| `ticket` | `gitlab` | `.gitlab/issue_templates/*.md` |
+| `ticket` | `jira` | — (aucune convention repo-native) |
+| `pr` | `github` | `.github/PULL_REQUEST_TEMPLATE.md` (+ racine, `docs/`, forme répertoire) |
+| `pr` | `gitlab` | `.gitlab/merge_request_templates/*.md` |
+
+Règles :
+
+- **Markdown uniquement** — les formulaires d'issue YAML (`.yml`/`.yaml`) sont
+  ignorés (le plugin ne parse pas les schémas de formulaire).
+- **Mapping nom → type** : nom contenant `bug`/`defect` → `bug`, `epic` →
+  `epic`, `story`/`feature` → `user-story`. Pas de correspondance → on retombe
+  sur le legacy single-file (GitHub) ou le bundlé.
+- **Forme répertoire PR** → préfère un fichier nommé `default.md`, sinon le
+  premier par ordre alphabétique.
+- `review-thread` et `aggregated-feedback` sont des artefacts internes snap :
+  aucune convention repo-native, ils restent sur override config ou bundlé.
+- `use_repo_native: false` → la couche repo-native est ignorée entièrement.
+
 ## Override utilisateur
 
 Section `templates` dans `snapship.config.json` (tous les champs optionnels,
-`null` par défaut → bundlé) :
+`null` par défaut) :
 
 ```json
 {
   "templates": {
+    "use_repo_native": true,
     "tickets": {
       "user_story": ".claude/templates/my-user-story.md",
       "bug":         null,
@@ -45,9 +93,10 @@ Règles :
 
 - **Chemin relatif** → résolu depuis la racine projet.
 - **Chemin absolu** (`/...`) → utilisé tel quel.
-- **Override absent ou `null`** → fallback sur le template bundlé.
+- **Override absent ou `null`** → couche repo-native, puis fallback bundlé.
 - **Override pointant vers un fichier inexistant** → `resolve-template.sh` exit 2
   (échec explicite, pas de fallback silencieux).
+- **Un override explicite gagne toujours** sur le template repo-native.
 
 Les overrides PR / review-thread / aggregated-feedback sont **uniques** (pas de
 matrice par plateforme). Pour les tickets, l'override est par **type** ; le

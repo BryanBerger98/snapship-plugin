@@ -170,7 +170,8 @@
     // Exemple:
     // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
   },
-  "templates": {                           // override par catégorie (cf. docs/templates.md)
+  "templates": {                           // résolution template (cf. docs/templates.md)
+    "use_repo_native": true,               // réutiliser les templates .github/.gitlab
     "tickets": {
       "user_story": null,                  // ex: ".claude/templates/my-user-story.md"
       "bug":         null,
@@ -179,7 +180,13 @@
     "pr":                  null,           // ex: ".claude/templates/my-pr.md"
     "review_thread":       null,           // commentaire posté sur PR/MR (best-effort)
     "aggregated_feedback": null            // blob interne fix-loop /develop
-    // Tous null par défaut → fallback bundlé `_shared/templates/...`
+    // Ordre de résolution : override explicite > repo-native > bundlé.
+    // use_repo_native=true (défaut) → /ticket et /develop réutilisent les
+    //   templates markdown de l'hôte (.github/ISSUE_TEMPLATE/, .gitlab/
+    //   issue_templates/, PULL_REQUEST_TEMPLATE.md) avant le fallback bundlé.
+    //   Les overrides explicites ci-dessus gagnent toujours. false → ignore
+    //   les templates repo-native. JIRA n'a pas de convention repo-native.
+    // Overrides null par défaut → fallback bundlé `_shared/templates/...`.
     // Chemin relatif → résolu depuis project root. Absolu → tel quel.
     // Override pointant vers fichier inexistant → resolve-template.sh exit 2.
   },

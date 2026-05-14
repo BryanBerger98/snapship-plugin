@@ -55,7 +55,7 @@ et livrer un commit atomique par ticket.
 | 03a | `step-03a-standalone.md`   | Un ticket : Phase 1 (analyze / plan / execute / validate) + Phase 2 (3 reviewers en parallèle + boucle de fix dev). |
 | 03b | `step-03b-loop-session.md` | Plusieurs tickets, même session : foreach ticket → step-03a → commit atomique.        |
 | 03c | `step-03c-loop-daemon.md`  | Génère `daemon.sh` (sans lancement auto) — l'utilisateur exécute `bash daemon.sh -n N`. |
-| 04  | `step-04-sync.md`          | Push la branche, ouvre la PR (ou met à jour l'existante), patche `platform_url` + status du ticket. |
+| 04  | `step-04-sync.md`          | Push la branche, ouvre la PR (ou met à jour l'existante) via le template résolu (override config > PR template `.github`/`.gitlab` > bundlé), patche `platform_url` + status du ticket. |
 | 05  | `step-05-finish.md`        | Met à jour `tickets.json`, propose `/snap:qa`, télémétrie, terminal.                  |
 
 ## Configuration (`config.develop`)
