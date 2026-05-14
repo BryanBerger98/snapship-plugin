@@ -184,49 +184,6 @@ bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mo
 [ $? -eq 1 ] && ok "13.1 invalid JSON rejected" || ko "13.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
-# 13b. design.extract opt-in
-echo ""
-echo "[13b] design.extract opt-in"
-TMP=$(mktemp -d)
-mk_repo "$TMP" "git@github.com:o/r.git"
-bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
-  --design-platform=figma --design-extract-opt-in=true >/dev/null
-echo "$(jq -r '.design.extract | type' "$TMP/snapship.config.json")" | grep -q object && ok "13b.1 design.extract object" || ko "13b.1"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
-
-# 13c. design.extract NOT written if opt-in=false and no granular flag
-echo ""
-echo "[13c] no design.extract by default"
-TMP=$(mktemp -d)
-mk_repo "$TMP" "git@github.com:o/r.git"
-bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
-  --design-platform=figma >/dev/null
-jq -e '.design | has("extract") | not' "$TMP/snapship.config.json" >/dev/null && ok "13c.1 no extract block" || ko "13c.1"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
-
-# 13d. design.extract granular flags
-echo ""
-echo "[13d] design.extract granular flags"
-TMP=$(mktemp -d)
-mk_repo "$TMP" "git@github.com:o/r.git"
-bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
-  --design-platform=figma \
-  --design-extract-source=app/components \
-  --design-extract-out=ds/specs >/dev/null
-[ "$(jq -r '.design.extract.source' "$TMP/snapship.config.json")" = "app/components" ] && ok "13d.1 source" || ko "13d.1"
-[ "$(jq -r '.design.extract.out' "$TMP/snapship.config.json")" = "ds/specs" ] && ok "13d.2 out" || ko "13d.2"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
-
-# 13e. invalid opt-in value rejected
-echo ""
-echo "[13e] design-extract-opt-in bad value"
-TMP=$(mktemp -d)
-mk_repo "$TMP" "git@github.com:o/r.git"
-bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
-  --design-extract-opt-in=maybe >/dev/null 2>&1
-[ $? -eq 1 ] && ok "13e.1 rejected" || ko "13e.1"
-trash "$TMP" 2>/dev/null || rm -rf "$TMP"
-
 # 14. Output is valid JSON
 echo ""
 echo "[14] detect output valid JSON"

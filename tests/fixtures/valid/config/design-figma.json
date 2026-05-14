@@ -21,9 +21,7 @@
     "figma": {
       "file_key": "designABC",
       "file_name": "Design System Figma",
-      "token_env": "FIGMA_ACCESS_TOKEN",
-      "bridge_kb_path": "/Users/dev/design-system-kb",
-      "bridge_transport": "official"
+      "token_env": "FIGMA_ACCESS_TOKEN"
     }
   }
 }

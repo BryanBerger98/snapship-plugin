@@ -292,52 +292,20 @@
             "design_system_page": {
               "type": "string",
               "default": "Components",
-              "description": "Nom page Penpot où le système design est stocké (composants, tokens). Utilisé en lecture pour mockup, en écriture pour ds-init/ds-update."
+              "description": "Nom page Penpot où le système design est stocké (composants, tokens). Lu en référence visuelle pour les mockups — /design n'écrit jamais dans le DS."
             }
           }
         },
         "figma": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Utilisé seulement si platform=figma. Helper: figma-bridge-helper.sh (CLI Bridge → injection via figma-console-mcp).",
+          "description": "Utilisé seulement si platform=figma. Helper: figma-helper.sh — même helper et même plugin Desktop Bridge que /wireframe figma.",
           "properties": {
             "file_key": { "type": "string" },
             "file_name": { "type": "string" },
             "token_env": {
               "type": "string",
               "default": "FIGMA_ACCESS_TOKEN"
-            },
-            "bridge_kb_path": {
-              "type": "string",
-              "description": "Chemin base de connaissance Bridge (KB) sur disque. Compilateur `bridge-ds compile` lit ce dossier pour résoudre tokens + composants système design."
-            },
-            "bridge_transport": {
-              "type": "string",
-              "enum": ["official", "console"],
-              "default": "official",
-              "description": "Transport sortie compilation Bridge. official=injection automatique via figma-console-mcp figma_execute. console=écriture fichier .js + collage manuel console DevTools Figma."
-            }
-          }
-        },
-        "extract": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Configuration mode /design ds-extract (v0.6) — Claude lit composants React et émet YAML CSpec. Section présente = mode opt-in. Mode jamais auto-résolu (explicite uniquement) pour éviter d'écraser des éditions Figma post-init. Stack-agnostic (Tailwind+cva, styled-components, CSS Modules, etc.).",
-          "properties": {
-            "source": {
-              "type": "string",
-              "default": "src/components",
-              "description": "Répertoire racine des composants React à parser."
-            },
-            "out": {
-              "type": "string",
-              "default": "design-system/specs",
-              "description": "Répertoire sortie des fichiers YAML CSpec ({atomic,molecular,organism}.yaml)."
-            },
-            "category_override_marker": {
-              "type": "string",
-              "default": "@ds-category",
-              "description": "Marker comment pour forcer la catégorie atomic|molecular|organism d'un composant (ex: // @ds-category: organism)."
             }
           }
         }
@@ -539,8 +507,13 @@
     "templates": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Override paths to user-customized markdown templates. Path is relative to project root (or absolute). Null/absent = bundled default in skills/_shared/templates/.",
+      "description": "Template resolution. Order: explicit override path > repo-native (.github/.gitlab) > bundled default in skills/_shared/templates/. Override paths are relative to project root (or absolute).",
       "properties": {
+        "use_repo_native": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true (default), reuse host-native markdown templates found under .github/.gitlab (issue templates, PULL_REQUEST_TEMPLATE) before falling back to bundled defaults. Explicit override paths below always win. Set false to ignore repo-native templates entirely."
+        },
         "tickets": {
           "type": "object",
           "additionalProperties": false,

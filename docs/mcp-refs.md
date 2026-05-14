@@ -28,23 +28,7 @@
   - Exports: pas d'outil natif `exportAsync`. Mécanisme = `figma_execute` injectant `node.exportAsync()`, retour base64 inline dans JSON, décodage côté helper avant écriture disque
 - Usage:
   - `/wireframe` (platform=figma) → `figma-helper.sh` → `figma_execute` (JS Plugin API construit côté helper, miroir surface penpot)
-  - `/design` (platform=figma) → `figma-bridge-helper.sh` → CLI `bridge-ds compile` → injection sortie via `figma_execute` (transport `official`)
-
-## Bridge CLI (compilateur YAML CSpec → Figma)
-
-- **CLI séparé, pas serveur MCP.** Installé en dépendance Node.js, invoqué par `figma-bridge-helper.sh` côté skill `/design`.
-- Repo: github.com/noemuch/bridge (MIT, v3.0.0 mars 2026, TypeScript)
-- Install: `npm install -g @bridge-ds/cli` (ou dépendance projet design system)
-- Commandes:
-  - `bridge-ds setup` — initialise dépôt système design (structure KB)
-  - `bridge-ds compile <cspec.yaml>` — compile YAML CSpec en scene graph JSON + code Figma Plugin API conforme (26 règles Figma appliquées automatiquement, "DS-compliant by construction")
-  - `bridge-ds doctor` — diagnostic config + base de connaissance
-  - `bridge-ds extract` — récupère données via API REST Figma (variables, composants existants)
-  - `bridge-ds cron` — sync base de connaissance + PRs automatiques
-- Format CSpec YAML: spécification déclarative composants (tokens, variants, slots), résolution `$token` vers variables Figma
-- Transport sortie compilation (config skill `design.figma.bridge_transport`):
-  - `official` (défaut) — code injecté automatiquement via `figma_execute` du serveur `figma-console-mcp`
-  - `console` — code écrit dans fichier `.js`, utilisateur le colle manuellement dans console DevTools Figma (workflow sans MCP)
+  - `/design` (platform=figma) → `figma-helper.sh` → `figma_execute` — **même helper et même plugin Desktop Bridge** que `/wireframe figma`. `/design` ne fait que des maquettes hi-fi ; le design system est géré hors plugin.
 
 ## AFFiNE MCP
 

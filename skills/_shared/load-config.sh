@@ -105,6 +105,7 @@ DEFAULTS=$(cat <<'JSON'
   },
   "lifecycle_scripts": {},
   "templates": {
+    "use_repo_native": true,
     "tickets": {
       "user_story": null,
       "bug": null,
@@ -248,16 +249,6 @@ RESOLVED=$(echo "$MERGED" | jq '
           .design.figma = (
             .design.figma
             | (if has("token_env") | not then .token_env = "FIGMA_ACCESS_TOKEN" else . end)
-            | (if has("bridge_transport") | not then .bridge_transport = "official" else . end)
-          )
-        else . end)
-      # design.extract defaults (v0.6) — résolu seulement si bloc extract présent
-      | (if (.design.extract // null) != null then
-          .design.extract = (
-            .design.extract
-            | (if has("source") | not then .source = "src/components" else . end)
-            | (if has("out") | not then .out = "design-system/specs" else . end)
-            | (if has("category_override_marker") | not then .category_override_marker = "@ds-category" else . end)
           )
         else . end)
     else . end)

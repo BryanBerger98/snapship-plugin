@@ -1,9 +1,9 @@
 ---
-step: 05-link
+step: 04-link
 description: Update each UI ticket with design_screen + design_url + design_mode; re-validate tickets.json. Terminal step.
 ---
 
-# step-05 — link
+# step-04 — link
 
 Final step. Back-link the design gallery into every UI ticket so `/develop`,
 `/qa`, and human reviewers can jump straight to the hi-fi reference.
@@ -76,7 +76,7 @@ bash skills/_shared/telemetry.sh emit \
 
 bash skills/_shared/update-progress.sh \
   --project-root="$PWD" --feature-id="$feature_id" \
-  --step-num=05 --step-name=link --status=ok --skill=design
+  --step-num=04 --step-name=link --status=ok --skill=design
 ```
 
 ## Idempotence
@@ -88,7 +88,7 @@ value). Safe under `/design --resume`.
 
 - Every UI ticket has `design_screen`, `design_url`, and `design_mode` set.
 - `tickets.json` validates against schema.
-- `progress.md` ends with `design step-05 link — ok`.
+- `progress.md` ends with `design step-04 link — ok`.
 
 ## Next step
 

@@ -33,14 +33,27 @@ existing_pr=$(bash skills/_shared/tickets-adapter.sh \
   --branch="$branch" --project-root="$PWD")
 ```
 
-Resolve the PR template (user override > bundled, per platform):
+Resolve the PR template (config override > repo-native > bundled, per platform):
 
 ```bash
-pr_tpl=$(bash skills/_shared/resolve-template.sh \
+pr_tpl_json=$(bash skills/_shared/resolve-template.sh \
   --kind=pr --platform="$platform" --project-root="$PWD")
-pr_body=$(bash skills/_shared/render-template.sh \
-  --template="$pr_tpl" --context=".develop-pr-context-${run_id}.json")
+pr_tpl=$(printf '%s' "$pr_tpl_json" | jq -r '.path')
+pr_render_mode=$(printf '%s' "$pr_tpl_json" | jq -r '.render_mode')
 ```
+
+Branch on `pr_render_mode`:
+
+- **`mustache`** (config override or bundled) → render with `render-template.sh`:
+  ```bash
+  pr_body=$(bash skills/_shared/render-template.sh \
+    --template="$pr_tpl" --context=".develop-pr-context-${run_id}.json")
+  ```
+- **`scaffold`** (repo-native `.github/.gitlab` PULL_REQUEST_TEMPLATE): the file
+  is a static markdown scaffold. Read `$pr_tpl`, **strip any YAML frontmatter**,
+  then fill each section in place from `.develop-pr-context-${run_id}.json`
+  (tickets processed, review verdict, test summary). Keep the repo's heading
+  order and checklists; drop placeholder prose. The result is `pr_body`.
 
 - Existing → update body via `--action=update-pr` with the rendered body.
 - None → create via `--action=create-pr` with title from feature_title +
@@ -48,13 +61,16 @@ pr_body=$(bash skills/_shared/render-template.sh \
 
 ### C. Post review thread (best-effort)
 
-After PR exists, post the structured review thread (rendered from the
-`review-thread/${platform}.md` template) as a comment so humans can read the
-review verdict inline:
+After PR exists, post the structured review thread as a comment so humans can
+read the review verdict inline. The review thread is an internal snap artifact
+— there is no `.github`/`.gitlab` convention for it — so it always resolves to
+the config override or bundled `review-thread/${platform}.md` (`render_mode`
+is always `mustache`):
 
 ```bash
 review_tpl=$(bash skills/_shared/resolve-template.sh \
-  --kind=review-thread --platform="$platform" --project-root="$PWD")
+  --kind=review-thread --platform="$platform" --project-root="$PWD" \
+  | jq -r '.path')
 review_body=$(bash skills/_shared/render-template.sh \
   --template="$review_tpl" --context=".develop-review-context-${run_id}.json")
 

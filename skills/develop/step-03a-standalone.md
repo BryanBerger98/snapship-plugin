@@ -63,11 +63,13 @@ blocked = any(reviewer.severity >= reviewer.severity_threshold)
    - Build the review context JSON (per-reviewer severity + threshold +
      blocking + findings grouped by file + cross-cutting + suggested fix
      order) from the three reviewer outputs.
-   - Render `aggregated_feedback` via the resolved template (user override >
-     bundled `aggregated-feedback.md`):
+   - Render `aggregated_feedback` via the resolved template. This is an
+     internal snap artifact with no `.github`/`.gitlab` convention, so the
+     resolver only ever returns the config override or bundled
+     `aggregated-feedback.md` (`render_mode` always `mustache`):
      ```bash
      agg_tpl=$(bash skills/_shared/resolve-template.sh \
-       --kind=aggregated-feedback --project-root="$PWD")
+       --kind=aggregated-feedback --project-root="$PWD" | jq -r '.path')
      aggregated_feedback=$(bash skills/_shared/render-template.sh \
        --template="$agg_tpl" --vars="$review_context_json")
      ```

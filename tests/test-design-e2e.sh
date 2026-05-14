@@ -1,29 +1,28 @@
 #!/usr/bin/env bash
-# E2E test for /design pipeline (3 modes: ds-init, ds-update, mockup) — dry-run.
+# E2E test for /design pipeline (step-00 → step-04) using dry-run helpers.
 #
 # Simulates the orchestration documented in skills/design/step-*.md without
-# invoking real Penpot/Figma MCP. Verifies cooperation between:
-#   - design-mode-resolver (mode auto-detection)
-#   - figma-bridge-helper / penpot-helper (ds + mockup descriptors)
-#   - figma-helper (export base64 → save-export decode)
-#   - render-template (design-gallery.md)
-#   - docs-adapter (gallery publish)
-#   - jq-patch tickets.json
-#   - ajv validate
+# invoking real Penpot/Figma MCP. /design is mockup-only — no ds-extract /
+# ds-init / ds-update, no Bridge CLI. It takes a ticket-id or a feature-id as
+# input (mirrors /develop and /qa) and uses the same helpers as /wireframe
+# (figma-helper.sh / penpot-helper.sh).
+#
+# Verifies the helpers cooperate:
+#   filter-ui-tickets → figma-helper (per screen×state) → render-template
+#   gallery → docs-adapter create → jq-patch tickets.json → ajv validate.
+#
+# Sub-suite A — feature-id scope: every UI ticket of the feature is mocked.
+# Sub-suite B — ticket-id scope: only the targeted ticket is mocked + linked.
 
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RESOLVER="${ROOT}/skills/_shared/design-mode-resolver.sh"
-BRIDGE="${ROOT}/skills/_shared/figma-bridge-helper.sh"
-PENPOT="${ROOT}/skills/_shared/penpot-helper.sh"
+FILTER="${ROOT}/skills/_shared/filter-ui-tickets.sh"
+FIGMA="${ROOT}/skills/_shared/figma-helper.sh"
 DOCS="${ROOT}/skills/_shared/docs-adapter.sh"
 RENDER="${ROOT}/skills/_shared/render-template.sh"
 PROGRESS="${ROOT}/skills/_shared/update-progress.sh"
 TEMPLATE="${ROOT}/skills/_shared/templates/docs-defaults/design-gallery.md"
-ATOMIC_TPL="${ROOT}/skills/_shared/templates/design-system-defaults/atomic.yaml"
-MOLECULAR_TPL="${ROOT}/skills/_shared/templates/design-system-defaults/molecular.yaml"
-ORGANISM_TPL="${ROOT}/skills/_shared/templates/design-system-defaults/organism.yaml"
 SCHEMA="${ROOT}/skills/_shared/schemas/tickets.schema.json"
 
 PASS=0
@@ -37,338 +36,261 @@ assert_eq() {
   if [ "$expected" = "$actual" ]; then ok "$label"; else ko "$label" "got '$actual' expected '$expected'"; fi
 }
 
-# --- bridge-ds stub ------------------------------------------------------
 TMP=$(mktemp -d -t snap-design-e2e-XXXXXX)
 trap 'trash "$TMP" 2>/dev/null || rm -rf "$TMP"' EXIT
-
-STUB="$TMP/bridge-ds-stub.sh"
-cat > "$STUB" <<'STUBEOF'
-#!/usr/bin/env bash
-# Minimal bridge-ds stub. Echoes a deterministic JS body so downstream
-# descriptors capture stable content.
-case "$1" in
-  --version) echo "bridge-ds-stub 0.0.1" ;;
-  setup)     echo "{\"status\":\"ok\",\"kb_path\":\"$3\"}" ;;
-  compile)   echo "// COMPILED stub for $2"
-             echo "figma.createFrame();" ;;
-  extract)   echo "{\"components\":[\"Header\",\"Card\",\"Button\"]}" ;;
-  *)         echo "stub: unsupported $*" >&2; exit 2 ;;
-esac
-STUBEOF
-chmod +x "$STUB"
-export SNAP_BRIDGE_DS_BIN="$STUB"
-export FIGMA_TOKEN="t_dummy_for_tests"
 
 echo "=== /design E2E (dry-run) ==="
 echo ""
 
-# ========================================================================
-# Sub-suite A — Mode resolver triage
-# ========================================================================
-echo "[A] mode resolver"
-
-DIR="$TMP/proj-a"
-mkdir -p "$DIR/specs" "$DIR/.claude/product/features/01-auth"
-cp "$ATOMIC_TPL" "$DIR/specs/atomic.yaml"
-cat > "$DIR/.claude/product/features/01-auth/tickets.json" <<'JSON'
-{
-  "feature_id": "01-auth",
-  "platform": "github",
-  "tickets": [
-    {"local_id":"t-001","title":"Signup screen","status":"todo","files":["src/components/Signup.tsx"]},
-    {"local_id":"t-002","title":"Verify email page","status":"todo","files":["src/pages/Verify.tsx"]},
-    {"local_id":"t-099","title":"DB migration","status":"todo","files":["db/users.sql"]}
-  ]
-}
-JSON
-
-m=$(bash "$RESOLVER" --project-root="$DIR" --ds-binding-set=false --specs-dir=specs)
-assert_eq "A.1 ds-init when no binding + specs" "ds-init" "$m"
-
-m=$(bash "$RESOLVER" --project-root="$DIR" --ds-binding-set=true \
-    --specs-dir=specs --feature-id=01-auth)
-assert_eq "A.2 mockup when binding set + feature has UI" "mockup" "$m"
-
-# ========================================================================
-# Sub-suite B — ds-init mode (figma platform via Bridge)
-# ========================================================================
-echo ""
-echo "[B] ds-init (figma + Bridge transport=official)"
-
-DIR_B="$TMP/proj-b"
-mkdir -p "$DIR_B/design-system/specs" "$DIR_B/.claude/product" "$DIR_B/.bridge-kb"
-cp "$ATOMIC_TPL" "$DIR_B/design-system/specs/atomic.yaml"
-cp "$MOLECULAR_TPL" "$DIR_B/design-system/specs/molecular.yaml"
-cp "$ORGANISM_TPL" "$DIR_B/design-system/specs/organism.yaml"
-
-# ds-init action: bootstraps KB structure (one call, not per spec).
-out=$(bash "$BRIDGE" --action=ds-init \
-      --kb-path="$DIR_B/.bridge-kb" \
-      --transport=official --token-env=FIGMA_TOKEN \
-      --dry-run 2>&1)
-rc=$?
-[ "$rc" -eq 0 ] && ok "B.1 ds-init descriptor emitted" \
-  || ko "B.1 ds-init descriptor" "rc=$rc out=$out"
-
-# ds-update action: compiles all KB specs into JS payload via Bridge.
-out=$(bash "$BRIDGE" --action=ds-update \
-      --kb-path="$DIR_B/.bridge-kb" \
-      --transport=official --token-env=FIGMA_TOKEN \
-      --dry-run 2>&1)
-rc=$?
-[ "$rc" -eq 0 ] && ok "B.2 ds-update descriptor emitted" \
-  || ko "B.2 ds-update descriptor" "rc=$rc out=$out"
-
-# Write the cache hash post-init
-curr_hash=$(cat "$DIR_B"/design-system/specs/*.yaml | shasum -a 256 | awk '{print $1}')
-echo "{\"specs_hash\":\"$curr_hash\",\"mode\":\"ds-init\"}" > "$DIR_B/.design-cache.json"
-[ -f "$DIR_B/.design-cache.json" ] && ok "B.3 .design-cache.json written" || ko "B.3" "cache missing"
-
-# ========================================================================
-# Sub-suite C — ds-update mode (penpot platform)
-# ========================================================================
-echo ""
-echo "[C] ds-update (penpot)"
-
-DIR_C="$TMP/proj-c"
-mkdir -p "$DIR_C/design-system/specs" "$DIR_C/.claude/product"
-cp "$ATOMIC_TPL" "$DIR_C/design-system/specs/atomic.yaml"
-echo "{\"specs_hash\":\"STALE_HASH_DIFFERS\",\"mode\":\"ds-init\"}" > "$DIR_C/.design-cache.json"
-
-# Resolver should flag ds-update (binding set + stale hash, no feature)
-m=$(bash "$RESOLVER" --project-root="$DIR_C" --ds-binding-set=true \
-    --specs-dir=design-system/specs --cache-file=.design-cache.json)
-assert_eq "C.1 resolver flags ds-update on stale hash" "ds-update" "$m"
-
-# step-01 ds-bootstrap converts YAML CSpec → shapes JSON before invoking
-# penpot-helper add-shapes (penpot's MCP expects shapes JSON, not YAML).
-# Here we shortcut the conversion with a tiny equivalent shapes JSON.
-shapes_json="$DIR_C/.design-cache/atomic-shapes.json"
-mkdir -p "$(dirname "$shapes_json")"
-cat > "$shapes_json" <<'JSON'
-[
-  {"type":"rect","name":"Button-Primary","x":0,"y":0,"width":120,"height":40,"fill":"#3B82F6"},
-  {"type":"text","name":"Button-Label","x":12,"y":12,"width":96,"height":16,"text":"Sign up","fill":"#FFFFFF"}
-]
-JSON
-
-out=$(bash "$PENPOT" --action=add-shapes \
-      --page-id="components-page-id" \
-      --shapes-file="$shapes_json" \
-      --project-root="$DIR_C" --dry-run 2>&1)
-rc=$?
-if [ "$rc" -eq 0 ] || [ "$rc" -eq 10 ]; then
-  ok "C.2 penpot add-shapes descriptor emitted"
-else
-  ko "C.2 penpot add-shapes" "rc=$rc out=$out"
-fi
-
-# After patch, cache hash refreshed to current
-curr=$(cat "$DIR_C/design-system/specs/atomic.yaml" | shasum -a 256 | awk '{print $1}')
-echo "{\"specs_hash\":\"$curr\",\"mode\":\"ds-update\"}" > "$DIR_C/.design-cache.json"
-m=$(bash "$RESOLVER" --project-root="$DIR_C" --ds-binding-set=true \
-    --specs-dir=design-system/specs --cache-file=.design-cache.json)
-assert_eq "C.3 resolver no-op after patch" "none" "$m"
-
-# ========================================================================
-# Sub-suite D — mockup mode full pipeline (figma platform)
-# ========================================================================
-echo ""
-echo "[D] mockup full pipeline (figma)"
-
-DIR_D="$TMP/proj-d"
-FEATURE_ID="01-auth"
-FEATURE_DIR="$DIR_D/.claude/product/features/$FEATURE_ID"
-mkdir -p "$FEATURE_DIR/design" "$DIR_D/.claude/product"
-
-cat > "$FEATURE_DIR/tickets.json" <<'JSON'
+# Shared fixture: one feature, 3 UI tickets + 1 non-UI ticket.
+make_fixture() {
+  local dir="$1"
+  local feature_dir="${dir}/.claude/product/features/01-auth"
+  mkdir -p "${feature_dir}/design" "${dir}/.claude/product"
+  cat > "${feature_dir}/tickets.json" <<'JSON'
 {
   "feature_id": "01-auth",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Build signup screen","status":"todo","files":["src/components/Signup.tsx"]},
     {"local_id":"t-002","title":"Verify email page","status":"todo","files":["src/pages/Verify.tsx"]},
-    {"local_id":"t-099","title":"DB migration","status":"todo","files":["db/users.sql"]}
+    {"local_id":"t-003","title":"Show error modal","status":"todo","files":["src/components/ErrorModal.tsx"]},
+    {"local_id":"t-099","title":"DB migration users","status":"todo","files":["db/001-users.sql"]}
   ]
 }
 JSON
-
-cat > "$DIR_D/.claude/product/.docs-cache.json" <<'JSON'
+  cat > "${dir}/.claude/product/.docs-cache.json" <<'JSON'
 {"prd_global": {"page_id":"DRY-GLOBAL-0","url":"https://docs.example/prd-global"}}
 JSON
-
-# step-02 source-resolve substitute: build a tiny screens manifest
-draft="$FEATURE_DIR/.design-draft.json"
-cat > "$draft" <<'JSON'
-{
-  "source": "tickets-only",
-  "ui_tickets": [
-    {"local_id":"t-001","title":"Build signup screen","screen_hint":"signup-screen"},
-    {"local_id":"t-002","title":"Verify email page","screen_hint":"verify-screen"}
-  ],
-  "screens": [
-    {"screen_id":"signup-screen","states":["default","error"],"ui_tickets":["t-001"]},
-    {"screen_id":"verify-screen","states":["default"],"ui_tickets":["t-002"]}
-  ]
 }
-JSON
 
-# --- step-03 mockup loop (figma): mockup-compile + export-shape + save ----
-# Bridge mockup-compile uses --scene-graph-file=YAML as the input CSpec.
-# (Output side info goes into other helper params; in this skill flow the
-# JS produced by Bridge is consumed via the figma_execute descriptor.)
-mkdir -p "$DIR_D/.bridge-kb"
-mockup_pages=()
-i=0
-while IFS= read -r screen_id; do
-  while IFS= read -r state; do
-    i=$((i + 1))
-    cspec="$DIR_D/.design-cache/${screen_id}-${state}.yaml"
-    mkdir -p "$(dirname "$cspec")"
-    cat > "$cspec" <<YAML
-frame: { name: "${screen_id}-${state}" }
-children:
-  - component: AuthCard
-    bind: { heading: "Sign up" }
-YAML
-    out=$(bash "$BRIDGE" --action=mockup-compile \
-          --kb-path="$DIR_D/.bridge-kb" \
-          --scene-graph-file="$cspec" \
-          --transport=official --token-env=FIGMA_TOKEN \
-          --dry-run 2>&1)
-    rc=$?
-    [ "$rc" -eq 0 ] || [ "$rc" -eq 10 ] || ko "D.compile $screen_id/$state" "rc=$rc"
+# Mockup loop via figma-helper (dry-run). Emits one "page_id|screen|state|mode|asset"
+# line per (screen, state) only when all three helper calls report dry-run mode —
+# a missed dry-run drops the line, so the caller's count assertion catches it.
+run_mockup_loop() {
+  local dir="$1" feature_dir="$2" screens_json="$3"
+  local i=0 screen_id state out asset_path
+  while IFS= read -r screen_id; do
+    while IFS= read -r state; do
+      i=$((i + 1))
+      out=$(bash "$FIGMA" --action=create-page \
+        --title="01-auth-${screen_id}-${state}" --dry-run 2>&1)
+      [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] || { echo "create $screen_id/$state not dry-run" >&2; continue; }
 
-    # export descriptor (dry-run → mock base64); bridge-helper uses --node-id
-    asset_path="$FEATURE_DIR/design/${screen_id}-${state}.png"
-    out=$(bash "$BRIDGE" --action=export-shape \
-          --node-id="DRY-${i}" --output-path="$asset_path" \
-          --format=png --scale=2 \
-          --dry-run 2>&1)
-    rc=$?
-    [ "$rc" -eq 0 ] || [ "$rc" -eq 10 ] || ko "D.export $screen_id/$state" "rc=$rc"
+      printf '[{"type":"rect","name":"frame","x":0,"y":0,"width":375,"height":812,"fill":"#FFFFFF"}]' \
+        > "${dir}/.shapes-${screen_id}-${state}.json"
+      out=$(bash "$FIGMA" --action=add-shapes \
+        --page-id="DRY-${i}" \
+        --shapes-file="${dir}/.shapes-${screen_id}-${state}.json" --dry-run 2>&1)
+      [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] || { echo "add-shapes $screen_id/$state not dry-run" >&2; continue; }
 
-    # Synthesize asset (skill would invoke figma-helper save-export with real data)
-    printf '\x89PNG\r\n\x1a\n' > "$asset_path"
-    mockup_pages+=("DRY-${i}|${screen_id}|${state}|mockup|${asset_path}")
-  done < <(jq -r --arg sid "$screen_id" '.screens[] | select(.screen_id==$sid).states[]' "$draft")
-done < <(jq -r '.screens[].screen_id' "$draft")
+      asset_path="${feature_dir}/design/01-auth-${screen_id}-${state}.png"
+      out=$(bash "$FIGMA" --action=export-png \
+        --shape-id="DRY-${i}" --output-path="$asset_path" \
+        --format=png --scale=2 --dry-run 2>&1)
+      [ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] || { echo "export $screen_id/$state not dry-run" >&2; continue; }
 
-[ "${#mockup_pages[@]}" = "3" ] && ok "D.1 3 mockups created (2 screens, 2+1 states)" \
-  || ko "D.1" "got ${#mockup_pages[@]}"
+      # Skill would decode real figma_execute base64 via save-export; in dry-run
+      # synthesize a placeholder asset so the gallery step has a file to embed.
+      printf '\x89PNG\r\n\x1a\n' > "$asset_path"
+      echo "DRY-${i}|${screen_id}|${state}|mockup|${asset_path}"
+    done < <(echo "$screens_json" | jq -r --arg sid "$screen_id" '.[] | select(.screen_id==$sid).states[]')
+  done < <(echo "$screens_json" | jq -r '.[].screen_id')
+}
 
-# Update draft with pages
-pages_json=$(printf '%s\n' "${mockup_pages[@]}" \
+# ========================================================================
+# Sub-suite A — feature-id scope (every UI ticket mocked)
+# ========================================================================
+echo "[A] feature-id scope — full pipeline (figma)"
+
+DIR_A="$TMP/proj-a"
+FEATURE_A="$DIR_A/.claude/product/features/01-auth"
+make_fixture "$DIR_A"
+
+# step-00: feature-id resolves target_tickets = every UI ticket.
+ui_json=$(bash "$FILTER" --tickets-file="${FEATURE_A}/tickets.json")
+ui_count=$(echo "$ui_json" | jq 'length')
+assert_eq "A.1 3 UI tickets targeted (excl. DB migration)" "3" "$ui_count"
+
+# step-01 source-resolve: build screen×state manifest from targeted tickets.
+screens_a=$(echo "$ui_json" | jq '
+  [.[] | {screen_id: .screen_hint, states: ["default","error"], local_id}]
+  | group_by(.screen_id)
+  | map({screen_id: .[0].screen_id, states: .[0].states, ui_tickets: [.[].local_id]})
+')
+assert_eq "A.2 3 screens in manifest" "3" "$(echo "$screens_a" | jq 'length')"
+
+draft_a="${FEATURE_A}/.design-draft.json"
+echo "$ui_json" | jq --argjson screens "$screens_a" \
+  '{source:"tickets-only", target_tickets: [.[].local_id], ui_tickets: ., screens: $screens}' \
+  > "$draft_a"
+[ -f "$draft_a" ] && ok "A.3 .design-draft.json stashed" || ko "A.3" "missing draft"
+bash "$PROGRESS" --project-root="$DIR_A" --feature-id="01-auth" \
+  --skill=design --step-num=01 --step-name=source-resolve --status=ok >/dev/null
+
+# step-02 mockup: figma-helper dry-run loop (3 screens × 2 states = 6).
+pages_a=()
+while IFS= read -r line; do pages_a+=("$line"); done < <(run_mockup_loop "$DIR_A" "$FEATURE_A" "$screens_a")
+assert_eq "A.4 6 mockups created (3 screens × 2 states)" "6" "${#pages_a[@]}"
+
+all_exist=true
+for line in "${pages_a[@]}"; do [ -f "${line##*|}" ] || all_exist=false; done
+[ "$all_exist" = "true" ] && ok "A.5 every asset written" || ko "A.5" "some assets missing"
+
+draft_a_pages=$(jq --argjson pages "$(printf '%s\n' "${pages_a[@]}" \
   | jq -R 'split("|") | {platform_page_id:.[0],screen_id:.[1],state:.[2],mode:.[3],asset_path:.[4]}' \
-  | jq -s .)
-draft_with_pages=$(jq --argjson pages "$pages_json" '
+  | jq -s .)" '
   .screens |= map(. as $s | .pages = ($pages | map(select(.screen_id == $s.screen_id) | {state, platform_page_id, asset_path, mode})))
-' "$draft")
-echo "$draft_with_pages" > "$draft"
+' "$draft_a")
+echo "$draft_a_pages" > "$draft_a"
+bash "$PROGRESS" --project-root="$DIR_A" --feature-id="01-auth" \
+  --skill=design --step-num=02 --step-name=mockup --status=ok >/dev/null
 
-# --- step-04 gallery render -----------------------------------------------
+# step-03 gallery: render design-gallery.md + docs publish dry-run.
 ctx=$(jq -n \
-  --arg fid "$FEATURE_ID" \
-  --arg ftitle "Auth" \
-  --arg plat "figma" \
   --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  --arg dir "features/${FEATURE_ID}/design" \
-  --argjson screens "$(echo "$draft_with_pages" | jq '.screens')" '
+  --argjson screens "$(echo "$draft_a_pages" | jq '.screens')" '
   {
     product_name: "TestApp",
     updated_at: $now,
-    design_platform: $plat,
-    design_export_dir: $dir,
-    feature_id: $fid,
+    design_platform: "figma",
+    design_export_dir: "features/01-auth/design",
+    feature_id: "01-auth",
     features: [{
-      feature_id: $fid,
-      feature_title: $ftitle,
+      feature_id: "01-auth",
+      feature_title: "Auth",
       screens: ($screens | map({
         screen_id: .screen_id,
         screen_title: .screen_id,
         states: ((.pages // []) | map({state, mode, asset_path})),
         components_used: "AuthCard",
-        ds_source: "dummy-key",
+        ds_source: "none",
         screen_tickets: ((.ui_tickets // []) | join(",")),
         screen_notes: "—"
       }))
     }],
-    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, feature_id: $fid, state, mode, path: .asset_path})) | flatten)
+    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, feature_id: "01-auth", state, mode, path: .asset_path})) | flatten)
   }')
 
-gallery_md="$DIR_D/.claude/product/design-gallery.md"
+gallery_md="${DIR_A}/.claude/product/design-gallery.md"
 bash "$RENDER" --template="$TEMPLATE" --vars="$ctx" > "$gallery_md"
+[ -s "$gallery_md" ] && ok "A.6 gallery md non-empty" || ko "A.6" "empty"
+grep -q "signup-screen" "$gallery_md" && ok "A.7 gallery contains signup-screen" || ko "A.7" "missing signup"
+grep -q "verify-screen" "$gallery_md" && ok "A.8 gallery contains verify-screen" || ko "A.8" "missing verify"
 
-[ -s "$gallery_md" ] && ok "D.2 gallery md non-empty" || ko "D.2" "empty"
-grep -q "signup-screen" "$gallery_md" && ok "D.3 contains signup-screen" || ko "D.3" "missing signup"
-grep -q "verify-screen" "$gallery_md" && ok "D.4 contains verify-screen" || ko "D.4" "missing verify"
-grep -q "Design — Auth\|Design - Auth\|figma" "$gallery_md" && ok "D.5 platform surfaced" || ko "D.5" "missing figma marker"
-
-# Docs publish dry-run
 publish=$(bash "$DOCS" --action=create --platform=affine \
   --parent-id="DRY-GLOBAL-0" --title="Design — Auth" \
-  --content-file="$gallery_md" \
-  --project-root="$DIR_D" --dry-run 2>&1)
-publish_mode=$(echo "$publish" | jq -r '.mode')
-assert_eq "D.6 docs-adapter dry-run" "dry-run" "$publish_mode"
+  --content-file="$gallery_md" --project-root="$DIR_A" --dry-run 2>&1)
+assert_eq "A.9 docs-adapter dry-run" "dry-run" "$(echo "$publish" | jq -r '.mode')"
 
-# Cache gallery URL
-gallery_url="https://docs.example/feature/${FEATURE_ID}/design"
-jq --arg fid "$FEATURE_ID" --arg url "$gallery_url" \
-  '.design_gallery[$fid] = {page_id:"DRY-DG-0", url:$url}' \
-  "$DIR_D/.claude/product/.docs-cache.json" > "$DIR_D/tmp" \
-  && mv "$DIR_D/tmp" "$DIR_D/.claude/product/.docs-cache.json"
+gallery_url="https://docs.example/feature/01-auth/design"
+jq --arg url "$gallery_url" '.design_gallery["01-auth"] = {page_id:"DRY-DG-0", url:$url}' \
+  "${DIR_A}/.claude/product/.docs-cache.json" > "${DIR_A}/dc.tmp" \
+  && mv "${DIR_A}/dc.tmp" "${DIR_A}/.claude/product/.docs-cache.json"
+bash "$PROGRESS" --project-root="$DIR_A" --feature-id="01-auth" \
+  --skill=design --step-num=03 --step-name=gallery --status=ok >/dev/null
 
-# --- step-05 link tickets ------------------------------------------------
+# step-04 link: patch tickets.json with design_screen/design_url/design_mode.
 while IFS= read -r entry; do
   lid=$(echo "$entry" | jq -r '.local_id')
   sid=$(echo "$entry" | jq -r '.screen_hint')
-  url="${gallery_url}#${sid}"
-  jq --arg lid "$lid" --arg sid "$sid" --arg url "$url" --arg mode "mockup" \
+  jq --arg lid "$lid" --arg sid "$sid" --arg url "${gallery_url}#${sid}" --arg mode "mockup" \
     '(.tickets[] | select(.local_id == $lid))
-      |= (.design_screen = $sid | .design_url = $url | .design_mode = $mode)' \
-    "$FEATURE_DIR/tickets.json" > "$FEATURE_DIR/tickets.tmp" \
-    && mv "$FEATURE_DIR/tickets.tmp" "$FEATURE_DIR/tickets.json"
-done < <(jq -c '.ui_tickets[]' "$draft")
+       |= (.design_screen = $sid | .design_url = $url | .design_mode = $mode)' \
+    "${FEATURE_A}/tickets.json" > "${FEATURE_A}/tickets.tmp" \
+    && mv "${FEATURE_A}/tickets.tmp" "${FEATURE_A}/tickets.json"
+done < <(echo "$ui_json" | jq -c '.[]')
 
-linked=$(jq '[.tickets[] | select(.design_screen != null and .design_url != null and .design_mode != null)] | length' "$FEATURE_DIR/tickets.json")
-assert_eq "D.7 2 tickets linked with design fields" "2" "$linked"
+linked=$(jq '[.tickets[] | select(.design_screen != null and .design_url != null and .design_mode != null)] | length' "${FEATURE_A}/tickets.json")
+assert_eq "A.10 3 tickets linked with design fields" "3" "$linked"
 
-# Non-UI ticket untouched
-t99=$(jq -r '[.tickets[] | select(.local_id=="t-099")][0].design_screen // "null"' "$FEATURE_DIR/tickets.json")
-assert_eq "D.8 t-099 (non-UI) untouched" "null" "$t99"
+t99=$(jq -r '[.tickets[] | select(.local_id=="t-099")][0].design_screen // "null"' "${FEATURE_A}/tickets.json")
+assert_eq "A.11 t-099 (non-UI) untouched" "null" "$t99"
 
-# URL anchored
-t1_url=$(jq -r '.tickets[] | select(.local_id=="t-001").design_url' "$FEATURE_DIR/tickets.json")
+t1_url=$(jq -r '.tickets[] | select(.local_id=="t-001").design_url' "${FEATURE_A}/tickets.json")
 case "$t1_url" in
-  *"#signup-screen") ok "D.9 design_url anchored to screen" ;;
-  *) ko "D.9" "url=$t1_url" ;;
+  *"#signup-screen") ok "A.12 design_url anchored to screen" ;;
+  *) ko "A.12" "url=$t1_url" ;;
 esac
 
-# Schema validate (only if tickets schema accepts new design_* fields — see Sub-phase 5)
 if command -v ajv >/dev/null 2>&1; then
-  if ajv validate -s "$SCHEMA" -d "$FEATURE_DIR/tickets.json" \
-      --spec=draft2020 --strict=false >/dev/null 2>&1; then
-    ok "D.10 tickets.json valid post-design-link"
+  if ajv validate -s "$SCHEMA" -d "${FEATURE_A}/tickets.json" --spec=draft2020 --strict=false >/dev/null 2>&1; then
+    ok "A.13 tickets.json valid post-design-link"
   else
-    echo "  SKIP  D.10 tickets schema not yet extended (Sub-phase 5)"
+    ko "A.13" "ajv rejected"
   fi
 else
-  echo "  SKIP  D.10 ajv not installed"
+  echo "  SKIP  A.13 ajv not installed"
 fi
 
-# Progress trail
-bash "$PROGRESS" --project-root="$DIR_D" --feature-id="$FEATURE_ID" \
-  --skill=design --step-num=03 --step-name=mockup --status=ok >/dev/null
-bash "$PROGRESS" --project-root="$DIR_D" --feature-id="$FEATURE_ID" \
-  --skill=design --step-num=04 --step-name=gallery --status=ok >/dev/null
-bash "$PROGRESS" --project-root="$DIR_D" --feature-id="$FEATURE_ID" \
-  --skill=design --step-num=05 --step-name=link --status=ok >/dev/null
+bash "$PROGRESS" --project-root="$DIR_A" --feature-id="01-auth" \
+  --skill=design --step-num=04 --step-name=link --status=ok >/dev/null
+prog="${FEATURE_A}/progress.md"
+if [ -f "$prog" ] && grep -q "design step-04 link — ok" "$prog"; then
+  ok "A.14 progress includes design step-04 link"
+else
+  ko "A.14" "progress missing step-04 entry"
+fi
 
-prog="$FEATURE_DIR/progress.md"
-[ -f "$prog" ] && grep -q "design step-05 link — ok" "$prog" \
-  && ok "D.11 progress includes design step-05 link" \
-  || ko "D.11" "progress missing step-05 entry"
+# ========================================================================
+# Sub-suite B — ticket-id scope (single ticket mocked + linked)
+# ========================================================================
+echo ""
+echo "[B] ticket-id scope — single ticket (figma)"
+
+DIR_B="$TMP/proj-b"
+FEATURE_B="$DIR_B/.claude/product/features/01-auth"
+make_fixture "$DIR_B"
+
+# step-00: ticket-id t-001 resolves target_tickets = [t-001] only.
+ui_all=$(bash "$FILTER" --tickets-file="${FEATURE_B}/tickets.json")
+ui_one=$(echo "$ui_all" | jq '[.[] | select(.local_id=="t-001")]')
+assert_eq "B.1 single ticket targeted" "1" "$(echo "$ui_one" | jq 'length')"
+
+# step-01: screen manifest scoped to the one targeted ticket.
+screens_b=$(echo "$ui_one" | jq '
+  [.[] | {screen_id: .screen_hint, states: ["default"], local_id}]
+  | group_by(.screen_id)
+  | map({screen_id: .[0].screen_id, states: .[0].states, ui_tickets: [.[].local_id]})
+')
+assert_eq "B.2 1 screen in manifest" "1" "$(echo "$screens_b" | jq 'length')"
+
+# step-02: mockup loop produces exactly 1 asset (1 screen × 1 state).
+pages_b=()
+while IFS= read -r line; do pages_b+=("$line"); done < <(run_mockup_loop "$DIR_B" "$FEATURE_B" "$screens_b")
+assert_eq "B.3 1 mockup created" "1" "${#pages_b[@]}"
+
+# step-04: only t-001 gets linked; t-002/t-003 stay untouched.
+gallery_url_b="https://docs.example/feature/01-auth/design"
+while IFS= read -r entry; do
+  lid=$(echo "$entry" | jq -r '.local_id')
+  sid=$(echo "$entry" | jq -r '.screen_hint')
+  jq --arg lid "$lid" --arg sid "$sid" --arg url "${gallery_url_b}#${sid}" --arg mode "mockup" \
+    '(.tickets[] | select(.local_id == $lid))
+       |= (.design_screen = $sid | .design_url = $url | .design_mode = $mode)' \
+    "${FEATURE_B}/tickets.json" > "${FEATURE_B}/tickets.tmp" \
+    && mv "${FEATURE_B}/tickets.tmp" "${FEATURE_B}/tickets.json"
+done < <(echo "$ui_one" | jq -c '.[]')
+
+linked_b=$(jq '[.tickets[] | select(.design_url != null)] | length' "${FEATURE_B}/tickets.json")
+assert_eq "B.4 only the targeted ticket linked" "1" "$linked_b"
+
+t2_b=$(jq -r '[.tickets[] | select(.local_id=="t-002")][0].design_url // "null"' "${FEATURE_B}/tickets.json")
+assert_eq "B.5 non-targeted UI ticket untouched" "null" "$t2_b"
+
+# Idempotence: re-running the link is a no-op.
+before=$(sha1sum "${FEATURE_B}/tickets.json" | awk '{print $1}')
+while IFS= read -r entry; do
+  lid=$(echo "$entry" | jq -r '.local_id')
+  sid=$(echo "$entry" | jq -r '.screen_hint')
+  jq --arg lid "$lid" --arg sid "$sid" --arg url "${gallery_url_b}#${sid}" --arg mode "mockup" \
+    '(.tickets[] | select(.local_id == $lid))
+       |= (.design_screen = $sid | .design_url = $url | .design_mode = $mode)' \
+    "${FEATURE_B}/tickets.json" > "${FEATURE_B}/tickets.tmp" \
+    && mv "${FEATURE_B}/tickets.tmp" "${FEATURE_B}/tickets.json"
+done < <(echo "$ui_one" | jq -c '.[]')
+after=$(sha1sum "${FEATURE_B}/tickets.json" | awk '{print $1}')
+assert_eq "B.6 second link is a no-op" "$before" "$after"
 
 # === Summary ============================================================
 echo ""

@@ -237,10 +237,34 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 # --body-file: lu dans COMMENT_TEXT si --comment vide (utile pour rendered review-thread).
 ```
 
+## detect-repo-templates.sh
+
+```bash
+# Détecte un template repo-native (.github/.gitlab). Sortie: chemin absolu sur
+# stdout, ou rien (exit 0) si aucun template repo-native ne correspond.
+# args:
+#   --kind=ticket|pr           (REQUIS)
+#   --type=user-story|bug|epic (REQUIS si kind=ticket)
+#   --platform=github|gitlab|jira  (ticket) | github|gitlab (pr)
+#   --project-root=PATH        (défaut: $PWD ou $SNAP_PROJECT_ROOT)
+# Conventions scannées (markdown uniquement — les formulaires .yml/.yaml sont ignorés) :
+#   ticket/github → .github/ISSUE_TEMPLATE/*.md, legacy .github/ISSUE_TEMPLATE.md
+#   ticket/gitlab → .gitlab/issue_templates/*.md
+#   ticket/jira   → (aucune — JIRA n'a pas de convention repo-native)
+#   pr/github     → .github/PULL_REQUEST_TEMPLATE.md (+ racine, docs/, forme répertoire)
+#   pr/gitlab     → .gitlab/merge_request_templates/*.md
+# Mapping nom de fichier → type : *bug*/*defect* → bug, *epic* → epic,
+#   *story*/*feature* → user-story. Forme répertoire PR → préfère 'default.md'.
+# Exit codes: 0 succès (chemin trouvé ou non) | 1 args invalides
+```
+
 ## resolve-template.sh
 
 ```bash
-# Résout chemin template (user override > bundlé). Sortie: chemin absolu sur stdout.
+# Résout un template : override config > repo-native > bundlé.
+# Sortie: objet JSON sur stdout → {"path":"...","source":"...","render_mode":"..."}
+#   source      = config | repo-native | bundled
+#   render_mode = mustache (config/bundlé) | scaffold (repo-native)
 # args:
 #   --kind=ticket|pr|review-thread|aggregated-feedback (REQUIS)
 #   --type=user-story|bug|epic                          (REQUIS si kind=ticket)
@@ -252,12 +276,12 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #   pr               → templates.pr
 #   review-thread    → templates.review_thread
 #   aggregated-feedback → templates.aggregated_feedback
-# Override:
-#   - non-null + chemin relatif → résolu depuis project-root
-#   - non-null + chemin absolu  → tel quel
-#   - non-null + fichier absent → exit 2 (échec explicite)
-#   - null/absent               → fallback bundlé `_shared/templates/...`
-#   - bundlé absent             → exit 2
+# Résolution (dans l'ordre) :
+#   1. Override config non-null → relatif depuis project-root, absolu tel quel.
+#      Fichier absent → exit 2. render_mode=mustache.
+#   2. Repo-native via detect-repo-templates.sh (kind ticket/pr uniquement,
+#      gated par templates.use_repo_native, défaut true). render_mode=scaffold.
+#   3. Bundlé `_shared/templates/...`. Bundlé absent → exit 2. render_mode=mustache.
 # Exit codes: 0 succès | 1 args invalides | 2 fichier introuvable
 ```
 

@@ -35,9 +35,6 @@ TICKETS_PLATFORM=""
 DOCS_PLATFORM=""
 WIRE_PLATFORM=""
 DESIGN_PLATFORM=""
-DESIGN_EXTRACT_OPTIN=""
-DESIGN_EXTRACT_SOURCE=""
-DESIGN_EXTRACT_OUT=""
 LANG_OVERRIDE=""
 
 usage() {
@@ -60,9 +57,6 @@ Options:
   --docs-platform=affine|notion
   --wireframes-platform=frame0|penpot|figma
   --design-platform=penpot|figma  (optionnel — active skill /design)
-  --design-extract-opt-in=true|false  (active mode ds-extract React→YAML)
-  --design-extract-source=PATH        (défaut: src/components)
-  --design-extract-out=PATH           (défaut: design-system/specs)
   --lang=fr|en
   -h, --help               Show this help
 
@@ -85,9 +79,6 @@ while [ $# -gt 0 ]; do
     --docs-platform=*)           DOCS_PLATFORM="${1#--docs-platform=}" ;;
     --wireframes-platform=*)     WIRE_PLATFORM="${1#--wireframes-platform=}" ;;
     --design-platform=*)         DESIGN_PLATFORM="${1#--design-platform=}" ;;
-    --design-extract-opt-in=*)        DESIGN_EXTRACT_OPTIN="${1#--design-extract-opt-in=}" ;;
-    --design-extract-source=*)        DESIGN_EXTRACT_SOURCE="${1#--design-extract-source=}" ;;
-    --design-extract-out=*)           DESIGN_EXTRACT_OUT="${1#--design-extract-out=}" ;;
     --lang=*)                    LANG_OVERRIDE="${1#--lang=}" ;;
     -h|--help)                   usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
@@ -103,13 +94,6 @@ case "$MODE" in
 esac
 
 case "$AUTO_MODE" in true|false) ;; *) echo "ERROR: --auto-mode must be true|false" >&2; exit 1 ;; esac
-
-if [ -n "$DESIGN_EXTRACT_OPTIN" ]; then
-  case "$DESIGN_EXTRACT_OPTIN" in
-    true|false) ;;
-    *) echo "ERROR: --design-extract-opt-in must be true|false" >&2; exit 1 ;;
-  esac
-fi
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
 [ -d "$PROJECT_ROOT" ] || { echo "ERROR: project root missing: $PROJECT_ROOT" >&2; exit 1; }
@@ -237,9 +221,6 @@ OVERRIDES=$(jq -nc \
   --arg dp "$DOCS_PLATFORM" \
   --arg wp "$WIRE_PLATFORM" \
   --arg dsp "$DESIGN_PLATFORM" \
-  --arg dx_in "$DESIGN_EXTRACT_OPTIN" \
-  --arg dx_src "$DESIGN_EXTRACT_SOURCE" \
-  --arg dx_out "$DESIGN_EXTRACT_OUT" \
   --arg lg "$LANG_OVERRIDE" '
   {}
   | if $rp != "" then .repository      = (.repository // {}      | .platform = $rp) else . end
@@ -248,11 +229,6 @@ OVERRIDES=$(jq -nc \
   | if $dp != "" then .documentation   = (.documentation // {}   | .platform = $dp) else . end
   | if $wp != "" then .wireframes      = (.wireframes // {}      | .platform = $wp) else . end
   | if $dsp != "" then .design         = (.design // {}          | .platform = $dsp) else . end
-  | (if ($dx_in == "true") or ($dx_src != "") or ($dx_out != "") then
-       .design = (.design // {}) | .design.extract = (.design.extract // {})
-       | (if $dx_src != "" then .design.extract.source = $dx_src else . end)
-       | (if $dx_out != "" then .design.extract.out = $dx_out else . end)
-     else . end)
   | if $lg != "" then .defaults        = (.defaults // {}        | .lang     = $lg) else . end
 ')
 

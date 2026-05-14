@@ -1,82 +1,69 @@
-# Skill `/define`
+# `/snap:define` — définition produit
 
-Définit produit et features. Brainstorm PRD interactif, détecte projet existant, génère PRD global + mini-PRDs feature.
+Construit les PRD (global puis par feature) à partir d'une vision, de personas
+et d'une liste de features. Déroule un questionnaire guidé via
+`AskUserQuestion` puis publie le résultat sur AFFiNE / Notion.
 
-## Frontmatter
+## À quoi ça sert
 
-```yaml
-name: define
-description: Définit produit et features. Brainstorm PRD interactif, détecte projet existant, génère PRD global + mini-PRDs feature.
-argument-hint: "[-a] [-i] [-r <feature-id>] [--existing] [--dry-run] [<feature description>]"
+Poser ou étendre la définition produit **avant tout ticket**. Le skill
+distingue deux chemins :
+
+- **Greenfield** : aucun PRD encore → questionnaire complet (vision → personas
+  → features).
+- **Extension** : `.claude/product/` contient déjà des features → ajoute une ou
+  plusieurs nouvelles features.
+
+## Quand l'utiliser
+
+- Juste après `/snap:init` sur un nouveau projet.
+- Sur un projet existant pour cadrer une nouvelle feature.
+- En reprise après interruption (`--resume`).
+
+## Prérequis
+
+`/snap:init` lancé une fois. Le skill sort immédiatement si
+`snapship.config.json` est absent.
+
+## Syntaxe
+
+```
+/snap:define [--resume|-r] [--lang=fr|en] [--feature=NN-slug]
 ```
 
 ## Flags
 
-- `-a` autonomous (skip confirms)
-- `-i` interactive flag config
-- `-r <id>` resume
-- `--existing` force discovery mode
-- `--lang en` override langue
-- `--dry-run` preview sans write calls
+| Flag                  | Effet                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--resume` / `-r`     | Reprend au dernier step réussi enregistré dans `progress.md`. Partial-match du `feature_id` (`01` → `01-auth`). Sans run en cours, repart au step-00. |
+| `--lang=fr\|en`       | Force la langue du PRD (défaut : détectée depuis un PRD existant, sinon demandée).                          |
+| `--feature=NN-slug`   | Saute le chemin greenfield, va directement au PRD d'une feature existante.                                  |
 
-## State variables
+## Pipeline
 
-- `{project_path}`, `{product_dir}` = `.claude/product/` (path hardcoded, non-configurable)
-- `{has_existing_prd}` (bool)
-- `{has_codebase}` (bool, détecté)
-- `{feature_name}`, `{feature_id}` (NN-kebab)
-- `{auto_mode}`, `{lang}`
+| #  | Step                  | Rôle                                                                       |
+| -- | --------------------- | -------------------------------------------------------------------------- |
+| 00 | `step-00-init.md`     | Parse les args, exige `snapship.config.json`, détecte le codebase, branche greenfield vs extension. |
+| 01 | `step-01-vision.md`   | Questionne la vision + la north star metric.                               |
+| 02 | `step-02-personas.md` | Questionne 1 à N personas.                                                 |
+| 03 | `step-03-features.md` | Questionne la liste de features avec priorités.                            |
+| 04 | `step-04-render.md`   | Génère les PRD par feature (format change-request) depuis les templates.   |
+| 05 | `step-05-publish.md`  | Archive les pages PRD par date, garantit l'existence des pages domaine + parcours. |
 
-## Steps
+Steps **idempotents** : relancer un step avec les mêmes entrées produit la même sortie.
 
-### step-00-init
+## Outputs
 
-Parse flags, vérifie `.claude/product/`. Détecte `{has_codebase}` (présence `.git/` ou fichiers source). Si index.md existe + features → propose update vs new feature. Resume `-r 02` → cherche `features/02-*`.
+- `.claude/product/features/{feature_id}/prd-feature.md` — un par feature.
+- `.claude/product/features/{feature_id}/meta.json` — `state=defined`,
+  `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` après publication.
+- `.claude/product/domains.json` — IDs des pages domaine + parcours (idempotent).
+- `.claude/product/progress.md` — journal de run.
+- AFFiNE / Notion :
+  - Page PRD sous `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (archive immuable).
+  - Pages domaine + parcours sous `{functional_root}/{domain}/{journey}` (spec
+    vivante, corps rempli plus tard par `/snap:doc-update`).
 
-### step-01-discover
+## Étape suivante
 
-Skip si `{has_codebase}=false` — green-field brainstorm direct.
-
-- Lance 2-4 agents parallèles `explore-codebase`:
-  - Architecture globale + stack technique
-  - Features existantes + parcours utilisateur
-  - État des tests + qualité code
-  - TODO/FIXME/dette technique (optionnel)
-- Synthèse: AS-IS du produit
-- **Cas green-field** (`has_codebase=false`): aucune AS-IS, jump direct step-02. Tagué `{green_field}=true` → step-02 enrichit context externe.
-
-### step-02-vision
-
-- AskUserQuestion progressive: vision 1-phrase → problème → success → users
-- Si projet existant: contextualise avec AS-IS
-- **Si `{green_field}=true`**: spawn 2 agents `general-purpose` parallèles AVANT AskUserQuestion:
-  1. Recherche concurrents espace produit (web search depuis pitch user 1-phrase)
-  2. Références UX patterns / produits inspiration similaires
-  - Synthèse 5-10 bullets (concurrents clés, gaps observés, patterns réutilisables) injectée comme context préliminaire dans prompt vision
-  - User valide/dévie → AskUserQuestion progressive ensuite
-- A/P/C menu fin de phase
-
-### step-03-features
-
-- AskUserQuestion: liste features clés + priorisation (must/should/could/won't)
-- Reflète back en tableau
-- User choisit première feature à mini-PRD
-
-### step-04-write-prd (AFFiNE)
-
-- Vérifie `snapship.config.json` section `documentation`. Si absente/incomplète → run `_shared/setup-config.sh` (auto-discovery workspace/templates, AskUserQuestion mapping)
-- Génère contenu PRD global: vision + problème + users + features prioritaires + scope/out-of-scope
-- Crée page AFFiNE via MCP:
-  - Si `templates.prd_global` set → duplique template, remplit variables (titre, sections)
-  - Sinon → crée page from scratch en markdown, push via MCP
-  - Page sous `root_page_id` du workspace
-- Génère mini-PRD feature: vision feature, scope, key capabilities, phases, out-of-scope, ref code
-- Crée sub-page AFFiNE feature sous PRD global (même logique template)
-- Sauvegarde IDs dans `meta.json` feature: `{ "affine_page_id": "...", "affine_url": "..." }`
-- Update `.claude/product/index.md` (état: `defined` + lien AFFiNE)
-- AskUserQuestion validation finale (montre URL AFFiNE pour review)
-
-### step-05-finish
-
-- Affiche path PRD, summary
-- Propose: `Lancer /ticket {feature-id} ?` via AskUserQuestion
+`/snap:ticket --feature=NN-slug` pour décomposer la feature en tickets.

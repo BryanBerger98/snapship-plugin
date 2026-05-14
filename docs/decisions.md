@@ -148,29 +148,29 @@ Mode update configurable: `diff` (default — patch sections impactées) ou `rew
 
 **How to apply:** migration utilisateur via `scripts/migrate-config-v04-to-v05.sh` (jq one-shot, non bundlé runtime). Mapping ancien → nouveau documenté `docs/config.md` + `CHANGELOG.md` v0.5.0.
 
-### Bridge réservé `/design` Figma (v0.5)
+### `/design` réduit aux maquettes — retrait du tooling Bridge CLI (Unreleased — breaking)
 
-**Issue:** deux usages distincts pour Figma — `/wireframe` (low-fi, équivalent Frame0/Penpot, descripteurs MCP directs) et `/design` (hi-fi, mockups conformes système design). Tenter d'unifier sous Bridge pour les deux aurait imposé la chaîne YAML CSpec → JS compilé au wireframe alors qu'il a juste besoin de `figma_execute` brut.
+**Issue:** v0.5–v0.6 chargeaient `/design` de quatre modes (`ds-extract`, `ds-init`, `ds-update`, `mockup`) et d'un CLI compilateur séparé (`bridge-ds`, repo `noemuch/bridge`) pour gérer le design system dans Figma. Surface large, dépendance Node.js externe, modes auto-résolus risquant d'écraser des édits Figma. Le design system gagne à être géré hors plugin.
 
-**Choix:** un seul serveur MCP Figma (`southleft/figma-console-mcp`) partagé entre les deux skills. Bridge CLI (`noemuch/bridge-ds`, MIT v3.0.0) utilisé **uniquement** par `/design` Figma. `/wireframe figma` consomme `figma_execute` direct via `figma-helper.sh`. `/design figma` compile YAML CSpec → JS via Bridge puis injecte via le même `figma_execute` (transport `official`) ou via collage manuel DevTools (transport `console`).
+**Choix:** `/design` ne fait plus **qu'une seule chose** — des maquettes hi-fi. Suppression des modes `ds-extract` / `ds-init` / `ds-update`, du CLI `bridge-ds` et du helper `figma-bridge-helper.sh`, du `design-mode-resolver.sh`, des templates `design-system-defaults/`, et des clés config `design.extract` + `design.figma.{bridge_kb_path,bridge_transport}`. `/design` prend désormais un `<ticket-id|feature-id>` en input (comme `/develop` et `/qa`) et construit les maquettes d'après ce que le ticket demande. `/design figma` utilise le **même** `figma-helper.sh` et le **même** plugin Desktop Bridge que `/wireframe figma`.
 
-**Why:** Bridge apporte la conformité 26-règles + tokens DS pour les hi-fi, inutile sur low-fi. Un seul MCP évite la duplication de prérequis Desktop Bridge plugin. Bridge en CLI séparé (pas serveur MCP) évite un MCP supplémentaire à booter — le plugin Claude Code installe `bridge-ds` en dépendance Node.js parallèle.
+**Why:** un skill = une responsabilité. Le DS (création, mise à jour) relève d'un outil dédié, pas d'un mode greffé sur le skill maquettes. Retirer `bridge-ds` élimine une dépendance npm externe et un risque de clobber (re-run auto → push DS qui écrase Figma). `/design` et `/wireframe` partagent maintenant exactement la même surface Figma — un seul helper à maintenir.
 
-**How to apply:** `wireframes.figma` → helper `figma-helper.sh` + `figma_execute` direct. `design.figma` → helper `figma-bridge-helper.sh` + Bridge compile + transport. Préflight `bridge-ds doctor` côté `/design` step-00.
+**Note:** le **plugin Desktop Bridge** (plugin Figma, canal WebSocket de `figma-console-mcp`) reste requis — il n'a aucun lien avec le CLI `bridge-ds` retiré. Deux entités distinctes qui partageaient le nom « Bridge ».
 
-### `/design ds-extract` one-shot React → YAML (v0.6 — non-breaking)
+**How to apply:** `design.figma` → helper `figma-helper.sh` + `figma_execute` direct, identique à `wireframes.figma`. Lecture DS optionnelle via `design.mode_defaults.design_system_source` (`none|file|auto`) — le DS est **lu** en référence, jamais écrit. Configs v0.5/v0.6 : retirer `design.extract` et `design.figma.{bridge_kb_path,bridge_transport}` (rejetés par `additionalProperties:false`).
 
-**Issue:** users avec composants React existants veulent bootstrap un DS Figma sans réécrire chaque composant à la main. Sans tooling, ils doivent rédiger les YAML CSpec manuellement (~40 composants = effort prohibitif).
+### Templates repo-native `.github` / `.gitlab` (Unreleased)
 
-**Choix:** ajouter un quatrième mode `ds-extract` au skill `/design`. Implémentation **LLM-driven** : Claude lit les composants sous `design.extract.source` et émet directement `design-system/specs/{atomic,molecular,organism}.yaml`. Pas de parser dédié, pas de build, pas de Node CLI. Classification atomic/molecular/organism par analyse graphe d'imports + override commentaire `// @ds-category:`. Flag `--chain-init` enchaîne automatiquement dans `ds-init`.
+**Issue:** `/ticket` et `/develop` rendaient toujours leurs tickets/PR depuis les templates bundlés (ou un override config explicite). Un projet qui a déjà ses conventions dans `.github/ISSUE_TEMPLATE/` ou `.gitlab/merge_request_templates/` voyait son style maison ignoré — friction à l'adoption, output qui ne ressemble pas au reste du dépôt.
 
-**Why LLM-driven (vs parser AST dédié):** premier prototype avait un Node CLI sous `tools/ds-extract/` (ts-morph + `tailwindcss/resolveConfig`, classification fixed-point, 25 tests vitest). Sur-ingénieré pour un mode one-shot. Avantages LLM : (1) zero tooling — aucun build, aucun `node_modules`, aucune dépendance npm ; (2) stack-agnostic — Tailwind+cva, styled-components, CSS Modules, MUI, vanilla CSS, peu importe ; (3) adapte aux patterns custom (HOC, render props) ; (4) cohérent avec la philosophie du plugin (helpers shell = actions déterministes ; logique métier = Claude). Contrepartie acceptée : non-déterministe (deux runs peuvent diverger), mais relu par user avant push Figma. One-shot, pas re-run.
+**Choix:** ajouter une couche intermédiaire **repo-native** entre l'override config et le bundlé. Ordre de résolution : `override config > repo-native > bundlé`. Nouveau helper `detect-repo-templates.sh` scanne les conventions GitHub/GitLab (markdown uniquement, formulaires YAML ignorés). `resolve-template.sh` émet désormais du JSON `{path, source, render_mode}` ; `render_mode` vaut `mustache` (config/bundlé, placeholders `{{var}}`) ou `scaffold` (repo-native, squelette markdown rempli section par section). Couche activée par `templates.use_repo_native` (défaut `true`).
 
-**Why one-shot (pas reverse-sync):** approche one-shot évite la complexité d'un reverse-sync bidirectionnel (Figma ↔ code = N×N fragile). Après ds-extract + ds-init, **Figma devient source de vérité** ; propager Figma → code passe par Figma Dev Mode + Code Connect (hors scope plugin).
+**Why:** réutiliser ce que l'équipe a déjà défini = output cohérent avec le dépôt, zéro config pour le cas courant. Le mode `scaffold` évite de plaquer la structure bundlée sur un template maison : on garde l'ordre des sections et les checklists du dépôt. Un override config explicite gagne toujours — l'utilisateur garde le contrôle. JIRA n'a aucune convention repo-native fichier (pas de `.jira/`, pas de template file-based dans l'API REST) → reste sur config/bundlé. `review-thread` et `aggregated-feedback` sont des artefacts internes snap, sans équivalent repo-native.
 
-**Why explicit-only:** `ds-extract` n'est jamais auto-résolu par `step-00`. Sans cette barrière, re-run accidentel après édits Figma → YAML re-extrait → ds-update push → écrase les décisions design. Le flag `--mode=ds-extract` force l'intention utilisateur.
+**Décisions de cadrage:** (1) précédence `config > repo-native > bundlé` ; (2) `review-thread` garde le template bundlé snap (pas de convention hôte pour un commentaire de cycle de review) ; (3) markdown seul — si un dépôt n'a que des formulaires d'issue YAML, on retombe sur le bundlé (pas de parseur de schéma de formulaire).
 
-**How to apply:** config opt-in `design.extract` (absent par défaut = mode désactivé). Trois clés seulement : `source`, `out`, `category_override_marker`. Pas de `tailwind_config` (Claude détecte via Glob). Pas de `warn_on_arbitrary_values` (Claude reporte automatiquement dans `warnings:` du YAML).
+**How to apply:** rien à faire — `use_repo_native` vaut `true` par défaut. Pour désactiver : `templates.use_repo_native: false`. Pour forcer un template précis : `templates.tickets.*` / `templates.pr` (override explicite, prioritaire).
 
 ### Slug vs titre
 

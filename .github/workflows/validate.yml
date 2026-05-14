@@ -78,14 +78,11 @@ jobs:
       - name: Test figma-helper.sh
         run: bash tests/test-figma-helper.sh
 
-      - name: Test figma-bridge-helper.sh
-        run: bash tests/test-figma-bridge-helper.sh
-
-      - name: Test design-mode-resolver.sh
-        run: bash tests/test-design-mode-resolver.sh
-
       - name: Test domains-state.sh
         run: bash tests/test-domains-state.sh
+
+      - name: Test detect-repo-templates.sh
+        run: bash tests/test-detect-repo-templates.sh
 
       - name: Test resolve-template.sh
         run: bash tests/test-resolve-template.sh

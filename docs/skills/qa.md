@@ -1,100 +1,103 @@
-# Skill `/qa`
+# `/snap:qa` — validation runtime des tickets développés
 
-Validation runtime ticket(s) développé(s). Régression (scope impacted) + wireframes (Playwright vs Frame0). Cycle QA↔dev. Optionnel retrigger reviews `/develop` sur fixes.
+Valide les tickets développés : régression (scope = impacted via
+code-review-graph), diff wireframe (Playwright vs Frame0), spawn d'un agent
+`code-reviewer-qa`, boucle de fix dev via amend, et retrigger optionnel des
+reviewers de `/snap:develop`.
 
-## Frontmatter
+## À quoi ça sert
 
-```yaml
-name: qa
-description: Validation runtime ticket(s) développé(s). Régression (scope impacted) + wireframes (Playwright vs Frame0). Cycle QA↔dev. Optionnel retrigger reviews /develop sur fixes.
-argument-hint: "[-a] [-r] [--qa-cycles=N] [--no-regression] [--no-wireframe-check] [--retrigger-review] [--dry-run] <ticket-id|feature-id>"
+Valider, après `/snap:develop`, un ou plusieurs commits contre les critères
+d'acceptation, la régression, la conformité wireframe et les dérives
+sécurité / fonctionnelles introduites après la phase de dev.
+
+## Quand l'utiliser
+
+- Un ticket a un `commit_sha` et `status="in_review"` dans `tickets.json`.
+- Le repo a un `test_command` résolu (ou détectable via
+  `detect-test-commands.sh`).
+- Optionnel : des wireframes Frame0 existent pour les tickets UI → active le
+  diff wireframe.
+
+## Différence avec la review fonctionnelle de `/snap:develop`
+
+- Review fonctionnelle = **statique** (lit le code / diff, vérifie les AC
+  textuellement).
+- QA = **runtime** (exécute les tests, lance l'app, compare le comportement aux
+  AC + wireframes).
+
+## Syntaxe
+
 ```
-
-## Args
-
-- `<ticket-id|feature-id>` REQUIS. Précise scope:
-  - `ticket-id` (match `naming.ticket_id_regex`) → QA sur diff du commit ticket
-  - `feature-id` (NN-kebab) → QA batch sur tous tickets feature `developed`
+/snap:qa                            # AskUserQuestion : quel ticket / feature ?
+/snap:qa <ticket-id>                # valide un ticket
+/snap:qa <feature-id>               # valide tous les tickets in_review de la feature
+/snap:qa --resume | -r
+/snap:qa --dry-run
+/snap:qa --no-wireframe-check
+/snap:qa --retrigger
+```
 
 ## Flags
 
-- `-a` autonomous, `-r` resume, `-i` interactive flag config
-- `--qa-cycles=N` override `qa.qa_cycles_max` pour run courant
-- `--no-regression` skip regression check
-- `--no-wireframe-check` skip wireframe check (sinon utilise `qa.wireframe_check.enabled`)
-- `--retrigger-review` force `qa.retrigger_review=true` pour run courant
+| Flag                    | Effet                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `<ticket-id>`           | Valide un seul ticket.                                                               |
+| `<feature-id>`          | Valide chaque ticket `in_review` de la feature.                                      |
+| `--resume` / `-r`       | Reprend via `resume-state.sh next --skill=qa`.                                       |
+| `--dry-run`             | Collecte uniquement : pas de boucle de fix, pas d'amend.                             |
+| `--no-wireframe-check`  | Saute le diff wireframe même si la config l'active.                                  |
+| `--retrigger`           | Force le step-04 même si `config.qa.retrigger_review=false`.                         |
 
-## State variables
+## Pipeline
 
-- `{ticket_id}` ou `{feature_id}`, `{platform}`
-- `{qa_cycle_count}` (compteur run-time)
-- `{qa_applied_fixes}` (bool — drive retrigger_review)
-- `{last_qa_result}` `{ regression: pass|fail|<list>, wireframe: pass|fail|<diff_pct>, severity }`
-- `{qa_feedback_md}` markdown structuré (output `code-reviewer-qa` subagent)
+| #  | Step                    | Rôle                                                                              |
+| -- | ----------------------- | --------------------------------------------------------------------------------- |
+| 00 | `step-00-init.md`       | Parse args, résout le(s) ticket(s) cible, charge la config, scope le diff.        |
+| 01 | `step-01-collect.md`    | Lance la régression (scope impacted / full / tests-only) + diff wireframe Playwright. |
+| 02 | `step-02-interpret.md`  | Spawn l'agent `code-reviewer-qa` → severity + `qa_feedback_md`, détection des flaky. |
+| 03 | `step-03-fix.md`        | Cycle : l'agent dev applique `qa_feedback` → amend du commit → re-run step-01.     |
+| 04 | `step-04-retrigger.md`  | Opt-in : re-run des 3 reviewers de `/snap:develop` sur le diff post-QA (1 retrigger max). |
+| 05 | `step-05-finish.md`     | Statut du ticket → `qa-validated` (ou `blocked`), télémétrie, terminal.            |
 
-## Steps
+## Configuration (`config.qa`)
 
-### step-00-init
+```json
+{
+  "qa": {
+    "qa_cycles_max": 2,
+    "auto_apply_qa_feedback": true,
+    "severity_threshold": "minor",
+    "retrigger_review": false,
+    "regression": {"enabled": true, "scope": "impacted"},
+    "wireframe_check": {"enabled": false, "mode": "playwright", "diff_threshold_pct": 5}
+  }
+}
+```
 
-- Parse args. Match ticket-id ou feature-id.
-- Charge `meta.json` + `tickets.json` feature
-- Détermine diff scope:
-  - ticket-id → `git log --grep="{ticket_id}"` → range commits ticket
-  - feature-id → range commits depuis branch divergence (`git merge-base`)
-- Lance `check-mcp-required.sh qa` (validate optional MCPs nécessaires: `code-review-graph` si `regression.scope=impacted`, `playwright` si `wireframe_check.enabled=true`)
-- Lance `detect-test-commands.sh` si `testing.*_command` absent
+- `qa_cycles_max` — cycles de fix dev ↔ QA avant échec.
+- `auto_apply_qa_feedback` — si `false`, les findings sont présentés à
+  l'utilisateur au lieu de relancer l'agent dev.
+- `severity_threshold` — un finding à ce niveau ou au-dessus empêche le ticket
+  d'atteindre `qa-validated`.
+- `regression.scope` :
+  - `impacted` (défaut) — seulement les tests transitivement atteignables depuis
+    le diff via `get_affected_flows` (code-review-graph).
+  - `full` — lance toute la suite `testing.test_command`.
+  - `tests-only` — fallback quand le graphe est indisponible : seulement les
+    fichiers `*.test.*` / `*.spec.*` transitivement importés depuis les fichiers
+    modifiés.
+- `wireframe_check.diff_threshold_pct` — tolérance de diff structurel face aux
+  PNG Frame0 ; au-delà → finding.
 
-### step-01-collect (procédural — raw outputs)
+## Outputs
 
-- **Régression** (si `qa.regression.enabled` ET pas `--no-regression`):
-  - `scope=impacted`: query `code-review-graph` MCP `get_impact_radius` sur diff → fichiers/symbols touchés. `get_affected_flows` → tests à run. Run `testing.test_command` filtré.
-  - `scope=full`: run `testing.test_command` complet
-  - `scope=tests-only`: run `testing.test_command` sans filtre
-  - Fallback `tests-only` si `code-review-graph` absent
-  - Capture: stdout, exit code, durée, list failed tests
-- **Wireframe** (si `qa.wireframe_check.enabled` ET pas `--no-wireframe-check`):
-  - Mode `playwright`: spawn Playwright MCP, navigate URL feature (depuis context ticket ou `meta.json.preview_url`), screenshot per écran
-  - Compare vs Frame0 export PNG (`features/{id}/wireframes/*.png`) → diff structural (count buttons/inputs/sections, labels)
-  - Capture: diff_pct, regions affectées, screenshots
-- Persiste raw outputs dans `.claude/product/features/{id}/.qa-raw-{cycle}.json`
+- Chaque ticket validé : `status="qa-validated"`, `qa_validated_at` renseigné.
+- Body du ticket plateforme amendé avec le verdict QA (template par plateforme).
+- Entrées de step dans `progress.md`.
+- Optionnel : résumé de re-review ajouté (si le retrigger a tourné).
 
-### step-02-interpret (subagent)
+## Étape suivante
 
-- Spawn `code-reviewer-qa` subagent avec raw outputs + context (ticket AC, wireframes liste, historique progress.md)
-  - Subagent filtre flaky tests (heuristique: même test fail intermittent dans `progress.md` historique)
-  - Distingue régression réelle vs brittle, decide severity per finding
-  - Compose feedback markdown structuré (sections: regressions critiques, wireframe gaps, recommandations fix)
-  - Retourne `{ severity, regression: pass|fail, wireframe: pass|fail, feedback_md }`
-- Stocke résultat dans `{last_qa_result}` + `{qa_feedback_md}`
-
-### step-03-fix (cycle dev)
-
-- Loop `j = 1..qa.qa_cycles_max`:
-  1. Step-01-collect + step-02-interpret
-  2. **Décision exit**:
-     - `regression=pass` ET (`wireframe=pass` OU wireframe disabled) ET `severity < qa.severity_threshold` → exit Phase QA OK
-     - Sinon: tag `{qa_applied_fixes}=true`, spawn agent `developer` avec `{qa_feedback_md}`. Applique fixes (auto si `qa.auto_apply_qa_feedback`, sinon AskUserQuestion).
-     - Re-run typecheck/lint/test entre cycles
-     - **Commit fix QA atomique:** amend commit ticket si même ticket scope (`git commit --amend --no-edit`), sinon nouveau commit `fix({ticket_id}): qa - {summary}`
-- Si `qa_cycles_max` atteint sans pass → applique `develop.fail_strategy` (réutilise même config car cohérence workflow)
-
-### step-04-retrigger (opt-in)
-
-- Si `qa.retrigger_review=true` (config ou flag `--retrigger-review`) ET `{qa_applied_fixes}=true`:
-  - Re-run 3 reviewers `/develop` Phase 2 sur diff post-QA (spawn batch parallèle: technical/functional/security sur range commits ticket actualisé)
-  - Si findings ≥ threshold → cycle review↔dev sur diff actuel (réutilise logique step-03a Phase 2 — implementation: `Skill develop step-03a-standalone --review-only`)
-  - Après reviews OK: NE re-trigger PAS QA (boucle simple, 1 retrigger max — évite ping-pong infini)
-- Si `retrigger_review=false`: skip step-04
-
-### step-05-finish
-
-- Update ticket plateforme: `comment <id> "QA validated"` + status (si workflow plateforme expose)
-- Update `index.md` état: `qa-validated`
-- Affiche résumé: cycles utilisés, severity finale, fixes appliqués
-- Mode standalone: propose ticket suivant ou `/develop` PR sync si pas encore fait
-- Mode batch (feature-id): résumé X/Y tickets QA-validated
-
-## Note QA vs review fonctionnelle (`/develop`)
-
-- Review fonctionnelle = static (lit code/diff, vérifie AC textuellement, scope conformance)
-- QA = runtime (exécute tests, lance app, compare comportement vs AC + wireframes)
+`/snap:doc-update --feature=NN-slug` pour rafraîchir la doc fonctionnelle
+vivante (auto-déclenché si `documentation.auto_update_on_qa_success: true`).
