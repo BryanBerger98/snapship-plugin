@@ -7,13 +7,43 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed — `/design` réduit aux maquettes, retrait du tooling Bridge CLI (breaking)
+
+- **`/design` ne fait plus qu'une seule chose : des maquettes hi-fi.**
+  Suppression des modes `ds-extract` / `ds-init` / `ds-update`. Le design
+  system est désormais géré hors plugin.
+- **Input `/design`** — prend un `<ticket-id|feature-id>` (comme `/develop`
+  et `/qa`) et construit les maquettes d'après ce que le ticket demande. Un
+  ticket id cible un ticket ; un feature id batch tous les tickets UI.
+- **Retrait du CLI `bridge-ds`** (repo `noemuch/bridge`) et de tout son
+  tooling : helpers `figma-bridge-helper.sh` + `design-mode-resolver.sh`,
+  templates `design-system-defaults/`, tests `test-figma-bridge-helper.sh` +
+  `test-design-mode-resolver.sh`, steps `step-01-ds-bootstrap.md` +
+  `step-01b-ds-extract.md`.
+- **`/design figma` utilise le même `figma-helper.sh`** et le même plugin
+  Desktop Bridge que `/wireframe figma` — surface Figma unifiée, un seul
+  helper à maintenir.
+- **Config** — clés retirées : `design.extract` (bloc entier),
+  `design.figma.bridge_kb_path`, `design.figma.bridge_transport`. Schema
+  `additionalProperties:false` rejette les anciennes clés.
+- **Pipeline `/design` renuméroté** — `step-00-init` → `step-01-source-resolve`
+  → `step-02-mockup` → `step-03-gallery` → `step-04-link`.
+- **Lecture DS optionnelle** — `design.mode_defaults.design_system_source`
+  (`none|file|auto`) : le fichier DS configuré peut être **lu** en référence
+  de composants, jamais écrit.
+- **Note** — le **plugin Desktop Bridge** (plugin Figma, canal WebSocket de
+  `figma-console-mcp`) reste requis ; il n'a aucun lien avec le CLI
+  `bridge-ds` retiré (deux entités distinctes qui partageaient le nom).
+- **Docs** — `docs/skills/design.md`, `docs/config.md`, `docs/mcp-refs.md`,
+  `docs/decisions.md`, `docs/README.md`, `README.md`, `plugin.json` mis à jour.
+
 ### Changed — secrets isolés via `.env.snapship`
 
 - **Token Figma chargé depuis `.env.snapship`** (racine projet, gitignored)
   au lieu de la shell env directement. Skills `/design` figma + `/wireframe`
   figma appellent `skills/_shared/load-env.sh --project-root="$PWD"
-  --key=<NAME>` puis exportent la valeur pour `figma-console-mcp` +
-  `bridge-ds`. Clé par défaut `FIGMA_ACCESS_TOKEN` (override toujours via
+  --key=<NAME>` puis exportent la valeur pour `figma-console-mcp`. Clé par
+  défaut `FIGMA_ACCESS_TOKEN` (override toujours via
   `design.figma.token_env` / `wireframes.figma.token_env`).
 - **Nouveau helper `skills/_shared/load-env.sh`** — parser KEY=VALUE simple
   (commentaires `#`, quotes strippées, pas de substitution shell).
@@ -21,8 +51,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (utilisable avec `eval`). Tests : 12/12 pass.
 - **`.gitignore`** — ajoute `.env.snapship` + `.env.snapship.*` (secrets
   per-projet ne doivent jamais être commit).
-- **`figma-bridge-helper.sh`** — défaut `--token-env` aligné sur
-  `FIGMA_ACCESS_TOKEN` (était `FIGMA_TOKEN` legacy).
 - **Docs** — `docs/config.md` nouvelle section "Secrets : `.env.snapship`"
   (format + résolution + erreurs courantes). `docs/skills/design.md` +
   `docs/skills/wireframe.md` mis à jour pour pointer sur le nouveau flux.

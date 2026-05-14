@@ -23,8 +23,8 @@
 # Usage: resume-state.sh next --skill=define [--feature=01] [--mode=NAME]
 #
 # --mode=NAME (optional) narrows the match to progress lines whose note
-# encodes "mode":"NAME" — used by /design where ds-init|ds-update|mockup
-# share the same skill name but resume independently.
+# encodes "mode":"NAME" — generic mechanism for skills that run multiple
+# independent variants under one skill name.
 
 set -euo pipefail
 
@@ -38,7 +38,7 @@ Resolve the next step for a --resume invocation. Reads progress.md (global +
 per-feature) and infers the next step from the last successful entry for the skill.
 
 --mode=NAME narrows the match to lines whose note encodes "mode":"NAME"
-(used by /design ds-init|ds-update|mockup which share the skill name).
+(generic — for skills running multiple independent variants under one name).
 
 Output (stdout): JSON {next_step, feature_id, matched, reason}
 Exit codes: 0 = match, 1 = no in-flight run, 2 = bad args

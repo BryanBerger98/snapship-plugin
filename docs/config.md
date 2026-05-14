@@ -86,25 +86,18 @@
     "naming_pattern": "{feature_id}-{screen_name}-design",
     "mode_defaults": {
       "mockup_canvas": "mobile-portrait",  // mobile-portrait | mobile-landscape | desktop | tablet
-      "design_system_source": "auto"       // auto | file | none — auto = file si présent, sinon none
+      "design_system_source": "auto"       // auto | file | none — DS lu en référence seulement, jamais écrit
     },
     "penpot": {                            // consulté seulement si platform=penpot. Helper réutilisé: penpot-helper.sh
       "file_id": null,
       "file_name": null,
       "export_dir": null,
-      "design_system_page": "Components"   // page Penpot stockant composants/tokens
+      "design_system_page": "Components"   // page Penpot lue en référence visuelle — /design n'y écrit jamais
     },
-    "figma": {                             // consulté seulement si platform=figma. Helper: figma-bridge-helper.sh
+    "figma": {                             // consulté seulement si platform=figma. Helper: figma-helper.sh (même helper que /wireframe figma)
       "file_key": null,
       "file_name": null,
-      "token_env": "FIGMA_ACCESS_TOKEN",
-      "bridge_kb_path": null,              // base de connaissance Bridge sur disque (compile lit tokens + composants)
-      "bridge_transport": "official"       // official = injection auto via figma_execute. console = collage manuel DevTools
-    },
-    "extract": {                           // optionnel, opt-in mode ds-extract (LLM-driven React → YAML CSpec). v0.6.0
-      "source": "src/components",          // racine composants React à lire
-      "out": "design-system/specs",        // dossier sortie YAML (atomic/molecular/organism)
-      "category_override_marker": "@ds-category" // marker commentaire pour override classification atomic|molecular|organism
+      "token_env": "FIGMA_ACCESS_TOKEN"
     }
   },
   "testing": {
@@ -266,7 +259,7 @@ MCP/CLI gèrent indépendamment:
 // step-00 /design détecte file_id identique → AskUserQuestion auto-link Yes
 ```
 
-**Figma uniquement (mockups hi-fi via Bridge, pas de wireframes)**
+**Figma uniquement (mockups hi-fi, pas de wireframes)**
 
 ```jsonc
 "design": {
@@ -274,9 +267,7 @@ MCP/CLI gèrent indépendamment:
   "figma": {
     "file_key": "X9YZ...",
     "file_name": "MyProduct — Design",
-    "token_env": "FIGMA_ACCESS_TOKEN",
-    "bridge_kb_path": ".claude/product/design-system/kb",
-    "bridge_transport": "official"
+    "token_env": "FIGMA_ACCESS_TOKEN"
   }
 }
 ```
@@ -290,7 +281,7 @@ MCP/CLI gèrent indépendamment:
 },
 "design": {
   "platform": "figma",
-  "figma": { "file_key": "...", "bridge_kb_path": ".claude/product/design-system/kb" }
+  "figma": { "file_key": "..." }
 }
 // Pas d'auto-link (platforms différentes) — design.figma demande binding séparé
 ```
@@ -313,8 +304,7 @@ FIGMA_ACCESS_TOKEN=figd_abc123def456
 **Résolution :** skills `/design` (figma) et `/wireframe` (figma) appellent
 `skills/_shared/load-env.sh --project-root="$PWD" --key=<NAME>` où `<NAME>`
 provient de `design.figma.token_env` / `wireframes.figma.token_env` (défaut
-`FIGMA_ACCESS_TOKEN`). Valeur exportée dans l'env pour
-`figma-console-mcp` + `bridge-ds` CLI.
+`FIGMA_ACCESS_TOKEN`). Valeur exportée dans l'env pour `figma-console-mcp`.
 
 **Erreurs courantes :**
 - Fichier absent → skill halt avec instruction création.
@@ -322,7 +312,7 @@ provient de `design.figma.token_env` / `wireframes.figma.token_env` (défaut
 - Token Figma invalide → MCP server retourne 401 (cas distinct).
 
 **Générer un Figma PAT :** Figma → Settings → Personal access tokens → Generate
-new token. Scope: lecture file + (si bridge mode `extract-ds`) édition file.
+new token. Scope: lecture + édition du fichier.
 
 ## Lifecycle scripts custom (≠ hooks Claude Code)
 

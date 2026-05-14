@@ -188,27 +188,27 @@ OUT=$(bash "$SCRIPT" next --skill=define --project-root="$DIR")
 echo "$OUT" | jq empty 2>/dev/null && ok "14.1 stdout is valid JSON" || ko "14.1"
 trash "$DIR" 2>/dev/null || true
 
-# 15. --mode filter narrows to matching mode lines
+# 15. --mode filter narrows to matching mode lines (generic multi-variant infra)
 echo ""
-echo "[15] --mode filter (design 3-mode resume)"
+echo "[15] --mode filter (multi-variant resume)"
 DIR=$(setup_dir)
-bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=00 --step-name=init       --status=ok --skill=design --extra='{"mode":"ds-init"}'   >/dev/null
-bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=01 --step-name=ds-bootstrap --status=ok --skill=design --extra='{"mode":"ds-init"}' >/dev/null
-bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=00 --step-name=init       --status=ok --skill=design --extra='{"mode":"ds-update"}' >/dev/null
+bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=00 --step-name=init      --status=ok --skill=define --extra='{"mode":"variant-a"}' >/dev/null
+bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=01 --step-name=intake    --status=ok --skill=define --extra='{"mode":"variant-a"}' >/dev/null
+bash "$UPDATE" --project-root="$DIR" --feature-id=_global --step-num=00 --step-name=init      --status=ok --skill=define --extra='{"mode":"variant-b"}' >/dev/null
 
-OUT=$(bash "$SCRIPT" next --skill=design --mode=ds-init --project-root="$DIR")
+OUT=$(bash "$SCRIPT" next --skill=define --mode=variant-a --project-root="$DIR")
 ns=$(echo "$OUT" | jq -r '.next_step')
-[ "$ns" = "step-02" ] && ok "15.1 ds-init resume points to step-02" || ko "15.1 got $ns"
+[ "$ns" = "step-02" ] && ok "15.1 variant-a resume points to step-02" || ko "15.1 got $ns"
 
-OUT=$(bash "$SCRIPT" next --skill=design --mode=ds-update --project-root="$DIR")
+OUT=$(bash "$SCRIPT" next --skill=define --mode=variant-b --project-root="$DIR")
 ns=$(echo "$OUT" | jq -r '.next_step')
-[ "$ns" = "step-01" ] && ok "15.2 ds-update resume points to step-01" || ko "15.2 got $ns"
+[ "$ns" = "step-01" ] && ok "15.2 variant-b resume points to step-01" || ko "15.2 got $ns"
 
 set +e
-OUT=$(bash "$SCRIPT" next --skill=design --mode=mockup --project-root="$DIR")
+OUT=$(bash "$SCRIPT" next --skill=define --mode=variant-c --project-root="$DIR")
 RC=$?
 set -e
-[ "$RC" = "1" ] && ok "15.3 mockup with no prior runs → rc=1" || ko "15.3 got rc=$RC"
+[ "$RC" = "1" ] && ok "15.3 variant-c with no prior runs → rc=1" || ko "15.3 got rc=$RC"
 matched=$(echo "$OUT" | jq -r '.matched')
 [ "$matched" = "false" ] && ok "15.4 matched=false for missing mode" || ko "15.4 got $matched"
 trash "$DIR" 2>/dev/null || true

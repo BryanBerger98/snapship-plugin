@@ -1,17 +1,17 @@
 ---
-step: 04-gallery
-next_step: 05-link
+step: 03-gallery
+next_step: 04-link
 description: Render design-gallery.md, blob-upload asset files, push gallery page (separate from wireframes-gallery).
 ---
 
-# step-04 — gallery
+# step-03 — gallery
 
 Build a single Docs page hosting every hi-fi mockup, section per screen,
 image rows per state. Optional — skipped if `documentation.platform = "none"`.
 
 The gallery is **separate** from `wireframes-gallery`. They may coexist in
-the same Docs space — design carries the design system + mockups, wireframes
-carry the low-fi structural artifacts.
+the same Docs space — design carries the hi-fi mockups, wireframes carry the
+low-fi structural artifacts.
 
 ## Tasks
 
@@ -88,7 +88,7 @@ bash skills/_shared/telemetry.sh emit \
 
 bash skills/_shared/update-progress.sh \
   --project-root="$PWD" --feature-id="$feature_id" \
-  --step-num=04 --step-name=gallery --status=ok --skill=design
+  --step-num=03 --step-name=gallery --status=ok --skill=design
 ```
 
 ## Failure handling
@@ -106,4 +106,4 @@ bash skills/_shared/update-progress.sh \
 
 ## Next step
 
-→ `step-05-link.md`
+→ `step-04-link.md`

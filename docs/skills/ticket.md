@@ -1,72 +1,65 @@
-# Skill `/ticket`
+# `/snap:ticket` — feature → tickets
 
-Génère tickets complets adaptés à JIRA/GitLab/GitHub depuis mini-PRD feature. Draft local → review batch → push.
+Décompose le PRD d'une feature en tickets atomiques prêts pour le dev, enrichit
+chacun via des agents de recherche parallèles, les formate selon la plateforme
+et les pousse sur GitHub / GitLab / JIRA.
 
-## Frontmatter
+## À quoi ça sert
 
-```yaml
-name: ticket
-description: Génère tickets complets adaptés à JIRA/GitLab/GitHub depuis mini-PRD feature. Draft local → review batch → push.
-argument-hint: "[-a] [-r] [--platform=auto|jira|gh|glab] [--dry-run] <feature-id>"
+Transformer un PRD de feature en liste numérotée de stories prêtes pour
+`/snap:develop` — chaque ticket fait 5 à 30 min de travail et touche 1 à 5
+fichiers.
+
+## Quand l'utiliser
+
+- Un `prd-feature.md` existe dans `.claude/product/features/{feature_id}/`.
+- Tu veux des stories dev-ready sur la plateforme de tickets configurée.
+- En reprise après interruption (`--resume`).
+
+## Prérequis
+
+`/snap:init` et `/snap:define` lancés. Une plateforme de tickets résolue
+(MCP en priorité, sinon CLI `gh` / `glab` / `jira`).
+
+## Syntaxe
+
+```
+/snap:ticket [--resume|-r] [--feature=NN-slug] [--platform=github|gitlab|jira]
+             [--max-stories=N] [--dry-run]
 ```
 
 ## Flags
 
-- `-a` autonomous (skip AskUserQuestion, fallback recommended)
-- `-r {task-id}` resume tâche en cours (partial match)
-- `-i` interactif strict (force AskUserQuestion partout)
-- `--platform` override détection
-- `--dry-run` génère local sans push
+| Flag                          | Effet                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| `--resume` / `-r`             | Reprend au dernier step réussi du `progress.md` de la feature (partial-match `feature_id`). |
+| `--feature=NN-slug`           | Cible le `feature_id` (requis si plusieurs features définies).                         |
+| `--platform=github\|gitlab\|jira` | Force la plateforme, surcharge `config.tickets.platform`.                          |
+| `--max-stories=N`             | Plafonne la décomposition automatique (défaut : 12).                                   |
+| `--dry-run`                   | Formate et journalise mais n'écrit pas sur la plateforme.                              |
 
-## Steps
+## Pipeline
 
-### step-00-init
+| #  | Step                   | Rôle                                                              |
+| -- | ---------------------- | ----------------------------------------------------------------- |
+| 00 | `step-00-init.md`      | Parse les args, résout le `feature_id`, charge le PRD + config.   |
+| 01 | `step-01-load.md`      | Lit `prd-feature.md`, extrait les critères d'acceptation + le scope. |
+| 02 | `step-02-decompose.md` | Découpe la feature en stories atomiques (5-30 min, 1-5 fichiers). |
+| 03 | `step-03-enrich.md`    | Agents parallèles : codebase / docs / recherche web par story.    |
+| 04 | `step-04-format.md`    | Rend chaque story via `templates/ticket-{platform}.md`.           |
+| 05 | `step-05-push.md`      | Pousse via `tickets-adapter.sh` (MCP > CLI).                      |
+| 06 | `step-06-index.md`     | Met en cache `tickets.json` + met à jour le `meta.json` de la feature. |
 
-Load PRD feature depuis AFFiNE (lit `meta.json` → `affine_page_id` → MCP fetch). Lance `_shared/detect-platforms.sh --section=tickets`:
+## Outputs
 
-1. Lit `config.tickets.platform` (résolu via `load-config.sh`)
-2. Vérifie MCP/CLI dispo + auth pour cette platform
-3. Si rien dispo → erreur claire (install/auth instructions)
-- Cache in-memory session uniquement (config = source de vérité)
+- `.claude/product/features/{feature_id}/tickets.json` — tableau de tickets en
+  cache (id, titre, body, labels, status, platform_url). Validé contre
+  `_shared/schemas/tickets.schema.json`.
+- `.claude/product/features/{feature_id}/meta.json` — `tickets_count` mis à jour.
+- Tickets créés sur GitHub / GitLab / JIRA (URLs cachées ci-dessus).
+- `.claude/product/features/{feature_id}/progress.md` — journal de run.
 
-### step-01-decompose
+## Étape suivante
 
-- Lit PRD feature (contenu AFFiNE déjà chargé)
-- Décompose en stories atomiques (5-30min, 1-5 fichiers, indépendantes)
-- Ordre par priority + dépendances
-
-### step-02-enrich (parallel agents)
-
-- `explore-codebase` → patterns code à suivre par story
-- `explore-docs` si lib unfamiliar
-- `websearch` pour gotchas
-- Enrichit chaque story: contexte, tech notes, edge cases, refs fichiers
-
-### step-03-format
-
-Adapte selon `{platform}`:
-
-- **JIRA**: titre, description (Atlassian markdown), AC (checklist), labels, story points hint, parent epic
-- **GitHub Issues**: titre, body markdown, labels, assignees, milestone, task lists
-- **GitLab**: idem GitHub + scoped labels, weight
-- Templates dans `templates/ticket-{platform}.md`
-
-### step-04-review
-
-- Affiche tableau récap (id, titre, priorité, taille estimée)
-- AskUserQuestion: approve all / adjust / re-decompose
-- Si adjust: AskUserQuestion par ticket sélectionné
-
-### step-05-push
-
-Si pas `--dry-run`:
-
-- Sauvegarde local `tickets.json` (cache avec id plateforme après push)
-- Loop sur stories approuvées:
-  - Via MCP (priorité) ou CLI shell
-  - Récupère ID plateforme, sauvegarde dans cache
-- Update `index.md` état: `ticketed`
-
-### step-06-finish
-
-Propose `/wireframe {feature-id}` (si feature UI) ou `/develop {feature-id}`.
+`/snap:wireframe` ou `/snap:design` si la feature a de l'UI, sinon directement
+`/snap:develop`.

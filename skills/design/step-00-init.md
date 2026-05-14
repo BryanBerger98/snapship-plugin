@@ -1,30 +1,37 @@
 ---
 step: 00-init
-next_step: 01b-ds-extract | 01-ds-bootstrap | 02-source-resolve
-description: Parse args, resolve feature+mode, load config.design nested, run platform preflight (penpot|figma), auto-link wireframes binding if platform matches. ds-extract is explicit-only (no auto-resolve).
+next_step: 01-source-resolve
+description: Parse args, resolve target ticket(s), load config.design nested, run platform preflight (penpot|figma), auto-link wireframes binding if platform matches.
 ---
 
 # step-00 — init
 
-Bootstrap a `/design` run. Three modes (`ds-init`, `ds-update`, `mockup`)
-share this step.
+Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
 
 ## Tasks
 
-1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--mode=ds-extract|ds-init|ds-update|mockup`, `--dry-run`, `--chain-init` (only honored with `--mode=ds-extract`).
+1. **Parse args**: `--resume`/`-r`, positional `<ticket-id|feature-id>`,
+   `--dry-run`, `--no-wireframe-reuse`.
 
 2. **Resume short-circuit**: delegate to `resume-state.sh`:
    ```bash
    resume_json=$(bash skills/_shared/resume-state.sh next \
      --skill=design \
-     --project-root="$PWD" \
-     ${feature:+--feature="$feature"} \
-     ${mode:+--mode="$mode"})
+     --project-root="$PWD")
    ```
-   Same rc=0/1/2 handling as `/wireframe`. Resume state is keyed
-   `(skill=design, feature_id, mode)` so the three modes resume independently.
+   Same rc=0/1/2 handling as `/wireframe`.
 
-3. **Require config + load + resolve platform**:
+3. **Resolve target**: same precedence as `/qa`.
+   - **Empty positional** → `AskUserQuestion` enumerating UI tickets not yet
+     flagged with `design_url`.
+   - **Ticket-shaped** → single-ticket mode. Resolve the owning `feature_id`
+     from the ticket's `tickets.json`.
+   - **Feature-shaped** → multi-ticket mode (every UI ticket of the feature).
+
+   The set of targeted `local_id`s is persisted to skill state as
+   `target_tickets[]`; step-01 builds the screen list from exactly these.
+
+4. **Require config + load + resolve platform**:
    ```bash
    [ -f "$PWD/snapship.config.json" ] || {
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
@@ -40,14 +47,14 @@ share this step.
        ds_export_dir=$(jq -r '.design.penpot.export_dir // ""' /tmp/cfg.json)
        ds_components_page=$(jq -r '.design.penpot.design_system_page // "Components"' /tmp/cfg.json)
        export_format=$(jq -r '.design.export_format // "png"' /tmp/cfg.json)
+       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' /tmp/cfg.json)
        ;;
      figma)
        ds_file_key=$(jq -r '.design.figma.file_key // ""' /tmp/cfg.json)
        ds_file_name=$(jq -r '.design.figma.file_name // ""' /tmp/cfg.json)
        ds_token_env=$(jq -r '.design.figma.token_env // "FIGMA_ACCESS_TOKEN"' /tmp/cfg.json)
-       ds_kb_path=$(jq -r '.design.figma.bridge_kb_path // ".claude/product/design-system/kb"' /tmp/cfg.json)
-       ds_transport=$(jq -r '.design.figma.bridge_transport // "official"' /tmp/cfg.json)
        export_format=$(jq -r '.design.export_format // "png"' /tmp/cfg.json)
+       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' /tmp/cfg.json)
        ;;
      none)
        echo "design.platform = none → skipping /design"
@@ -62,42 +69,21 @@ share this step.
        ;;
    esac
 
-   helper="skills/_shared/$([ "$ds_platform" = "figma" ] && echo figma-bridge-helper.sh || echo penpot-helper.sh)"
+   helper="skills/_shared/$([ "$ds_platform" = "figma" ] && echo figma-helper.sh || echo penpot-helper.sh)"
    ```
 
-4. **Resolve mode** (the mode resolver):
-   - If `--mode=ds-extract` → route directly to `step-01b-ds-extract.md`.
-     **Skip** auto-detection — `ds-extract` is never inferred (it would
-     clobber Figma edits with re-extracted YAML). Skip platform preflight
-     for the dry-run path; require it only when `--chain-init` is set.
-   - Else if `--mode` provided → use it.
-   - Else, auto-detect by signal precedence:
+   `/design figma` uses **the same helper as `/wireframe figma`** —
+   `figma-helper.sh` — and the same Desktop Bridge plugin. No separate
+   tooling.
 
-   | Signal                                                                     | Mode      |
-   |----------------------------------------------------------------------------|-----------|
-   | DS file binding empty AND `_shared/templates/design-system-defaults/*.yaml` exists | `ds-init` |
-   | DS file binding set AND `design-system/specs/**.yaml` diff vs `.design-cache.json` shows changes | `ds-update` |
-   | `--feature` set OR a single feature has `tickets.json` with UI tickets unflagged | `mockup`  |
-
-   If multiple signals match → `AskUserQuestion`:
-   > "Multiple modes possible. Which one?"
-   > Options: `ds-init`, `ds-update`, `mockup`.
-
-   If no signal matches → abort: `"No work to do. Run /ticket first (for
-   mockup) or add a DS spec under design-system/specs/ (for ds-init)."`.
-
-5. **Resolve `feature_id`** (mode = `mockup` only): same precedence as
-   `/ticket` (single → use it; multi → `AskUserQuestion`; zero → abort with
-   "Run `/define` first").
-
-6. **Pre-flight MCP** (common, both platforms):
+5. **Pre-flight MCP** (common, both platforms):
    ```bash
    bash skills/_shared/check-mcp-required.sh --skill=design --project-root="$PWD"
    ```
    The MCP server matching `ds_platform` must be reachable. Surface the error
    verbatim if not.
 
-### 6.a — Pre-flight (penpot only)
+### 5.a — Pre-flight (penpot only)
 
 Same plugin-binding check as `/wireframe penpot`:
 
@@ -106,15 +92,16 @@ bash "$helper" --action=get-current-file
 # exit 10 → dispatcher invokes execute_code → {id, name}
 ```
 
-If `$ds_file_id` empty → run the **auto-link** flow (§7). Otherwise compare
+If `$ds_file_id` empty → run the **auto-link** flow (§6). Otherwise compare
 returned `id` to `$ds_file_id`. Mismatch → halt with binding error.
 
-### 6.b — Pre-flight (figma only)
+### 5.b — Pre-flight (figma only)
 
-Figma Desktop + Desktop Bridge plugin connected. Token chargé depuis
-`.env.snapship` racine projet (jamais depuis shell env directement — secrets
-isolés per-project, gitignored). Clé par défaut `FIGMA_ACCESS_TOKEN`, override
-via `design.figma.token_env`.
+Same check as `/wireframe figma`. Figma Desktop + Desktop Bridge plugin
+connected (WebSocket ports 9223–9232 auto-discovered by `figma-console-mcp`).
+Token chargé depuis `.env.snapship` racine projet (jamais depuis shell env
+directement — secrets isolés per-project, gitignored). Clé par défaut
+`FIGMA_ACCESS_TOKEN`, override via `design.figma.token_env`.
 
 ```bash
 ds_token=$(bash skills/_shared/load-env.sh \
@@ -125,24 +112,17 @@ if [ -z "$ds_token" ]; then
   echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1
 fi
-# Export pour figma-console-mcp + bridge-ds CLI (lus depuis env par enfants).
+# Export pour figma-console-mcp (lu depuis env pour ses fallbacks REST).
 export "$ds_token_env=$ds_token"
 
-bash skills/_shared/figma-helper.sh --action=get-current-file --file-key="$ds_file_key"
+bash "$helper" --action=get-current-file --file-key="$ds_file_key"
 # exit 10 → dispatcher invokes figma_execute → {id: figma.fileKey, name: figma.root.name}
 ```
 
-If `$ds_file_key` empty → **auto-link** flow (§7). Otherwise mismatch → halt
+If `$ds_file_key` empty → **auto-link** flow (§6). Otherwise mismatch → halt
 with binding error.
 
-Bridge CLI sanity check (only modes `ds-init`/`ds-update`/`mockup` on
-figma):
-```bash
-bash "$helper" --action=ds-init --kb-path="$ds_kb_path" --dry-run \
-  || { echo "ERROR: bridge-ds CLI unavailable. Install via npm i -g @noemuch/bridge-ds." >&2; exit 1; }
-```
-
-## 7. Auto-link from wireframes binding
+## 6. Auto-link from wireframes binding
 
 If `$ds_file_id`/`$ds_file_key` is empty **and**
 `wireframes.platform == design.platform` **and** the matching wireframes
@@ -163,47 +143,42 @@ If `wireframes.platform != design.platform` or the wireframes binding is also
 empty → plain `AskUserQuestion` asking for the design file binding (current
 opened file in browser/Desktop), same UX as `/wireframe` step-00.
 
-## 8. Persist platform state
+## 7. Persist platform state
 
-Write `ds_platform`, resolved `$helper` path, mode (`ds-init|ds-update|mockup`),
-and all resolved nested values (`ds_file_id`, `ds_file_key`, `ds_kb_path`,
-`ds_transport`, `export_format`, …) to the skill state file. Later steps read
-from state — they do NOT re-resolve config.
+Write `ds_platform`, resolved `$helper` path, `target_tickets[]`,
+`feature_id`, and all resolved nested values (`ds_file_id`, `ds_file_key`,
+`ds_components_page`, `ds_source`, `export_format`, …) to the skill state
+file. Later steps read from state — they do NOT re-resolve config.
 
-## 9. Validate inputs (mode-dependent)
+## 8. Validate inputs
 
-- **`ds-init`** — at least one YAML under
-  `_shared/templates/design-system-defaults/*.yaml` (or
-  `design-system/specs/*.yaml` if user-overridden).
-- **`ds-update`** — `$ds_file_id`/`$ds_file_key` set, `.design-cache.json`
-  exists with prior DS state to diff against.
-- **`mockup`** — `tickets.json` exists for the feature. `prd-feature.md`
-  mentions ≥ 1 screen ID. Optional: `.wireframes-draft.json` exists (signals
-  reuse of wireframes screens — see step-02).
+- `tickets.json` exists for the resolved feature (run `/ticket` first if not).
+- At least one targeted ticket is a UI ticket (per
+  `filter-ui-tickets.sh`) — otherwise mark progress `skip` with note
+  `no UI tickets`.
+- Optional: `.wireframes-draft.json` exists (signals reusable wireframes
+  screens — see step-01).
 
-## 10. Append progress
+## 9. Append progress
 
 ```bash
 bash skills/_shared/update-progress.sh \
   --project-root="$PWD" \
-  --feature-id="${feature_id:-_global}" \
+  --feature-id="$feature_id" \
   --step-num=00 \
   --step-name=init \
   --status=ok \
-  --skill=design \
-  --extra="{\"mode\":\"$mode\"}"
+  --skill=design
 ```
 
 ## Acceptance check
 
 - `ds_platform` resolved (or `none` → skip).
 - MCP for `ds_platform` reachable.
-- Mode resolved (`ds-init`, `ds-update`, or `mockup`).
+- `feature_id` + `target_tickets[]` resolved.
 - Platform binding verified (file_id or file_key match, or auto-link applied).
-- Mode-specific inputs validated.
+- At least one targeted UI ticket (else skip).
 
 ## Next step
 
-- `mode == ds-extract` → `step-01b-ds-extract.md` (then optionally chains into `step-01-ds-bootstrap.md` with `--chain-init`)
-- `mode ∈ {ds-init, ds-update}` → `step-01-ds-bootstrap.md`
-- `mode == mockup` → `step-02-source-resolve.md`
+→ `step-01-source-resolve.md`
