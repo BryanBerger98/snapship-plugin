@@ -133,7 +133,7 @@ echo ""
 echo "[8] Stdout determinism (no cache file in v1.0.0)"
 DIR=$(setup_dir)
 cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
-out1=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
+bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 if [ ! -f "${DIR}/.snap/.config-resolved.json" ]; then
   echo "  PASS  8.1 no cache file written (v1.0.0 stdout-only)"
   PASS=$((PASS + 1))

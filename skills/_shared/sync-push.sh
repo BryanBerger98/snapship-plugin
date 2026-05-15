@@ -29,7 +29,6 @@ set -euo pipefail
 
 PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 SNAP_DIR="${PROJECT_ROOT}/.snap"
-SCHEMA_VERSION="1.0.0"
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 

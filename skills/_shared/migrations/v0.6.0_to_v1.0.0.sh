@@ -50,6 +50,9 @@ do_or_say() {
   if [ "$DRY_RUN" = "true" ]; then
     say "DRY: $*"
   else
+    # Callers pass a single command string with embedded single-quotes
+    # around paths; eval is required to honour those quotes.
+    # shellcheck disable=SC2294
     eval "$@"
   fi
 }

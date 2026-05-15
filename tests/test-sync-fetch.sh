@@ -112,7 +112,6 @@ echo "[7] check-mark dirty"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
-LOCAL_TS=$(jq -r '.refs.prd.synced_at' "$M")
 REMOTE_NEWER="2099-01-01T00:00:00Z"
 out=$(bash "$SCRIPT" check-mark --feature-id=01-auth --kind=prd --remote-edited="$REMOTE_NEWER" --project-root="$DIR")
 echo "$out" | grep -q "dirty" && ok "7.1 dirty stdout" || ko "7.1 got: $out"
