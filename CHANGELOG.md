@@ -5,7 +5,26 @@ All notable changes to snapship-plugin documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] — 2026-05-15
+
+### Changed — documentation reorganised (`usage/` vs `contributing/`)
+
+- **Top-level `docs/`** split en deux portes : `docs/usage/` (utilisateurs du
+  plugin) et `docs/contributing/` (développeurs du plugin).
+- `docs/skills/` → `docs/usage/skills/`.
+- `docs/plugin.md` → `docs/contributing/plugin-manifest.md` (renommé).
+- `docs/docs-architecture.md` → `docs/usage/concepts.md` (renommé, c'est
+  un doc de concepts pour l'utilisateur).
+- Nouveaux index : `docs/README.md` (hub), `docs/usage/README.md`,
+  `docs/contributing/README.md`, `docs/usage/skills/README.md`.
+- Nouveau doc d'orientation interne : `docs/contributing/architecture.md`
+  (skill anatomy, state machine, helpers `_shared/`).
+- Supprimés (obsolètes) : `docs/release-notes-v1.0.0.md` (redondant avec
+  CHANGELOG + GitHub Release), `docs/coverage.md` (6 lignes obsolètes
+  redondantes avec README), `docs/dogfooding-v0.1.0.md` (notes v0.1
+  remplacées par CHANGELOG + roadmap supprimée).
+- `README.md` racine — section Documentation refactorée en deux tables
+  (usage / contributing), badges + framing « you bring / SnapShip handles ».
 
 ### Changed — v1.0.0 refactor (BREAKING)
 

@@ -116,7 +116,7 @@ Plugin auto-chargé au prochain démarrage Claude Code.
 | `frame0-mcp-server` | optional     | Wireframes shapes/pages/export                   | `/wireframe`                                  |
 | `playwright`        | optional     | Headless browser screenshot                      | `/qa` si `wireframe_check.enabled=true`       |
 
-`code-review-graph` est déclaré dans `.mcp.json` (auto-start). Binaire installé séparément: `pipx install code-review-graph`. Voir [mcp-refs.md](mcp-refs.md) pour autres MCPs.
+`code-review-graph` est déclaré dans `.mcp.json` (auto-start). Binaire installé séparément: `pipx install code-review-graph`. Voir [mcp-refs.md](../usage/mcp-refs.md) pour autres MCPs.
 
 ## Versioning
 
@@ -125,7 +125,7 @@ Manifest `version` = SemVer. Compat config:
 - Minor bump → backward compatible
 - Major bump → instructions migration via `load-config.sh` (check `version` champ config user)
 
-Schemas JSON validés runtime (voir [configuration.md](configuration.md) section validation).
+Schemas JSON validés runtime (voir [configuration.md](../usage/configuration.md) section validation).
 
 ## Templates docs-defaults
 

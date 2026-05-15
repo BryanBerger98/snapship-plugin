@@ -79,7 +79,7 @@ configurée (GitHub Issues, GitLab, JIRA, Linear). Chaque ticket gagne un
 Templates repo-native : si ton repo expose `.github/ISSUE_TEMPLATE/*.md` ou
 `.gitlab/issue_templates/*.md`, snap les détecte et les remplit
 section-par-section au lieu d'écrire le bundled template. Voir
-[templates.md](templates.md).
+[templates.md](../contributing/templates.md).
 
 ## 4. (optionnel) `/snap:wireframe` puis `/snap:design`
 
@@ -136,7 +136,7 @@ en `qa_blocked`.
 ```
 
 Voir [workflow.md](workflow.md) pour les détails plateformes et
-[docs/skills/](skills/) pour chaque skill (flags, pipeline, outputs).
+[skills/](skills/) pour chaque skill (flags, pipeline, outputs).
 
 ## Si ça casse
 

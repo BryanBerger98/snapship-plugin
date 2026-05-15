@@ -76,7 +76,7 @@ Remote (single source of truth — per `/snap:init` `documentation.platform`) :
   spec, body populated later by `/snap:doc-update`).
 
 v0.1's `prd-global.md` and v0.2's `meta.json` are dropped — see
-`docs/decisions.md` "PRD archive vs doc fonctionnelle vivante" + "Manifest unifié
+`docs/contributing/decisions.md` "PRD archive vs doc fonctionnelle vivante" + "Manifest unifié
 v1.0".
 
 ## How to run a step

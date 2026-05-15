@@ -374,7 +374,7 @@ publication initiale ET v0.2 — pas de v0.1 publique. Donc no-op migration.
 6. **Doc-update skill** — création complète `skills/doc-update/`
 7. **QA hook** — `qa/step-finish.md` trigger doc-update conditionnel
 8. **Tests** — extend `test-define-e2e.sh`, nouveaux `test-doc-import-e2e.sh`, `test-doc-update-e2e.sh`, `test-taxonomy-state.sh`, `test-docs-adapter.sh` (nouvelles actions)
-9. **Docs** — update `docs/decisions.md`, `docs/scripts.md`, `docs/skills/define.md`, nouveaux `docs/skills/doc-import.md` + `docs/skills/doc-update.md`
+9. **Docs** — update `docs/contributing/decisions.md`, `docs/contributing/scripts.md`, `docs/usage/skills/define.md`, nouveaux `docs/usage/skills/doc-import.md` + `docs/usage/skills/doc-update.md`
 10. **CHANGELOG** — section `[Unreleased]` BREAKING CHANGE
 
 ## Décisions actées (cf. décisions.md à amender)

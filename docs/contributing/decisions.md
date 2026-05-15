@@ -105,7 +105,7 @@
 
 **Why:** PRD = "ce qu'on va changer" (forward-looking, périmé post-ship). Doc fonctionnelle = "ce que le produit fait aujourd'hui" (source vérité courante). Les mélanger pollue les deux usages.
 
-**How to apply:** spec complète dans `docs/docs-architecture.md`. Breaking change vs v0.1, pas de migration (pilote uniquement).
+**How to apply:** spec complète dans `docs/usage/concepts.md`. Breaking change vs v0.1, pas de migration (pilote uniquement).
 
 ### Doc fonctionnelle: structure domain → journey
 
@@ -146,7 +146,7 @@ Mode update configurable: `diff` (default — patch sections impactées) ou `rew
 
 **Why:** scalabilité (ajouter une plateforme = un sous-bloc, pas N clés top-level), schema-correctness (`additionalProperties:false` exclut le bruit), parité `/wireframe` ↔ `/design` (mêmes blocs Penpot/Figma).
 
-**How to apply:** migration utilisateur via `scripts/migrate-config-v04-to-v05.sh` (jq one-shot, non bundlé runtime). Mapping ancien → nouveau documenté `docs/config.md` + `CHANGELOG.md` v0.5.0.
+**How to apply:** migration utilisateur via `scripts/migrate-config-v04-to-v05.sh` (jq one-shot, non bundlé runtime). Mapping ancien → nouveau documenté `docs/usage/configuration.md` + `CHANGELOG.md` v0.5.0.
 
 ### `/design` réduit aux maquettes — retrait du tooling Bridge CLI (Unreleased — breaking)
 

@@ -212,6 +212,6 @@ escalade : ouvre un ticket dédié `test-flakiness` plutôt que de réessayer.
 | -------------------------------------- | -------------------------------------------------- |
 | Comprendre la config                   | [configuration.md](configuration.md)               |
 | Comprendre le flux global              | [workflow.md](workflow.md)                         |
-| Comprendre la structure `.snap/`       | [structure.md](structure.md)                       |
+| Comprendre la structure `.snap/`       | [structure.md](../contributing/structure.md)       |
 | Comprendre un skill précis             | [skills/](skills/)                                 |
 | MCP refs (Frame0, AFFiNE, Playwright…) | [mcp-refs.md](mcp-refs.md)                         |

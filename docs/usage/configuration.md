@@ -170,7 +170,7 @@
     // Exemple:
     // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
   },
-  "templates": {                           // résolution template (cf. docs/templates.md)
+  "templates": {                           // résolution template (cf. ../contributing/templates.md)
     "use_repo_native": true,               // réutiliser les templates .github/.gitlab
     "tickets": {
       "user_story": null,                  // ex: ".claude/templates/my-user-story.md"

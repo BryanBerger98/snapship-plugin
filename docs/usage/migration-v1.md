@@ -122,5 +122,5 @@ restaure depuis `.snap.bak-v0-{timestamp}/`.
 ## Plus de détails
 
 - [CHANGELOG.md](../CHANGELOG.md) — entrée v1.0.0 (toutes les ruptures)
-- [structure.md](structure.md) — nouvelle arbo `.snap/`
-- [scripts.md](scripts.md) — contrats helpers refactorés
+- [structure.md](../contributing/structure.md) — nouvelle arbo `.snap/`
+- [scripts.md](../contributing/scripts.md) — contrats helpers refactorés

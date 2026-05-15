@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Avant d'ouvrir : lis [docs/troubleshooting.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/troubleshooting.md) et [docs/getting-started.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/getting-started.md). Si la réponse est déjà documentée, je propose qu'on améliore la doc ensemble.
+        Avant d'ouvrir : lis [docs/usage/troubleshooting.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/usage/troubleshooting.md) et [docs/usage/getting-started.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/usage/getting-started.md). Si la réponse est déjà documentée, je propose qu'on améliore la doc ensemble.
   - type: textarea
     id: question
     attributes:

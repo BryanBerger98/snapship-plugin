@@ -248,7 +248,7 @@ bash skills/_shared/define-state.sh wipe --project-root="$PWD"
 
 ## What this step does NOT do
 
-- ❌ Push a "global PRD" page (v0.1 concept dropped — see `docs/decisions.md`).
+- ❌ Push a "global PRD" page (v0.1 concept dropped — see `docs/contributing/decisions.md`).
 - ❌ Modify domain pages with a "modification log" entry (would bloat).
 - ❌ Link journey ↔ PRD (journey is a clean spec; PRD = external archive).
 - ❌ Populate journey body for new journeys (deferred to `/snap:doc-update`).
