@@ -1,86 +1,86 @@
-# `/snap:doc-import` — import des docs legacy dans la structure SnapShip
+# `/snap:doc-import` — import legacy docs into the SnapShip structure
 
-Importe des pages de doc free-form (AFFiNE / Notion) dans la hiérarchie SnapShip
-v0.2 (`functional_root` → domaine → parcours utilisateur). One-shot par projet ;
-produit `_taxonomy.json`.
+Imports free-form doc pages (AFFiNE / Notion) into the SnapShip v0.2
+hierarchy (`functional_root` → domain → user journey). One-shot per project;
+produces `_taxonomy.json`.
 
-## À quoi ça sert
+## What it does
 
-Onboarder un codebase qui a déjà des pages de doc dispersées. Produit une
-hiérarchie `Product Docs/` peuplée + `_taxonomy.json`, pour que les
-`/snap:define` suivants puissent retrouver-ou-créer les pages parcours par slug.
+Onboard a codebase that already has scattered doc pages. Produces a
+populated `Product Docs/` hierarchy + `_taxonomy.json`, so that subsequent
+`/snap:define` runs can find-or-create journey pages by slug.
 
-> Ce n'est **pas un outil de migration** : SnapShip v0.1 → v0.2 n'a pas de
-> migration (pilote uniquement).
+> This is **not a migration tool**: SnapShip v0.1 → v0.2 has no
+> migration path (pilots only).
 
-## Quand l'utiliser
+## When to use it
 
-- Projet existant avec des pages de doc legacy éparpillées, trop nombreuses pour
-  être réorganisées à la main avant le premier `/snap:define`.
-- Bootstrap **one-shot**. Les re-runs exigent `--force` (typiquement après un
-  dry-run raté ou pour refaire l'analyse avec un autre source root).
+- Existing project with scattered legacy doc pages, too many to
+  reorganize by hand before the first `/snap:define`.
+- **One-shot** bootstrap. Re-runs require `--force` (typically after a
+  failed dry-run or to redo the analysis with a different source root).
 
-## Prérequis
+## Prerequisites
 
-- `/snap:init` lancé (`snapship.config.json` + `.snap/` existent).
-- `documentation.platform ∈ {affine, notion}` (ignoré si `none`).
-- Serveur MCP de cette plateforme joignable dans la session courante.
-- `_taxonomy.json` vide **ou** `--force` (refuse d'écraser un import existant).
+- `/snap:init` run (`snapship.config.json` + `.snap/` exist).
+- `documentation.platform ∈ {affine, notion}` (skipped if `none`).
+- MCP server for that platform reachable in the current session.
+- `_taxonomy.json` empty **or** `--force` (refuses to overwrite an existing import).
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:doc-import
-  --source-page=<page-id-or-url>     # racine AFFiNE à scanner (omis = racine workspace)
-  --strategy=synthesize|copy|move    # défaut : synthesize
-  [--dry-run]                        # prévisualise le mapping ; aucune écriture
-  [--backup]                         # exporte les pages source vers .snap/.backup/
-  [-a|--auto]                        # autonome (ignore les confirmations ; proposition IA telle quelle)
-  [--force]                          # bypass le garde _taxonomy.json non-vide
+  --source-page=<page-id-or-url>     # AFFiNE root to scan (omit = workspace root)
+  --strategy=synthesize|copy|move    # default: synthesize
+  [--dry-run]                        # previews the mapping; no writes
+  [--backup]                         # exports source pages to .snap/.backup/
+  [-a|--auto]                        # autonomous (skips confirmations; uses AI proposal as-is)
+  [--force]                          # bypasses the non-empty _taxonomy.json guard
 ```
 
 ## Flags
 
-| Flag                     | Effet                                                                          |
+| Flag                     | Effect                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| `--source-page=<id\|url>`| Racine AFFiNE à scanner. Omis → racine du workspace.                           |
-| `--strategy=...`         | Stratégie d'import (voir ci-dessous). Défaut : `synthesize`.                    |
-| `--dry-run`              | Prévisualise le mapping page → cible, aucune écriture AFFiNE.                   |
-| `--backup`               | Exporte les pages source vers `.snap/.backup/`.                      |
-| `-a` / `--auto`          | Autonome : ignore les confirmations, utilise la proposition IA telle quelle.   |
-| `--force`                | Bypass le garde « `_taxonomy.json` non-vide ».                                   |
+| `--source-page=<id\|url>`| AFFiNE root to scan. Omit → workspace root.                                    |
+| `--strategy=...`         | Import strategy (see below). Default: `synthesize`.                            |
+| `--dry-run`              | Previews the page → target mapping, no AFFiNE writes.                          |
+| `--backup`               | Exports source pages to `.snap/.backup/`.                                      |
+| `-a` / `--auto`          | Autonomous: skips confirmations, uses the AI proposal as-is.                   |
+| `--force`                | Bypasses the "non-empty `_taxonomy.json`" guard.                               |
 
-## Stratégies
+## Strategies
 
-| Stratégie                | Mécanique                                                                                       | À utiliser quand                          |
+| Strategy                 | Mechanics                                                                                       | Use when                                  |
 | ------------------------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **synthesize** (défaut)  | L'IA consolide N pages source → 1 doc parcours. Les pages source sont taguées `[snap-imported]`. | La doc legacy est désordonnée / éparpillée. |
-| **copy**                 | Duplique le contenu source vers de nouvelles pages sous le chemin SnapShip. Les originales vont dans `Archive/imported-{date}/`. | Préserver le contenu verbatim.            |
-| **move**                 | Renomme + reparente les pages source vers le chemin SnapShip. Préserve l'historique AFFiNE.     | La doc est déjà bien structurée, juste au mauvais chemin. |
+| **synthesize** (default) | AI consolidates N source pages → 1 journey doc. Source pages tagged `[snap-imported]`.           | Legacy docs are messy / scattered.        |
+| **copy**                 | Duplicates source content into new pages under the SnapShip path. Originals go to `Archive/imported-{date}/`. | Preserve content verbatim.                |
+| **move**                 | Renames + reparents source pages into the SnapShip path. Preserves AFFiNE history.              | Docs are already well-structured, just at the wrong path. |
 
 ## Pipeline
 
-| #  | Step                     | Rôle                                                                          |
+| #  | Step                     | Role                                                                          |
 | -- | ------------------------ | ----------------------------------------------------------------------------- |
-| 00 | `step-00-init.md`        | Parse args, exige `/snap:init`, valide plateforme + MCP, garde `_taxonomy.json` non-vide. |
-| 01 | `step-01-crawl.md`       | Liste les pages source (sous-arbre `--source-page` ou racine workspace), construit l'index. |
-| 02 | `step-02-analyze.md`     | L'IA propose domaines + parcours + mapping page → cible ; émet `proposed_structure` JSON. |
-| 03 | `step-03-confirm.md`     | Revue via `AskUserQuestion` ; édition JSON possible avant commit.              |
-| 04 | `step-04-restructure.md` | Exécute la stratégie (synthesize / copy / move) ; écrit les pages via docs-adapter. |
-| 05 | `step-05-finish.md`      | Persiste `_taxonomy.json`, télémétrie, entrée progress.                         |
+| 00 | `step-00-init.md`        | Parses args, requires `/snap:init`, validates platform + MCP, enforces non-empty `_taxonomy.json` guard. |
+| 01 | `step-01-crawl.md`       | Lists source pages (`--source-page` subtree or workspace root), builds the index. |
+| 02 | `step-02-analyze.md`     | AI proposes domains + journeys + page → target mapping; emits `proposed_structure` JSON. |
+| 03 | `step-03-confirm.md`     | Review via `AskUserQuestion`; JSON edits possible before commit.               |
+| 04 | `step-04-restructure.md` | Executes the strategy (synthesize / copy / move); writes pages via docs-adapter. |
+| 05 | `step-05-finish.md`      | Persists `_taxonomy.json`, telemetry, progress entry.                          |
 
-Steps **idempotents re-entrants sur fail partiel** : les pages déjà migrées
-portent le tag `[snap-imported]` et sont sautées au re-run.
+Steps are **idempotent and re-entrant on partial failure**: already-migrated
+pages carry the `[snap-imported]` tag and are skipped on re-run.
 
 ## Outputs
 
-- Pages `Product Docs/{domain}/{journey}` peuplées sur AFFiNE / Notion.
-- `.snap/manifests/_taxonomy.json` rempli (IDs des pages domaine + parcours).
-- `.snap/.backup/` (si `--backup`).
-- Entrée `progress.json` + événement de télémétrie `doc-import`.
-- **Non produit** : `Change Requests/*` (les PRD viennent via `/snap:define`),
-  features `manifest.json` (aucun `feature_id` n'existe encore).
+- `Product Docs/{domain}/{journey}` pages populated on AFFiNE / Notion.
+- `.snap/manifests/_taxonomy.json` filled (domain + journey page IDs).
+- `.snap/.backup/` (if `--backup`).
+- `progress.json` entry + `doc-import` telemetry event.
+- **Not produced**: `Change Requests/*` (PRDs come from `/snap:define`),
+  feature `manifest.json` (no `feature_id` exists yet).
 
-## Étape suivante
+## Next step
 
-`/snap:define` pour cadrer la première feature dans la structure importée.
+`/snap:define` to scope the first feature in the imported structure.

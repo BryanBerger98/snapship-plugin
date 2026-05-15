@@ -1,6 +1,6 @@
-# Scripts partagés `_shared/`
+# Shared scripts `_shared/`
 
-Tous scripts dans `skills/_shared/`. Réutilisables transverses.
+All scripts in `skills/_shared/`. Reusable across skills.
 
 ## detect-platforms.sh
 
@@ -8,27 +8,27 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 # args: --section=tickets|documentation|wireframes|all
 # Output JSON: { tickets: { platform, via, auth }, documentation: {...}, ... }
 # 1. Read snapship.config.json (via load-config.sh)
-# 2. Pour chaque platform configurée:
-#    - MCP server actif? (parse claude_desktop_config / .claude/settings.json)
-#    - Sinon CLI dispo? (which gh glab jira)
-#    - Test auth: gh auth status / glab auth status / jira me
-# 3. Cache résultat session (in-memory, pas disque — config = source de vérité)
-# 4. Fail fast si platform configurée mais aucun via dispo
+# 2. For each configured platform:
+#    - MCP server active? (parse claude_desktop_config / .claude/settings.json)
+#    - Otherwise CLI available? (which gh glab jira)
+#    - Auth test: gh auth status / glab auth status / jira me
+# 3. Cache session result (in-memory, no disk — config = source of truth)
+# 4. Fail fast if platform configured but no via available
 ```
 
 ## frame0-helper.sh
 
 ```bash
-# Vérifie MCP frame0-mcp-server actif
-# Wrapper pour batch operations (créer page + shapes en chaîne)
+# Verify MCP frame0-mcp-server active
+# Wrapper for batch operations (chain create page + shapes)
 ```
 
 ## setup-snap-dir.sh
 
 ```bash
-# Init .snap/ idempotent (manifests/, PRDs/, designs/, wireframes/, tickets/,
+# Init .snap/ idempotently (manifests/, PRDs/, designs/, wireframes/, tickets/,
 # queues/, .doc-import/cache/). Bootstrap _taxonomy.json + progress.json.
-# --feature-id + --feature-name → init aussi manifests/{id}.manifest.json
+# --feature-id + --feature-name → also init manifests/{id}.manifest.json
 ```
 
 ## progress.sh
@@ -40,256 +40,256 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #   finish --skill=X --feature-id=Y --status=ok|fail
 #   resume --skill=X --feature-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
 #   list                              # stdout: in_flight[] JSON
-# Écrit .snap/progress.json (gitignored).
+# Writes .snap/progress.json (gitignored).
 ```
 
 ## load-config.sh
 
 ```bash
-# Parse snapship.config.json + apply defaults bundlés + inheritance rules
-# Output: JSON normalisé (tous champs résolus) sur stdout
-# Cas:
-#   - Config absent → returns defaults
-#   - Section absente → fill avec defaults (skill décide si bloquant — voir setup trigger)
-#   - inherit → résout (tickets.platform=inherit → repository.platform)
-#   - testing.*_command absent → auto-detect (package.json scripts, Makefile, pyproject)
-#   - naming.ticket_id_regex absent → pattern par platform
-# Validation JSON Schema:
-#   - Lit `_shared/schemas/config.schema.json` (ou `.snap/schemas/` si copié)
-#   - Valide via `jq` + check basique OU `ajv-cli` si dispo
-#   - Erreurs schema → exit 1 + chemin champ + raison
-#   - Check `version` champ — incompatibilité majeure → instruction migration
-# Warnings (stderr, non-bloquants):
+# Parse snapship.config.json + apply bundled defaults + inheritance rules
+# Output: normalized JSON (all fields resolved) on stdout
+# Cases:
+#   - Config missing → returns defaults
+#   - Section missing → fill with defaults (skill decides if blocking — see setup trigger)
+#   - inherit → resolve (tickets.platform=inherit → repository.platform)
+#   - testing.*_command missing → auto-detect (package.json scripts, Makefile, pyproject)
+#   - naming.ticket_id_regex missing → pattern by platform
+# JSON Schema validation:
+#   - Reads `_shared/schemas/config.schema.json` (or `.snap/schemas/` if copied)
+#   - Validates via `jq` + basic check OR `ajv-cli` if available
+#   - Schema errors → exit 1 + field path + reason
+#   - Check `version` field — major incompatibility → migration instruction
+# Warnings (stderr, non-blocking):
 #   - tickets.platform != "jira" + tickets.jira.* set
-#     → "Section tickets.jira ignorée sur platform Y"
-#   - lifecycle_scripts.<name> set vers script inexistant → "script X path invalide"
-# Cache résolution dans .snap/.config-resolved.json (invalidé si mtime change)
+#     → "tickets.jira section ignored on platform Y"
+#   - lifecycle_scripts.<name> pointing to non-existent script → "script X invalid path"
+# Cache resolution in .snap/.config-resolved.json (invalidated when mtime changes)
 ```
 
-## Setup trigger pattern (chaque skill step-00)
+## Setup trigger pattern (each skill step-00)
 
 ```
-1. load-config.sh → cache résolution
-2. Pour chaque section requise (selon Auto-discovery sections par étape):
-   - Si section absente OU champs critiques manquants → bloque + lance:
+1. load-config.sh → cache resolution
+2. For each required section (per Auto-discovery sections by step):
+   - If section missing OR critical fields missing → block + launch:
      setup-config.sh --section=<name> --interactive
    - setup-config.sh:
-     - AskUserQuestion mapping interactif champs requis
-     - Auto-discovery sub-fields (workspace via MCP, templates par heuristique nom)
+     - AskUserQuestion interactive mapping for required fields
+     - Auto-discovery sub-fields (workspace via MCP, templates via name heuristic)
      - Persist snapship.config.json
      - Validate via load-config.sh schema
-   - Skill reprend step-00 avec config complète
-3. Si flag `-a` ET section absente → fail explicite (no AskUserQuestion en autonomous)
+   - Skill resumes step-00 with complete config
+3. If flag `-a` AND section missing → fail explicitly (no AskUserQuestion in autonomous mode)
 ```
 
 ## run-lifecycle-script.sh
 
 ```bash
-# Exécute un lifecycle_script CUSTOM workflow (≠ hook Claude Code natif).
+# Execute a CUSTOM workflow lifecycle_script (≠ native Claude Code hook).
 # args: script_name (pre_define|post_ticket|...), context_json
-# Lit config.lifecycle_scripts.<script_name>
-# Si clé absente OU null → skip silencieux
-# Si défini (string path) → exec script avec context_json sur stdin
-# Capture exit code: non-zéro = stop workflow (ou warning si --no-fail-lifecycle)
+# Reads config.lifecycle_scripts.<script_name>
+# If key missing OR null → silently skip
+# If defined (string path) → exec script with context_json on stdin
+# Capture exit code: non-zero = stop workflow (or warning if --no-fail-lifecycle)
 ```
 
 ## ask-or-default.sh
 
 ```bash
-# Wrapper AskUserQuestion: shortcircuit en mode -a vers default explicite.
+# AskUserQuestion wrapper: short-circuit in -a mode to explicit default.
 # args:
 #   --auto-mode=true|false      (state {auto_mode})
-#   --question-id=<id>          (label diagnostic — ex: "confirm-platform")
-#   --question="<text>"         (texte tool AskUserQuestion si interactif)
-#   --options=<csv>             (options possibles)
-#   --default=<value>           (REQUIS si auto-mode=true)
-# Comportement:
-#   - auto-mode=true  → echo "{default}" sur stdout, exit 0
-#   - auto-mode=true sans default → exit 1 + msg "auto-mode without default: question-id={id}"
-#   - auto-mode=false → exit 0 + signal au skill d'invoquer AskUserQuestion tool natif
-#                       (le wrapper ne peut PAS appeler le tool lui-même — skill orchestrera)
-# Note: en mode interactif, le wrapper est un guard/validator. Le tool call reste skill-side.
+#   --question-id=<id>          (diagnostic label — e.g. "confirm-platform")
+#   --question="<text>"         (AskUserQuestion tool text if interactive)
+#   --options=<csv>             (possible options)
+#   --default=<value>           (REQUIRED if auto-mode=true)
+# Behavior:
+#   - auto-mode=true  → echo "{default}" on stdout, exit 0
+#   - auto-mode=true without default → exit 1 + msg "auto-mode without default: question-id={id}"
+#   - auto-mode=false → exit 0 + signal skill to invoke native AskUserQuestion tool
+#                       (the wrapper CANNOT call the tool itself — skill will orchestrate)
+# Note: in interactive mode, the wrapper is a guard/validator. The tool call stays skill-side.
 ```
 
 ## setup-config.sh
 
 ```bash
-# Auto-générer snapship.config.json racine projet
+# Auto-generate snapship.config.json at project root
 # 1. Parse .git/config → repository.{http_url, ssh_url, platform}
-# 2. Detect MCP servers actifs (affine, notion, frame0, atlassian, github, gitlab)
-# 3. AskUserQuestion progressive par section:
-#    - tickets: platform + url + (si JIRA: jira.project_key + jira.workflow_states/transitions)
+# 2. Detect active MCP servers (affine, notion, frame0, atlassian, github, gitlab)
+# 3. AskUserQuestion progressive per section:
+#    - tickets: platform + url + (if JIRA: jira.project_key + jira.workflow_states/transitions)
 #    - documentation: platform + workspace_id + root_page_id + templates mapping
-#    - wireframes: confirm frame0 ou skip
+#    - wireframes: confirm frame0 or skip
 #    - testing: auto-detect commands + AskUserQuestion override
 #    - naming: defaults branch_pattern/commit_pattern + AskUserQuestion override
 #    - develop: review_cycles_max + severity_threshold + fail_strategy
 #    - qa: qa_cycles_max + severity_threshold + retrigger_review
 #    - defaults: lang (FR/EN)
 # 4. Write snapship.config.json
-# Idempotent: si config existe, propose update sections incomplètes
+# Idempotent: if config exists, proposes update for incomplete sections
 ```
 
 ## detect-test-commands.sh
 
 ```bash
-# Auto-detect commandes testing/typecheck/lint/format
+# Auto-detect testing/typecheck/lint/format commands
 # Output JSON: { test_command, typecheck_command, lint_command, format_command }
-# Heuristique:
-#   - package.json scripts → "test", "typecheck", "lint", "format" (priorité)
-#   - pnpm-lock.yaml → préfixe "pnpm", yarn.lock → "yarn", autre → "npm run"
+# Heuristic:
+#   - package.json scripts → "test", "typecheck", "lint", "format" (priority)
+#   - pnpm-lock.yaml → "pnpm" prefix, yarn.lock → "yarn", other → "npm run"
 #   - Cargo.toml → "cargo test", "cargo check", "cargo clippy", "cargo fmt"
 #   - pyproject.toml → "pytest", "mypy", "ruff check", "ruff format"
-#   - Makefile → cibles "test", "lint", etc. si présentes
-#   - Sinon → null (skill prompt user)
+#   - Makefile → "test", "lint", etc. targets if present
+#   - Otherwise → null (skill prompts user)
 ```
 
 ## apply-naming.sh
 
 ```bash
 # args: type (feature_id|branch|commit), context_json
-# Lit config.naming.* + render template avec vars du context
-# Vars supportées:
-#   - feature_id: hardcoded NN-kebab — args: {nn} (numéro), {name} → kebab tronqué `feature_slug_max_length`
+# Reads config.naming.* + renders template with context vars
+# Supported vars:
+#   - feature_id: hardcoded NN-kebab — args: {nn} (number), {name} → kebab truncated to `feature_slug_max_length`
 #   - branch: {type}, {ticket_id}, {slug}
 #   - commit: {type}, {scope}, {message}
-# Slugify automatique (kebab-case, ASCII fold, troncature)
+# Automatic slugify (kebab-case, ASCII fold, truncation)
 ```
 
 ## check-mcp-required.sh
 
 ```bash
 # args: skill_name [--extra=<csv>]
-# Lit config.ai.mcp_servers_required (fail-fast) + mcp_servers_optional (warn)
-# --extra=<csv> ajoute MCPs dynamiquement à check-list required pour ce run
-#   (ex: skill /qa appelle avec --extra=playwright si wireframe_check.enabled=true)
-# Vérifie chaque MCP est actif (parse claude_desktop_config / .claude/settings.json)
-# Required absent → exit 1 + install instructions
-# Optional absent → log warning + features dépendantes désactivées (flag retourné via stdout JSON)
+# Reads config.ai.mcp_servers_required (fail-fast) + mcp_servers_optional (warn)
+# --extra=<csv> dynamically adds MCPs to the required check-list for this run
+#   (e.g. /qa skill calls with --extra=playwright if wireframe_check.enabled=true)
+# Verifies each MCP is active (parse claude_desktop_config / .claude/settings.json)
+# Required missing → exit 1 + install instructions
+# Optional missing → log warning + dependent features disabled (flag returned via stdout JSON)
 # Output stdout: { available: [...], missing_required: [...], missing_optional: [...] }
-# Appelé par chaque skill step-00 avant de continuer
+# Called by each skill at step-00 before continuing
 #
-# Conflit name multiples (ex: 2 affine variants installés):
-#   - Match regex pattern (`affine-mcp*` matche `affine-mcp-server` ET `affine-mcp-server-v2`)
-#   - First-match deterministic (ordre alphabétique stable depuis JSON config)
-#   - Si N>1 match → stderr warning: "Multiple MCP match 'affine-mcp*': [name1, name2]. Using: name1."
-#   - User peut forcer name exact dans config (`mcp_servers_required: ["affine-mcp-server"]` strict)
+# Multiple name conflicts (e.g. 2 affine variants installed):
+#   - Match regex pattern (`affine-mcp*` matches `affine-mcp-server` AND `affine-mcp-server-v2`)
+#   - First-match deterministic (stable alphabetical order from JSON config)
+#   - If N>1 matches → stderr warning: "Multiple MCP match 'affine-mcp*': [name1, name2]. Using: name1."
+#   - User can force exact name in config (`mcp_servers_required: ["affine-mcp-server"]` strict)
 ```
 
-## docs-adapter.sh (abstraction AFFiNE/Notion)
+## docs-adapter.sh (AFFiNE/Notion abstraction)
 
 ```bash
-# Route vers MCP selon config.documentation.platform
-# Actions (lecture):
+# Routes to MCP based on config.documentation.platform
+# Actions (read):
 #   - get <page_id>                        → markdown content
 #   - search <query>
 #   - lookup-page (--title) (--workspace-id|--parent-id)        → page_id|empty (v0.2)
-# Actions (écriture):
+# Actions (write):
 #   - create <parent_id> <title> <md>      → page_id + url
 #   - apply-template <tpl_id> <parent_id> <title> <vars_json> → page_id + url
-#   - upload-blob <file_path>              → blob_id (pour embed images)
+#   - upload-blob <file_path>              → blob_id (for embedding images)
 #   - update <page_id> <markdown>
 #   - lookup-or-create-page (idempotent) → page_id (existing or new) (v0.2)
 #   - update-page-content <page_id> <markdown>                  (v0.2)
 #   - set-page-tags <page_id> <tags_json_array>                 (v0.2)
 #   - create-page-tree <path=A/B/C> (--workspace-id|--parent-id)→ leaf page_id (v0.2)
-# Implémentations:
-#   - affine: appels MCP affine-mcp-server
-#   - notion: appels MCP notion-mcp (community)
-# Mode: les write actions sortent un MCP descriptor (exit 10) + court-circuitent en --dry-run.
+# Implementations:
+#   - affine: affine-mcp-server MCP calls
+#   - notion: notion-mcp MCP calls (community)
+# Mode: write actions emit an MCP descriptor (exit 10) + short-circuit on --dry-run.
 ```
 
-## taxonomy-state.sh (v0.2 — cache domain/journey ↔ page IDs)
+## taxonomy-state.sh (v0.2 — domain/journey ↔ page IDs cache)
 
 ```bash
-# CRUD .snap/manifests/_taxonomy.json (persistant, schema: domains.schema.json)
-# Source vérité ID pour idempotent lookup-or-create dans /snap:define publish + /snap:doc-update.
+# CRUD .snap/manifests/_taxonomy.json (persistent, schema: domains.schema.json)
+# Source of truth for IDs in idempotent lookup-or-create in /snap:define publish + /snap:doc-update.
 # Subcommands:
-#   - init                                              → écrit {} si absent
-#   - add-domain SLUG TITLE PAGE_ID [URL]               → idempotent (preserve journeys)
+#   - init                                              → write {} if missing
+#   - add-domain SLUG TITLE PAGE_ID [URL]               → idempotent (preserves journeys)
 #   - add-journey DOMAIN_SLUG JOURNEY_SLUG TITLE PAGE_ID [URL]
-#   - get-domain SLUG                                   → JSON entrée ou vide
-#   - get-journey DOMAIN_SLUG JOURNEY_SLUG              → JSON entrée ou vide
+#   - get-domain SLUG                                   → JSON entry or empty
+#   - get-journey DOMAIN_SLUG JOURNEY_SLUG              → JSON entry or empty
 #   - list-domains | list-journeys [DOMAIN_SLUG]
 #   - has-domain SLUG | has-journey DOMAIN_SLUG SLUG    → exit 0/1
-#   - validate                                          → ajv contre schema
+#   - validate                                          → ajv against schema
 ```
 
-## tickets-adapter.sh (abstraction GitHub/GitLab/JIRA)
+## tickets-adapter.sh (GitHub/GitLab/JIRA abstraction)
 
 ```bash
-# Route vers MCP > CLI selon config.tickets.platform
+# Routes to MCP > CLI based on config.tickets.platform
 # Actions:
 #   - create <ticket_json>                 → id + url
 #   - get <id>                             → ticket_json
 #   - update <id> <fields_json>
-#   - comment <id> <text>                          (commente un ticket/issue)
-#   - comment-pr --pr-id=N (--comment | --body-file=PATH) (github/gitlab uniquement —
-#                                                  jira renvoie not_supported exit 1)
+#   - comment <id> <text>                          (comments a ticket/issue)
+#   - comment-pr --pr-id=N (--comment | --body-file=PATH) (github/gitlab only —
+#                                                  jira returns not_supported exit 1)
 #   - list <feature_query>                 → array
-#   - list-prs --branch=<name>             → existant PR pour la branche (idempotent push)
-#   - update-pr / create-pr                → CRUD PR
-# Implémentations:
-#   - github: gh CLI ou MCP github
-#   - gitlab: glab CLI ou MCP gitlab
-#   - jira: jira CLI ou MCP atlassian
-# --body-file: lu dans COMMENT_TEXT si --comment vide (utile pour rendered review-thread).
+#   - list-prs --branch=<name>             → existing PR for the branch (idempotent push)
+#   - update-pr / create-pr                → PR CRUD
+# Implementations:
+#   - github: gh CLI or github MCP
+#   - gitlab: glab CLI or gitlab MCP
+#   - jira: jira CLI or atlassian MCP
+# --body-file: read into COMMENT_TEXT if --comment empty (useful for rendered review-thread).
 ```
 
 ## detect-repo-templates.sh
 
 ```bash
-# Détecte un template repo-native (.github/.gitlab). Sortie: chemin absolu sur
-# stdout, ou rien (exit 0) si aucun template repo-native ne correspond.
+# Detects a repo-native template (.github/.gitlab). Output: absolute path on
+# stdout, or nothing (exit 0) if no repo-native template matches.
 # args:
-#   --kind=ticket|pr           (REQUIS)
-#   --type=user-story|bug|epic (REQUIS si kind=ticket)
+#   --kind=ticket|pr           (REQUIRED)
+#   --type=user-story|bug|epic (REQUIRED if kind=ticket)
 #   --platform=github|gitlab|jira  (ticket) | github|gitlab (pr)
-#   --project-root=PATH        (défaut: $PWD ou $SNAP_PROJECT_ROOT)
-# Conventions scannées (markdown uniquement — les formulaires .yml/.yaml sont ignorés) :
+#   --project-root=PATH        (default: $PWD or $SNAP_PROJECT_ROOT)
+# Scanned conventions (markdown only — .yml/.yaml forms are ignored):
 #   ticket/github → .github/ISSUE_TEMPLATE/*.md, legacy .github/ISSUE_TEMPLATE.md
 #   ticket/gitlab → .gitlab/issue_templates/*.md
-#   ticket/jira   → (aucune — JIRA n'a pas de convention repo-native)
-#   pr/github     → .github/PULL_REQUEST_TEMPLATE.md (+ racine, docs/, forme répertoire)
+#   ticket/jira   → (none — JIRA has no repo-native convention)
+#   pr/github     → .github/PULL_REQUEST_TEMPLATE.md (+ root, docs/, directory form)
 #   pr/gitlab     → .gitlab/merge_request_templates/*.md
-# Mapping nom de fichier → type : *bug*/*defect* → bug, *epic* → epic,
-#   *story*/*feature* → user-story. Forme répertoire PR → préfère 'default.md'.
-# Exit codes: 0 succès (chemin trouvé ou non) | 1 args invalides
+# Filename → type mapping: *bug*/*defect* → bug, *epic* → epic,
+#   *story*/*feature* → user-story. PR directory form → prefers 'default.md'.
+# Exit codes: 0 success (path found or not) | 1 invalid args
 ```
 
 ## resolve-template.sh
 
 ```bash
-# Résout un template : override config > repo-native > bundlé.
-# Sortie: objet JSON sur stdout → {"path":"...","source":"...","render_mode":"..."}
+# Resolves a template: config override > repo-native > bundled.
+# Output: JSON object on stdout → {"path":"...","source":"...","render_mode":"..."}
 #   source      = config | repo-native | bundled
-#   render_mode = mustache (config/bundlé) | scaffold (repo-native)
+#   render_mode = mustache (config/bundled) | scaffold (repo-native)
 # args:
-#   --kind=ticket|pr|review-thread|aggregated-feedback (REQUIS)
-#   --type=user-story|bug|epic                          (REQUIS si kind=ticket)
-#   --platform=github|gitlab|jira|default               (REQUIS pour ticket / pr / review-thread;
-#                                                        pr accepte aussi 'default')
-#   --project-root=PATH                                 (défaut: $PWD ou $SNAP_PROJECT_ROOT)
-# Lecture: load-config.sh (--no-validate) → templates.<key> selon kind.
+#   --kind=ticket|pr|review-thread|aggregated-feedback (REQUIRED)
+#   --type=user-story|bug|epic                          (REQUIRED if kind=ticket)
+#   --platform=github|gitlab|jira|default               (REQUIRED for ticket / pr / review-thread;
+#                                                        pr also accepts 'default')
+#   --project-root=PATH                                 (default: $PWD or $SNAP_PROJECT_ROOT)
+# Read: load-config.sh (--no-validate) → templates.<key> per kind.
 #   ticket           → templates.tickets.<type>     (user_story|bug|epic)
 #   pr               → templates.pr
 #   review-thread    → templates.review_thread
 #   aggregated-feedback → templates.aggregated_feedback
-# Résolution (dans l'ordre) :
-#   1. Override config non-null → relatif depuis project-root, absolu tel quel.
-#      Fichier absent → exit 2. render_mode=mustache.
-#   2. Repo-native via detect-repo-templates.sh (kind ticket/pr uniquement,
-#      gated par templates.use_repo_native, défaut true). render_mode=scaffold.
-#   3. Bundlé `_shared/templates/...`. Bundlé absent → exit 2. render_mode=mustache.
-# Exit codes: 0 succès | 1 args invalides | 2 fichier introuvable
+# Resolution (in order):
+#   1. Non-null config override → relative from project-root, absolute as-is.
+#      Missing file → exit 2. render_mode=mustache.
+#   2. Repo-native via detect-repo-templates.sh (ticket/pr kinds only,
+#      gated by templates.use_repo_native, default true). render_mode=scaffold.
+#   3. Bundled `_shared/templates/...`. Missing bundled → exit 2. render_mode=mustache.
+# Exit codes: 0 success | 1 invalid args | 2 file not found
 ```
 
 ## telemetry.sh
 
 ```bash
-# Append NDJSON event à _shared/telemetry.log
+# Append NDJSON event to _shared/telemetry.log
 # args: --skill=<name> --step=<id> --status=<ok|fail|skip|retry> --duration-ms=<n> [--ticket=<id>] [--cycle=<n>] [--severity=<level>]
-# Format ligne: {"ts":"...","skill":"...","step":"...","duration_ms":...,"status":"...",...}
-# Rotation auto > 10MB (renomme .1, garde 2 fichiers max)
+# Line format: {"ts":"...","skill":"...","step":"...","duration_ms":...,"status":"...",...}
+# Auto rotation > 10MB (renames to .1, keeps 2 files max)
 # Gitignored
 ```

@@ -3,68 +3,68 @@
 ## Frame0 MCP
 
 - Repo: github.com/niklauslee/frame0-mcp-server (community, Niklaus Lee)
-- Install: `npx -y frame0-mcp-server` dans `claude_desktop_config.json`
+- Install: `npx -y frame0-mcp-server` in `claude_desktop_config.json`
 - Requirements: Frame0 v1.7.0+, Node.js v22+, API Server enabled
-- 28 tools: shapes (rect/ellipse/text/line/polygon/connector/icon/image), pages (add/update/duplicate/delete), operations (move/align/group/ungroup/export), icons search, links
+- 28 tools: shapes (rect/ellipse/text/line/polygon/connector/icon/image), pages (add/update/duplicate/delete), operations (move/align/group/ungroup/export), icon search, links
 
-## figma-console-mcp (wireframe + design Figma)
+## figma-console-mcp (wireframe + Figma design)
 
-- Repo: github.com/southleft/figma-console-mcp (communautaire, southleft)
-- Licence: MIT, v1.23.0 (mai 2026), ~100 outils exposés, activement maintenu
+- Repo: github.com/southleft/figma-console-mcp (community, southleft)
+- License: MIT, v1.23.0 (May 2026), ~100 tools exposed, actively maintained
 - Install: `claude mcp add figma-console -s user -e FIGMA_ACCESS_TOKEN=figd_… -e ENABLE_MCP_APPS=true -- npx -y figma-console-mcp@latest`
-- Prérequis utilisateur:
-  - Figma Desktop lancé
-  - Plugin "Desktop Bridge" installé dans Figma (Plugins → Browse → "Desktop Bridge") — canal WebSocket ports 9223–9232 (auto-détection failover)
-  - Token API Figma personnel (var env `FIGMA_ACCESS_TOKEN`, généré via Figma → Settings → Personal access tokens)
+- User prerequisites:
+  - Figma Desktop running
+  - "Desktop Bridge" plugin installed in Figma (Plugins → Browse → "Desktop Bridge") — WebSocket channel ports 9223–9232 (auto-detection failover)
+  - Personal Figma API token (env var `FIGMA_ACCESS_TOKEN`, generated via Figma → Settings → Personal access tokens)
   - Node.js 18+
-- Outils clés:
-  - `figma_execute` (code JS Plugin API brut, retour JSON nœuds créés) — surface principale pour CRUD pages/frames/shapes
-  - `figma_get_design_system_kit` (variables, composants, styles + captures)
-  - `figma_batch_create_variables` / `figma_batch_update_variables` (max 100 items/appel)
+- Key tools:
+  - `figma_execute` (raw Plugin API JS code, returns JSON of created nodes) — main surface for CRUD on pages/frames/shapes
+  - `figma_get_design_system_kit` (variables, components, styles + screenshots)
+  - `figma_batch_create_variables` / `figma_batch_update_variables` (max 100 items/call)
   - `figma_get_console_logs` / `figma_watch_console` (debugging)
-  - `figma_lint_design` / `figma_scan_code_accessibility` (audits WCAG)
-- Format données:
-  - Couleurs: `{r, g, b, a}` plages 0-1 (pas 0-255) — à respecter dans tous les descripteurs
-  - Exports: pas d'outil natif `exportAsync`. Mécanisme = `figma_execute` injectant `node.exportAsync()`, retour base64 inline dans JSON, décodage côté helper avant écriture disque
+  - `figma_lint_design` / `figma_scan_code_accessibility` (WCAG audits)
+- Data format:
+  - Colors: `{r, g, b, a}` ranges 0-1 (not 0-255) — must be respected in all descriptors
+  - Exports: no native `exportAsync` tool. Mechanism = `figma_execute` injecting `node.exportAsync()`, returns inline base64 in JSON, decoded helper-side before writing to disk
 - Usage:
-  - `/wireframe` (platform=figma) → `figma-helper.sh` → `figma_execute` (JS Plugin API construit côté helper, miroir surface penpot)
-  - `/design` (platform=figma) → `figma-helper.sh` → `figma_execute` — **même helper et même plugin Desktop Bridge** que `/wireframe figma`. `/design` ne fait que des maquettes hi-fi ; le design system est géré hors plugin.
+  - `/wireframe` (platform=figma) → `figma-helper.sh` → `figma_execute` (Plugin API JS built helper-side, mirrors penpot surface)
+  - `/design` (platform=figma) → `figma-helper.sh` → `figma_execute` — **same helper and same Desktop Bridge plugin** as `/wireframe figma`. `/design` only produces hi-fi mockups; the design system is managed outside the plugin.
 
 ## AFFiNE MCP
 
 - Repo: github.com/DAWNCR0W/affine-mcp-server (community)
-- Install: `npm i -g affine-mcp-server` ou `npx -y affine-mcp-server` dans config MCP
-- Auth: API Token via Settings → Integrations → MCP Server (AFFiNE Cloud), ou cookie/email pour self-hosted
+- Install: `npm i -g affine-mcp-server` or `npx -y affine-mcp-server` in MCP config
+- Auth: API Token via Settings → Integrations → MCP Server (AFFiNE Cloud), or cookie/email for self-hosted
 - 84 tools: documents (search/read/create/publish/move/tag/import/export, block-level mutation), databases (columns, rows), workspaces (CRUD), comments, history, notifications, blob storage
-- Templates: pages templates natives (UI-driven). Skill duplique via MCP, remplit variables.
-- Content model: block-based (notion-like) avec markdown import/export
+- Templates: native page templates (UI-driven). Skill duplicates via MCP, fills variables.
+- Content model: block-based (notion-like) with markdown import/export
 
 ## code-review-graph MCP (bundled)
 
 - Persistent incremental knowledge graph (Tree-sitter parser, structural graph)
-- **Bundled via `.mcp.json` racine plugin** — auto-démarre quand snap activé. Pas de `claude mcp add` manuel.
-- **Prérequis binaire (non auto-installé par Claude Code):**
+- **Bundled via plugin root `.mcp.json`** — auto-starts when snap is active. No manual `claude mcp add`.
+- **Binary prerequisite (not auto-installed by Claude Code):**
 
   ```bash
-  pipx install code-review-graph   # recommandé
-  # ou: pip install --user code-review-graph
-  which code-review-graph          # doit résoudre
+  pipx install code-review-graph   # recommended
+  # or: pip install --user code-review-graph
+  which code-review-graph          # must resolve
   ```
 
 - Usage:
-  - `/develop` step-02-prepare: `get_impact_radius` warm-up sur fichiers ticket
-  - `/qa` step-01-collect régression scope=impacted:
-    - `get_impact_radius` (sur diff) → fichiers/symbols touchés
-    - `get_affected_flows` → execution paths impactés → tests à run
-    - `query_graph pattern=tests_for` → couverture
-- **Fallback `tests-only`** si binaire absent (graph unavailable détecté par `check-mcp-required.sh`) — run heuristique imports transitifs sur fichiers diff
-- Repo upstream: github.com/tirth8205/code-review-graph
+  - `/develop` step-02-prepare: `get_impact_radius` warm-up on ticket files
+  - `/qa` step-01-collect regression scope=impacted:
+    - `get_impact_radius` (on diff) → affected files/symbols
+    - `get_affected_flows` → affected execution paths → tests to run
+    - `query_graph pattern=tests_for` → coverage
+- **Fallback `tests-only`** if binary absent (graph unavailable detected by `check-mcp-required.sh`) — run heuristic on transitive imports of diff files
+- Upstream repo: github.com/tirth8205/code-review-graph
 
-## Playwright MCP (optionnel — wireframe check)
+## Playwright MCP (optional — wireframe check)
 
-- Requis si `qa.wireframe_check.enabled=true`
+- Required if `qa.wireframe_check.enabled=true`
 - Repo: github.com/microsoft/playwright-mcp
-- Install: `npx -y @playwright/mcp@latest` dans config MCP
-- Usage `/qa` step-01-collect wireframe: navigate URL feature → screenshot → diff vs Frame0 PNG export
-- Listé dans `mcp_servers_optional`. Skill `/qa` ajoute dynamiquement à check-list required si feature on
-- Si MCP absent ET `wireframe_check.enabled=true` → erreur startup `/qa`
+- Install: `npx -y @playwright/mcp@latest` in MCP config
+- Usage `/qa` step-01-collect wireframe: navigate feature URL → screenshot → diff vs Frame0 PNG export
+- Listed in `mcp_servers_optional`. The `/qa` skill dynamically adds it to required check-list if the feature is on
+- If MCP absent AND `wireframe_check.enabled=true` → `/qa` startup error

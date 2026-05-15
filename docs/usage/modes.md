@@ -1,82 +1,82 @@
 # Modes & flags
 
-## Mode `-a` (autonomous) — wrapper `ask-or-default.sh`
+## `-a` (autonomous) mode — `ask-or-default.sh` wrapper
 
-Tool natif `AskUserQuestion` n'a pas de support documenté pour bypass auto en mode headless. Solution: wrapper helper qui shortcircuit AVANT l'appel tool.
+The native `AskUserQuestion` tool has no documented support for headless auto-bypass. Solution: a helper wrapper that short-circuits BEFORE the tool call.
 
-**Pattern:** au lieu d'appeler `AskUserQuestion` directement, skill appelle `_shared/ask-or-default.sh`:
+**Pattern:** instead of calling `AskUserQuestion` directly, the skill calls `_shared/ask-or-default.sh`:
 
 ```bash
 ask-or-default.sh \
   --auto-mode={auto_mode} \
   --question-id="confirm-platform" \
   --default="github" \
-  --question="Quelle plateforme tickets ?" \
+  --question="Which tickets platform?" \
   --options="github,gitlab,jira"
 ```
 
-Comportement:
+Behavior:
 
-- Si `--auto-mode=true` → output `{default}` sur stdout, exit 0 (skip prompt)
-- Si `--auto-mode=false` → délègue à `AskUserQuestion` (skill orchestre tool call)
-- Si `--auto-mode=true` ET `--default` absent → fail explicite (`auto-mode without default: question-id={id}`)
+- If `--auto-mode=true` → output `{default}` on stdout, exit 0 (skip prompt)
+- If `--auto-mode=false` → delegates to `AskUserQuestion` (skill orchestrates tool call)
+- If `--auto-mode=true` AND `--default` absent → explicit fail (`auto-mode without default: question-id={id}`)
 
-**Bénéfice:** séparation claire défaut machine-readable vs label UI. Pas de parsing fragile sur "(Recommended)".
+**Benefit:** clean separation between machine-readable default and UI label. No fragile parsing of "(Recommended)".
 
-**Skill responsabilité:** définir un `default` explicite par question pour supporter `-a`. Si une question est genuinely ambiguë sans default sain → ne pas la passer en autonome (fail-fast oriente user).
+**Skill responsibility:** define an explicit `default` per question to support `-a`. If a question is genuinely ambiguous without a sane default → don't pass it in autonomous mode (fail-fast guides user).
 
-## Monitoring usage & coût
+## Usage & cost monitoring
 
-**Mode economy** (`defaults.economy_mode=true` ou flag `-e`) — réduit parallélisme + cycles:
+**Economy mode** (`defaults.economy_mode=true` or flag `-e`) — reduces parallelism + cycles:
 
-- **Parallélisme:** `ai.max_parallel_agents` forcé à `1` (override config)
-- **Review cycle:** `develop.review_cycles_max` forcé à `1`
-- **QA cycle:** `qa.qa_cycles_max` forcé à `1`
-- Reste config inchangée (testing, naming, lifecycle_scripts)
+- **Parallelism:** `ai.max_parallel_agents` forced to `1` (config override)
+- **Review cycle:** `develop.review_cycles_max` forced to `1`
+- **QA cycle:** `qa.qa_cycles_max` forced to `1`
+- Rest of config unchanged (testing, naming, lifecycle_scripts)
 
-Note: economy ne swap PAS le modèle (CC ne supporte pas swap runtime cross-subagents — `model:` figé en frontmatter). Pour réduire coût modèle global: user fait `/model haiku` ou `/effort low`.
+Note: economy does NOT swap the model (CC does not support cross-subagents runtime swap — `model:` frozen in frontmatter). To reduce global model cost: user runs `/model haiku` or `/effort low`.
 
-Override CLI `--economy=false` désactive même si config `true`.
+CLI override `--economy=false` disables it even if config says `true`.
 
-**Commandes CC natives recommandées (monitoring):**
+**Recommended native CC commands (monitoring):**
 
-| Commande   | Usage                                                             |
+| Command    | Usage                                                             |
 | ---------- | ----------------------------------------------------------------- |
-| `/usage`   | Tokens consommés session courante + breakdown par model/tool      |
-| `/cost`    | Estimation coût $ session                                          |
-| `rtk gain` | Si RTK installé — savings tokens via proxy CLI                    |
+| `/usage`   | Tokens consumed in current session + breakdown by model/tool      |
+| `/cost`    | Estimated $ cost for the session                                  |
+| `rtk gain` | If RTK installed — token savings via CLI proxy                    |
 
-Step-finish chaque skill suggère: "Check `/usage` ou `/cost` post-run pour tracker conso. Iter sur `develop.review_cycles_max` ou `--economy` si trop coûteux."
+Each skill's step-finish suggests: "Check `/usage` or `/cost` post-run to track consumption. Iterate on `develop.review_cycles_max` or `--economy` if too costly."
 
-**Telemetry locale `_shared/telemetry.log`** (NDJSON append-only):
+**Local telemetry `_shared/telemetry.log`** (NDJSON append-only):
 
-Chaque step-XX appel `telemetry.sh` start + end:
+Each step-XX calls `telemetry.sh` start + end:
 
 ```
 {"ts":"2026-05-09T10:00:00Z","skill":"develop","step":"step-03a:execute","duration_ms":12340,"status":"ok","ticket_id":"PROJ-12","cycle":1}
 ```
 
-Champs: `ts | skill | step | duration_ms | status | ticket_id? | cycle? | severity?`. Pas de PII. Rotation automatique > 10MB (renomme `.1`, garde 2 fichiers max). Gitignored. Sert itération plan v2 (identifier steps lents, cycles fréquents, retries).
+Fields: `ts | skill | step | duration_ms | status | ticket_id? | cycle? | severity?`. No PII. Automatic rotation > 10MB (rename `.1`, keep 2 files max). Gitignored. Used for plan v2 iteration (identify slow steps, frequent cycles, retries).
 
-## Resume mode — pattern unifié
+## Resume mode — unified pattern
 
-Chaque skill, step-00:
+Each skill, step-00:
 
 ```
-Si {resume_id} set:
+If {resume_id} set:
   1. ls .snap/manifests/ | grep ^{resume_id}
-  2. Si match: read manifest.json, tickets.json, wireframes/manifest.json, progress.json
-  3. (Optionnel) fetch PRD docs via manifest.json.prd.page_id si contexte produit requis (v0.2)
-  4. Détermine dernière étape complétée (parse progress.json)
-  5. Load step suivant
-  6. Sinon: liste features dispo, AskUserQuestion
+  2. If match: read manifest.json, tickets.json, wireframes/manifest.json, progress.json
+  3. (Optional) fetch PRD docs via manifest.json.prd.page_id if product context required (v0.2)
+  4. Determine last completed step (parse progress.json)
+  5. Load next step
+  6. Otherwise: list available features, AskUserQuestion
 ```
 
-## Format strict `progress.json`
+## Strict `progress.json` format
 
-Fichier append-only par feature. Chaque ligne = 1 event horodaté. Parser regex line-based, pas markdown sémantique.
+Append-only file per feature. Each line = 1 timestamped event. Line-based regex parser, not semantic markdown.
 
-**Header (créé au premier `/define` de la feature):**
+**Header (created on the feature's first `/define`):**
 
 ```markdown
 # Progress — {feature_id}
@@ -84,30 +84,30 @@ Fichier append-only par feature. Chaque ligne = 1 event horodaté. Parser regex 
 started: {ISO-8601 UTC}
 ```
 
-**Events (1 ligne = 1 event):**
+**Events (1 line = 1 event):**
 
 ```
 {ISO-8601 UTC} | {skill} | {step} | {status} | {key=value;key=value} | {note}
 ```
 
-| Champ        | Format                                               | Exemple                          |
+| Field        | Format                                               | Example                          |
 | ------------ | ---------------------------------------------------- | -------------------------------- |
 | timestamp    | `YYYY-MM-DDTHH:MM:SSZ`                               | `2026-05-09T14:32:11Z`           |
 | skill        | `define\|ticket\|wireframe\|develop\|qa`             | `develop`                        |
-| step         | step-id (`step-XX-name` ou sub-step `analyze`/`plan`)| `step-03a-standalone:execute`    |
+| step         | step-id (`step-XX-name` or sub-step `analyze`/`plan`)| `step-03a-standalone:execute`    |
 | status       | `start\|ok\|fail\|skip\|retry`                       | `ok`                             |
-| metadata     | `key=value;key=value` (URL-encoded, vide = `-`)      | `ticket=PROJ-12;cycle=2`         |
-| note         | freetext (1 ligne, no pipe — escape `\|`)            | `severity=minor; AC 3/4 cochés`  |
+| metadata     | `key=value;key=value` (URL-encoded, empty = `-`)     | `ticket=PROJ-12;cycle=2`         |
+| note         | freetext (1 line, no pipe — escape `\|`)             | `severity=minor; AC 3/4 checked` |
 
-**Exemple complet:**
+**Full example:**
 
 ```
 # Progress — 01-auth
 
 started: 2026-05-09T10:00:00Z
 
-2026-05-09T10:00:05Z | define | step-02-vision | ok | - | vision validée user
-2026-05-09T10:15:22Z | ticket | step-03-format | ok | count=4 | 4 tickets draft
+2026-05-09T10:00:05Z | define | step-02-vision | ok | - | vision validated by user
+2026-05-09T10:15:22Z | ticket | step-03-format | ok | count=4 | 4 draft tickets
 2026-05-09T11:02:14Z | develop | step-03a-standalone:analyze | start | ticket=PROJ-12 | -
 2026-05-09T11:08:33Z | develop | step-03a-standalone:execute | ok | ticket=PROJ-12 | files=3
 2026-05-09T11:09:01Z | develop | step-03a-standalone:review | retry | ticket=PROJ-12;cycle=1 | sec=major
@@ -115,33 +115,33 @@ started: 2026-05-09T10:00:00Z
 2026-05-09T11:32:00Z | qa | step-01-collect | fail | ticket=PROJ-12 | regression: 1 fail (login_test)
 ```
 
-**Règles parser:**
+**Parser rules:**
 
-- Resume cherche dernier event status `ok` ou `skip` → reprend step suivant
-- `retry` n'avance pas le pointeur, indique itération
-- `fail` non suivi de `retry`/`ok` → state bloqué, resume re-prompt user
-- Flaky detection (`/qa`): groupe events par `(skill, step, ticket)` sur fenêtre 7 jours, count `fail` → `ok` sans code change entre = flaky candidate (voir Flaky detection)
+- Resume looks for the last event with status `ok` or `skip` → resumes at next step
+- `retry` does not advance the pointer, indicates iteration
+- `fail` not followed by `retry`/`ok` → state blocked, resume re-prompts user
+- Flaky detection (`/qa`): groups events by `(skill, step, ticket)` over a 7-day window, count `fail` → `ok` with no code change between them = flaky candidate (see Flaky detection)
 
-## Flaky detection heuristique (`/qa` step-02-interpret)
+## Flaky detection heuristic (`/qa` step-02-interpret)
 
-Subagent `code-reviewer-qa` reçoit raw output + extrait `progress.json` (events `qa` même feature/ticket fenêtre 7 jours). Logique:
+The `code-reviewer-qa` subagent receives raw output + `progress.json` extract (events `qa` for same feature/ticket within 7-day window). Logic:
 
 ```
 flaky_score = 0
 events = filter(progress, skill=qa, ticket={current}, last_7d)
 groups = groupby(events, (step, test_name))
 
-pour chaque group:
+for each group:
   fails = count(status=fail)
   oks   = count(status=ok)
-  si fails ≥ 1 ET oks ≥ 1 ET aucun commit entre fail→ok du même test:
+  if fails ≥ 1 AND oks ≥ 1 AND no commit between fail→ok for the same test:
     flaky_score += 1
-    ajoute test_name → flaky_list
+    add test_name → flaky_list
 ```
 
-**Heuristique commit-between:** check `git log --oneline {ts_fail}..{ts_ok}` sur fichiers test + impl (via `code-review-graph` `tests_for`). 0 commit modifiant ces fichiers → flaky probable.
+**Commit-between heuristic:** check `git log --oneline {ts_fail}..{ts_ok}` against test + impl files (via `code-review-graph` `tests_for`). 0 commits modifying those files → likely flaky.
 
-**Output subagent:**
+**Subagent output:**
 
 ```json
 {
@@ -152,31 +152,31 @@ pour chaque group:
 }
 ```
 
-`flaky_candidates` → severity downgraded `major→minor`, `feedback_md` recommande quarantine + investigate.
-`stable_failures` → severity preserved, fix obligatoire avant exit cycle.
+`flaky_candidates` → severity downgraded `major→minor`, `feedback_md` recommends quarantine + investigate.
+`stable_failures` → severity preserved, fix required before exiting the cycle.
 
-## `--dry-run` global (preview sans write calls)
+## `--dry-run` global (preview without write calls)
 
-Tous skills acceptent `--dry-run`:
+All skills accept `--dry-run`:
 
-- Adapters (`tickets-adapter.sh`, `docs-adapter.sh`, `frame0-helper.sh`) check `{dry_run}` env var:
-  - Read ops (fetch tickets, list pages) → exécutées normalement (read-only safe)
-  - Write ops (create ticket, push page, comment, update status, push commits, create PR) → log stdout `[DRY-RUN] would: <action> <args>`, skip exec
-- Git ops: `git commit` skip, `git push` skip — log diff qui aurait été commité
-- AskUserQuestion → exécuté normalement (user input pas un side-effect prod)
-- Telemetry → log avec `"dry_run": true` flag
-- step-finish affiche récap: "Dry-run terminé. N actions skipped: [...]. Re-run sans --dry-run pour appliquer."
+- Adapters (`tickets-adapter.sh`, `docs-adapter.sh`, `frame0-helper.sh`) check the `{dry_run}` env var:
+  - Read ops (fetch tickets, list pages) → run normally (read-only safe)
+  - Write ops (create ticket, push page, comment, update status, push commits, create PR) → log to stdout `[DRY-RUN] would: <action> <args>`, skip exec
+- Git ops: `git commit` skipped, `git push` skipped — log the diff that would have been committed
+- AskUserQuestion → runs normally (user input is not a prod side-effect)
+- Telemetry → logs with `"dry_run": true` flag
+- step-finish displays summary: "Dry-run complete. N actions skipped: [...]. Re-run without --dry-run to apply."
 
-Combinable avec `-a` autonomous: skill court de bout en bout avec defaults, expose plan complet sans toucher prod.
+Combinable with `-a` autonomous: skill runs end-to-end with defaults, exposes full plan without touching prod.
 
 ## SessionStart hook opt-in (pre-load config)
 
-Optionnel pour user qui travaille fréquemment dans projet snap.
+Optional for users frequently working in a snap project.
 
-**Setup:** copier template plugin vers location user, puis ajouter dans `~/.claude/settings.json` ou `.claude/settings.json` projet:
+**Setup:** copy plugin template to a user location, then add to `~/.claude/settings.json` or project's `.claude/settings.json`:
 
 ```bash
-# 1. Copier template (renommé sans .tpl) vers location user-contrôlée
+# 1. Copy template (renamed without .tpl) to user-controlled location
 cp ~/.claude/skills/_shared/templates/session-start-hook.sh.tpl \
    ~/.claude/lifecycle_scripts/session-start-hook.sh
 chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
@@ -193,17 +193,17 @@ chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
 }
 ```
 
-> Le `.tpl` reste read-only dans le plugin (mis à jour par updates plugin). User édite la copie sans risque écrasement.
+> The `.tpl` stays read-only in the plugin (updated by plugin updates). User edits the copy without risk of overwrite.
 
 **Template `session-start-hook.sh.tpl`:**
 
 ```bash
 #!/usr/bin/env bash
-# Pre-load snap context si projet courant a config
+# Pre-load snap context if current project has config
 CONFIG=".snap/snapship.config.json"
 [ -f "$CONFIG" ] || exit 0
 
-# Output additionalContext via JSON sortie (format CC SessionStart)
+# Output additionalContext via JSON output (CC SessionStart format)
 RESOLVED=$(bash ~/.claude/skills/_shared/load-config.sh 2>/dev/null) || exit 0
 PLATFORM=$(echo "$RESOLVED" | jq -r '.tickets.platform')
 DOCS=$(echo "$RESOLVED" | jq -r '.documentation.platform')
@@ -215,4 +215,4 @@ cat <<EOF
 EOF
 ```
 
-**Bénéfice:** skills accèdent contexte sans re-parse à chaque step-00 (cache `.config-resolved.json` reste source vérité runtime). User contrôle activation — pas de patch automatique settings.json.
+**Benefit:** skills access context without re-parsing at each step-00 (`.config-resolved.json` cache remains the runtime source of truth). User controls activation — no automatic settings.json patch.

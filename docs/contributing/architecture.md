@@ -6,7 +6,7 @@ High-level mental model for working on SnapShip. Each section links to the deep-
 
 Remote platforms (Notion / AFFiNE, Figma / Penpot / Frame0, Linear / Jira / GitHub / GitLab) are the **sources of truth**. The local workspace (`.snap/`) only **pre-generates**, **validates**, and **stages** content before pushing it remote.
 
-Ideally nothing lives locally except references to remote resources. The two exceptions are `.snap/manifests/` (feature state) and `.snap/tickets/` (cache needed by `/develop` & `/qa` to resume offline).
+Ideally nothing lives locally except references to remote resources. The two exceptions are `.snap/manifests/` (feature state) and `.snap/tickets/` (cache needed by `/develop` and `/qa` to resume offline).
 
 → See [structure.md](structure.md) for the full `.snap/` layout.
 
@@ -46,7 +46,7 @@ Each skill advances the manifest. Skills refuse to run when the prerequisite sta
 | `sync-push.sh` / `sync-fetch.sh` | Write-through outbox + replay refs (remote sync) |
 | `setup-snap-dir.sh`       | Scaffold `.snap/` at init                              |
 | `taxonomy-state.sh`       | Read/write `.snap/manifests/_taxonomy.json`            |
-| `telemetry.sh log`        | Append telemetry event (unified signature)             |
+| `telemetry.sh log`        | Append a telemetry event (unified signature)           |
 | `detect-repo-templates.sh` | Detect repo-native `.github/.gitlab` templates        |
 | `resolve-template.sh`     | Resolve template path: override > repo-native > bundled |
 
@@ -54,12 +54,12 @@ Each skill advances the manifest. Skills refuse to run when the prerequisite sta
 
 ## 🔌 Plugin distribution
 
-Two artefacts ship together:
+Two artifacts ship together:
 
 - `.claude-plugin/plugin.json` — manifest read by Claude Code
-- `.mcp.json` — MCP servers bundled (currently `code-review-graph`)
+- `.mcp.json` — bundled MCP servers (currently `code-review-graph`)
 
-Distributed via the [`bryanberger`](https://github.com/BryanBerger98/claude-plugins) marketplace (`name` in `marketplace.json`). The marketplace tracks a git tag (`source.ref`); bumping a release = retag + bump `version` & `ref` in `marketplace.json`.
+Distributed via the [`bryanberger`](https://github.com/BryanBerger98/claude-plugins) marketplace (`name` in `marketplace.json`). The marketplace tracks a git tag (`source.ref`); bumping a release = retag + bump `version` and `ref` in `marketplace.json`.
 
 → See [plugin-manifest.md](plugin-manifest.md).
 

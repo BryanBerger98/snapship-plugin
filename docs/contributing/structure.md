@@ -1,17 +1,17 @@
 # Structure
 
-## 1. Layout plugin repo
+## 1. Plugin repo layout
 
 ```
 snapship-plugin/  (plugin repo)
 ├── .claude-plugin/
-│   └── plugin.json                         # manifest CC (name, version, metadata)
-├── .mcp.json                               # MCP servers bundlés (code-review-graph)
+│   └── plugin.json                         # CC manifest (name, version, metadata)
+├── .mcp.json                               # bundled MCP servers (code-review-graph)
 ├── CHANGELOG.md
 ├── NOTICE
 ├── LICENSE
 ├── README.md
-├── skills/                                 # → installé dans ~/.claude/skills/ ou .claude/skills/
+├── skills/                                 # → installed into ~/.claude/skills/ or .claude/skills/
 │   ├── init/                               # /snap:init — bootstrap workspace (config + scaffold)
 │   │   ├── SKILL.md
 │   │   └── steps/
@@ -42,7 +42,7 @@ snapship-plugin/  (plugin repo)
 │   │       ├── step-04-review.md
 │   │       ├── step-05-push.md
 │   │       └── step-06-finish.md
-│   │   # Templates ticket vivent dans _shared/templates/tickets/{type}/{platform}.md
+│   │   # Ticket templates live in _shared/templates/tickets/{type}/{platform}.md
 │   │
 │   ├── wireframe/
 │   │   ├── SKILL.md
@@ -73,50 +73,50 @@ snapship-plugin/  (plugin repo)
 │   │       ├── step-00-init.md
 │   │       ├── step-01-collect.md       # run regression (scope) + wireframe diff (Playwright opt)
 │   │       ├── step-02-interpret.md     # spawn code-reviewer-qa subagent → severity + feedback_md
-│   │       ├── step-03-fix.md           # cycle dev fix (auto_apply_qa_feedback) + re-run
-│   │       ├── step-04-retrigger.md     # opt-in: re-run 3 reviewers /develop sur diff post-QA
+│   │       ├── step-03-fix.md           # dev fix cycle (auto_apply_qa_feedback) + re-run
+│   │       ├── step-04-retrigger.md     # opt-in: re-run 3 reviewers /develop on post-QA diff
 │   │       └── step-05-finish.md
 │   │
 │   └── _shared/
 │       ├── load-config.sh                  # parse snapship.config.json + apply defaults/inheritance + validate schema
-│       ├── setup-config.sh                 # auto-générer snapship.config.json (premier run)
-│       ├── detect-platforms.sh             # detect MCP/CLI dispo (auth check au runtime)
+│       ├── setup-config.sh                 # auto-generate snapship.config.json (first run)
+│       ├── detect-platforms.sh             # detect available MCP/CLI (auth check at runtime)
 │       ├── detect-test-commands.sh         # auto-detect testing commands
-│       ├── tickets-adapter.sh              # CRUD tickets (route MCP|CLI selon config.tickets.platform)
-│       ├── docs-adapter.sh                 # CRUD docs (route AFFiNE|Notion selon config.documentation.platform)
-│       ├── frame0-helper.sh                # wrapper Frame0 MCP
-│       ├── run-lifecycle-script.sh         # exec lifecycle_scripts custom (pre_/post_) — ≠ hooks CC natifs
-│       ├── ask-or-default.sh               # wrapper AskUserQuestion: shortcircuit en mode -a vers default explicite
-│       ├── apply-naming.sh                 # render branch/commit/feature_id selon naming.*
-│       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) au startup
+│       ├── tickets-adapter.sh              # ticket CRUD (route MCP|CLI based on config.tickets.platform)
+│       ├── docs-adapter.sh                 # docs CRUD (route AFFiNE|Notion based on config.documentation.platform)
+│       ├── frame0-helper.sh                # Frame0 MCP wrapper
+│       ├── run-lifecycle-script.sh         # exec custom lifecycle_scripts (pre_/post_) — ≠ native CC hooks
+│       ├── ask-or-default.sh               # AskUserQuestion wrapper: short-circuit in -a mode to explicit default
+│       ├── apply-naming.sh                 # render branch/commit/feature_id based on naming.*
+│       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) at startup
 │       ├── telemetry.sh                    # append _shared/telemetry.log NDJSON (duration_ms, status, ticket_id)
 │       ├── setup-snap-dir.sh
 │       ├── progress.sh
-│       ├── resolve-template.sh              # résout override config > repo-native > bundlé → JSON {path, source, render_mode}
-│       ├── detect-repo-templates.sh         # détecte les templates .github/.gitlab (issue/PR), markdown only
-│       ├── render-template.sh               # rendu Mustache-subset {{var}} {{#list}} {{^missing}} {{!comment}} {{&unescaped}}
+│       ├── resolve-template.sh              # resolves config override > repo-native > bundled → JSON {path, source, render_mode}
+│       ├── detect-repo-templates.sh         # detect .github/.gitlab templates (issue/PR), markdown only
+│       ├── render-template.sh               # Mustache-subset rendering {{var}} {{#list}} {{^missing}} {{!comment}} {{&unescaped}}
 │       ├── templates/
-│       │   ├── tickets/                     # par type + plateforme
+│       │   ├── tickets/                     # by type + platform
 │       │   │   ├── user-story/
 │       │   │   │   ├── github.md
 │       │   │   │   ├── gitlab.md
 │       │   │   │   └── jira.md
 │       │   │   ├── bug/{github,gitlab,jira}.md
 │       │   │   └── epic/{github,gitlab,jira}.md
-│       │   ├── pr/                          # par plateforme + 'default' fallback
+│       │   ├── pr/                          # by platform + 'default' fallback
 │       │   │   ├── github.md
 │       │   │   ├── gitlab.md
 │       │   │   └── default.md
-│       │   ├── review-thread/               # commentaire posté sur PR/MR/JIRA ticket
+│       │   ├── review-thread/               # comment posted on PR/MR/JIRA ticket
 │       │   │   └── {github,gitlab,jira}.md
-│       │   ├── aggregated-feedback.md       # blob interne (review feedback → dev fix-loop)
-│       │   ├── docs-defaults/               # templates docs partagés (push par /define + /wireframe)
+│       │   ├── aggregated-feedback.md       # internal blob (review feedback → dev fix-loop)
+│       │   ├── docs-defaults/               # shared docs templates (pushed by /define + /wireframe)
 │       │   │   ├── prd-feature.md
 │       │   │   └── wireframes-gallery.md
-│       │   ├── daemon.sh.tpl                # template loop daemon /develop
+│       │   ├── daemon.sh.tpl                # /develop loop daemon template
 │       │   ├── develop-daemon.sh.tpl
 │       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
-│       ├── schemas/                        # JSON Schema bundlés validation runtime
+│       ├── schemas/                        # bundled JSON Schemas for runtime validation
 │       │   ├── config.schema.json          # snapship.config.json
 │       │   ├── manifest.schema.json            # manifests/{id}.manifest.json
 │       │   ├── tickets.schema.json         # features/{id}/tickets.json
@@ -124,51 +124,51 @@ snapship-plugin/  (plugin repo)
 │       ├── taxonomy-state.sh                # v0.2 — CRUD _taxonomy.json (cache domain/journey ↔ page ID)
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
 │
-└── agents/                                 # bundlés dans le plugin (préfixés `snap-` pour éviter collision avec project agents)
-    ├── snap-code-reviewer-technical.md     # review code propre + conventions repo + lint/style
-    ├── snap-code-reviewer-functional.md    # review AC ticket + match wireframes + scope conformance
-    ├── snap-code-reviewer-security.md      # review OWASP + secrets + injection + auth + deps
-    ├── snap-code-reviewer-qa.md            # interprète raw outputs (tests + structural diff) → severity + feedback
-    └── snap-developer.md                   # applique aggregated feedback (write tools)
+└── agents/                                 # bundled in the plugin (prefixed `snap-` to avoid collision with project agents)
+    ├── snap-code-reviewer-technical.md     # clean code review + repo conventions + lint/style
+    ├── snap-code-reviewer-functional.md    # ticket AC review + wireframe match + scope conformance
+    ├── snap-code-reviewer-security.md      # OWASP review + secrets + injection + auth + deps
+    ├── snap-code-reviewer-qa.md            # interprets raw outputs (tests + structural diff) → severity + feedback
+    └── snap-developer.md                   # applies aggregated feedback (write tools)
 ```
 
-## 2. Stockage projet — `.snap/` (minimal)
+## 2. Project storage — `.snap/` (minimal)
 
-AFFiNE/Notion = source primaire docs. Local = cache + progress uniquement. Config vit racine projet.
+AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives at project root.
 
 ```
 <project_root>/
-├── snapship.config.json            # Config unifiée (étend defaults bundlés)
+├── snapship.config.json            # Unified config (extends bundled defaults)
 └── .snap/
-    ├── index.md                    # Track features (état + page IDs)
-    ├── _taxonomy.json                # v0.2 — cache domain + journey → page IDs (persistant)
+    ├── index.md                    # Track features (state + page IDs)
+    ├── _taxonomy.json                # v0.2 — cache domain + journey → page IDs (persistent)
     └── features/
         └── 01-feature-name/
             ├── manifest.json           # v0.2 — prd.{page_id,url,path}, domains[], impacted_journeys[]
-            ├── tickets.json        # Cache tickets (id plateforme, AC, status)
-            ├── prd-feature.md      # PRD rendu local (avant push archive {prd_root}/{YYYY}/{MM-YYYY}/)
+            ├── tickets.json        # Tickets cache (platform id, AC, status)
+            ├── prd-feature.md      # Locally rendered PRD (before push to archive {prd_root}/{YYYY}/{MM-YYYY}/)
             ├── wireframes/
             │   ├── manifest.json   # mapping screen ↔ ticket_id ↔ frame0_page_id
-            │   └── *.png           # exports Frame0 (uploadés vers gallery)
-            └── progress.json         # Log decisions + learnings
+            │   └── *.png           # Frame0 exports (uploaded to gallery)
+            └── progress.json         # Decisions + learnings log
 ```
 
-**Disparu vs plan v1:**
+**Gone vs v1 plan:**
 
-- ❌ `PRD.md` global local → AFFiNE
-- ❌ `features/*/PRD.md` local → AFFiNE
-- ❌ `platform.json` (fusionné dans `snapship.config.json`)
-- ❌ `affine.config.json` (fusionné dans `snapship.config.json`)
-- ✅ `manifest.json` ajouté (lien local ↔ docs platform)
-- ✅ `snapship.config.json` racine projet (config unique)
+- ❌ Global local `PRD.md` → AFFiNE
+- ❌ Local `features/*/PRD.md` → AFFiNE
+- ❌ `platform.json` (merged into `snapship.config.json`)
+- ❌ `affine.config.json` (merged into `snapship.config.json`)
+- ✅ `manifest.json` added (local ↔ platform docs link)
+- ✅ `snapship.config.json` at project root (single config)
 
-## 3. État (centralisé via `manifests/_taxonomy.json` + per-feature manifests)
+## 3. State (centralized via `manifests/_taxonomy.json` + per-feature manifests)
 
-Le tableau d'index `index.md` v0.6.0 est supprimé. La progression vit dans :
+The `index.md` index table from v0.6.0 is removed. Progression lives in:
 - `.snap/manifests/{feature_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
 - `.snap/manifests/_taxonomy.json` — workspace, domains, journeys
-- `.snap/progress.json` — runs in-flight (gitignored)
+- `.snap/progress.json` — in-flight runs (gitignored)
 
-États possibles: `defined`, `ticketed`, `wireframed`, `designed`, `developed`, `qa-validated`, `shipped`.
+Possible states: `defined`, `ticketed`, `wireframed`, `designed`, `developed`, `qa-validated`, `shipped`.
 
-Update via `jq` patch atomique sur le manifest (skills écrivent eux-mêmes — pas de helper dédié).
+Update via atomic `jq` patch on the manifest (skills write directly — no dedicated helper).

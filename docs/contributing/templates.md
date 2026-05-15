@@ -1,77 +1,75 @@
 # Templates
 
-Le plugin résout les templates via `_shared/resolve-template.sh`, qui retourne
-un objet JSON `{path, source, render_mode}`. Trois sources, dans l'ordre de
-priorité :
+The plugin resolves templates via `_shared/resolve-template.sh`, which returns
+a JSON object `{path, source, render_mode}`. Three sources, in priority order:
 
-1. **Override config** — chemin explicite dans `snapship.config.json` →
+1. **Config override** — explicit path in `snapship.config.json` →
    `templates.*`. `render_mode=mustache`.
-2. **Repo-native** — template markdown de l'hôte sous `.github`/`.gitlab`
+2. **Repo-native** — host markdown template under `.github`/`.gitlab`
    (`ISSUE_TEMPLATE`, `PULL_REQUEST_TEMPLATE`, `issue_templates`,
-   `merge_request_templates`). Détecté par `_shared/detect-repo-templates.sh`,
-   activé par `templates.use_repo_native` (défaut `true`). Concerne uniquement
-   `ticket` et `pr` ; JIRA n'a pas de convention repo-native.
+   `merge_request_templates`). Detected by `_shared/detect-repo-templates.sh`,
+   enabled by `templates.use_repo_native` (default `true`). Applies only to
+   `ticket` and `pr`; JIRA has no repo-native convention.
    `render_mode=scaffold`.
-3. **Bundlé** — template par défaut sous `_shared/templates/`.
+3. **Bundled** — default template under `_shared/templates/`.
    `render_mode=mustache`.
 
-`render_mode` indique au skill comment remplir le template :
+`render_mode` tells the skill how to fill the template:
 
-- **`mustache`** → rendu variable par `_shared/render-template.sh` (placeholders
-  `{{var}}` substitués depuis le contexte JSON).
-- **`scaffold`** → le fichier est un squelette markdown statique (pas de
-  placeholders). Le skill retire le frontmatter YAML éventuel, garde l'ordre des
-  sections / checklists de l'équipe, et remplit chaque section depuis le
-  contexte ticket/PR. Objectif : respecter le style maison du dépôt.
+- **`mustache`** → variable rendering via `_shared/render-template.sh`
+  (`{{var}}` placeholders substituted from JSON context).
+- **`scaffold`** → the file is a static markdown skeleton (no placeholders).
+  The skill strips the optional YAML frontmatter, keeps the team's section /
+  checklist order, and fills each section from the ticket/PR context. Goal:
+  match the repo's house style.
 
-## Catalogue
+## Catalog
 
-| Kind | Type | Plateforme | Bundlé |
+| Kind | Type | Platform | Bundled |
 |------|------|-----------|--------|
 | `ticket` | `user-story` | `github\|gitlab\|jira` | `_shared/templates/tickets/user-story/{platform}.md` |
 | `ticket` | `bug` | `github\|gitlab\|jira` | `_shared/templates/tickets/bug/{platform}.md` |
 | `ticket` | `epic` | `github\|gitlab\|jira` | `_shared/templates/tickets/epic/{platform}.md` |
 | `pr` | — | `github\|gitlab\|default` | `_shared/templates/pr/{platform}.md` |
 | `review-thread` | — | `github\|gitlab\|jira` | `_shared/templates/review-thread/{platform}.md` |
-| `aggregated-feedback` | — | (pas de plateforme) | `_shared/templates/aggregated-feedback.md` |
-| `docs-defaults/prd-feature` | — | (markdown standard) | `_shared/templates/docs-defaults/prd-feature.md` |
-| `docs-defaults/wireframes-gallery` | — | (markdown standard) | `_shared/templates/docs-defaults/wireframes-gallery.md` |
+| `aggregated-feedback` | — | (no platform) | `_shared/templates/aggregated-feedback.md` |
+| `docs-defaults/prd-feature` | — | (standard markdown) | `_shared/templates/docs-defaults/prd-feature.md` |
+| `docs-defaults/wireframes-gallery` | — | (standard markdown) | `_shared/templates/docs-defaults/wireframes-gallery.md` |
 
-> v0.1 `prd-global.md` retiré : la "global PRD" est remplacée par les domain
-> pages générées idempotemment par `/snap:doc-import` ou `/snap:define`
-> (étape publish).
+> v0.1 `prd-global.md` removed: the "global PRD" is replaced by domain pages
+> generated idempotently by `/snap:doc-import` or `/snap:define` (publish step).
 
-## Templates repo-native (`.github` / `.gitlab`)
+## Repo-native templates (`.github` / `.gitlab`)
 
-Quand `templates.use_repo_native` vaut `true` (défaut), `/ticket` et `/develop`
-réutilisent les templates markdown déjà présents dans le dépôt avant de
-retomber sur le bundlé. Conventions scannées (`detect-repo-templates.sh`) :
+When `templates.use_repo_native` is `true` (default), `/ticket` and `/develop`
+reuse markdown templates already present in the repo before falling back to
+the bundled one. Scanned conventions (`detect-repo-templates.sh`):
 
-| Kind | Plateforme | Emplacements |
+| Kind | Platform | Locations |
 |------|-----------|--------------|
 | `ticket` | `github` | `.github/ISSUE_TEMPLATE/*.md`, legacy `.github/ISSUE_TEMPLATE.md` |
 | `ticket` | `gitlab` | `.gitlab/issue_templates/*.md` |
-| `ticket` | `jira` | — (aucune convention repo-native) |
-| `pr` | `github` | `.github/PULL_REQUEST_TEMPLATE.md` (+ racine, `docs/`, forme répertoire) |
+| `ticket` | `jira` | — (no repo-native convention) |
+| `pr` | `github` | `.github/PULL_REQUEST_TEMPLATE.md` (+ root, `docs/`, directory form) |
 | `pr` | `gitlab` | `.gitlab/merge_request_templates/*.md` |
 
-Règles :
+Rules:
 
-- **Markdown uniquement** — les formulaires d'issue YAML (`.yml`/`.yaml`) sont
-  ignorés (le plugin ne parse pas les schémas de formulaire).
-- **Mapping nom → type** : nom contenant `bug`/`defect` → `bug`, `epic` →
-  `epic`, `story`/`feature` → `user-story`. Pas de correspondance → on retombe
-  sur le legacy single-file (GitHub) ou le bundlé.
-- **Forme répertoire PR** → préfère un fichier nommé `default.md`, sinon le
-  premier par ordre alphabétique.
-- `review-thread` et `aggregated-feedback` sont des artefacts internes snap :
-  aucune convention repo-native, ils restent sur override config ou bundlé.
-- `use_repo_native: false` → la couche repo-native est ignorée entièrement.
+- **Markdown only** — YAML issue forms (`.yml`/`.yaml`) are ignored (the plugin
+  doesn't parse form schemas).
+- **Name → type mapping**: name containing `bug`/`defect` → `bug`, `epic` →
+  `epic`, `story`/`feature` → `user-story`. No match → falls back to legacy
+  single-file (GitHub) or bundled.
+- **PR directory form** → prefers a file named `default.md`, otherwise the
+  first one in alphabetical order.
+- `review-thread` and `aggregated-feedback` are internal snap artifacts: no
+  repo-native convention, they stay on config override or bundled.
+- `use_repo_native: false` → repo-native layer is fully ignored.
 
-## Override utilisateur
+## User override
 
-Section `templates` dans `snapship.config.json` (tous les champs optionnels,
-`null` par défaut) :
+`templates` section in `snapship.config.json` (all fields optional, default
+`null`):
 
 ```json
 {
@@ -89,27 +87,27 @@ Section `templates` dans `snapship.config.json` (tous les champs optionnels,
 }
 ```
 
-Règles :
+Rules:
 
-- **Chemin relatif** → résolu depuis la racine projet.
-- **Chemin absolu** (`/...`) → utilisé tel quel.
-- **Override absent ou `null`** → couche repo-native, puis fallback bundlé.
-- **Override pointant vers un fichier inexistant** → `resolve-template.sh` exit 2
-  (échec explicite, pas de fallback silencieux).
-- **Un override explicite gagne toujours** sur le template repo-native.
+- **Relative path** → resolved from project root.
+- **Absolute path** (`/...`) → used as-is.
+- **Override missing or `null`** → repo-native layer, then bundled fallback.
+- **Override pointing to a non-existent file** → `resolve-template.sh` exit 2
+  (explicit failure, no silent fallback).
+- **An explicit override always wins** over the repo-native template.
 
-Les overrides PR / review-thread / aggregated-feedback sont **uniques** (pas de
-matrice par plateforme). Pour les tickets, l'override est par **type** ; le
-type est classifié automatiquement par `/ticket` step-03 (bug / epic /
-user-story par défaut), et la plateforme est déduite de
-`tickets.platform` (le bundlé par plateforme reste le fallback si pas d'override).
+PR / review-thread / aggregated-feedback overrides are **unique** (no
+per-platform matrix). For tickets, the override is per **type**; the type is
+classified automatically by `/ticket` step-03 (bug / epic / user-story by
+default), and the platform is derived from `tickets.platform` (the
+per-platform bundled file remains the fallback when no override is set).
 
-## Variables disponibles
+## Available variables
 
-### Tickets — communes
+### Tickets — common
 
 `ticket_id`, `title`, `summary`, `feature_id`, `feature_title`, `epic_ref`,
-`related_refs`, `labels`, `confidence`, `size`, contexte d'enrichissement
+`related_refs`, `labels`, `confidence`, `size`, enrichment context
 (`context.codebase`, `context.docs`, `context.web[]`).
 
 ### Tickets — `user-story`
@@ -133,36 +131,36 @@ user-story par défaut), et la plateforme est déduite de
 
 ### PR
 
-`feature_id`, `feature_title`, `branch`, `tickets[]` (liste des tickets
-poussés), `summary`, `test_plan`, `breaking_changes`, `linked_prs[]`.
+`feature_id`, `feature_title`, `branch`, `tickets[]` (list of pushed tickets),
+`summary`, `test_plan`, `breaking_changes`, `linked_prs[]`.
 
-### Review thread (commentaire posté sur PR/MR/JIRA ticket)
+### Review thread (comment posted on PR/MR/JIRA ticket)
 
 `overall_severity`, `cycles_used`, `verdict`, `reviewers[]` (technical /
-functional / security avec `severity`, `severity_threshold`, `blocking`,
+functional / security with `severity`, `severity_threshold`, `blocking`,
 `findings[]`), `cross_cutting`, `suggested_fix_order[]`.
 
-### Aggregated feedback (interne, injecté au dev pour fix-loop)
+### Aggregated feedback (internal, injected into dev for fix-loop)
 
-Mêmes variables que `review-thread`, formatté pour consommation agent dev
-(pas de markdown stylé heavy, focus sur findings actionables).
+Same variables as `review-thread`, formatted for dev agent consumption
+(no heavy styled markdown, focus on actionable findings).
 
 ## Format-specific tweaks
 
-- **GitHub** : `<details>` blocks pour le contexte (issue lisible), labels via
-  body (mappés directement par `tickets-adapter.sh`).
-- **GitLab** : `/label` quick actions inline (portable, pas de flag CLI
-  spécifique).
-- **JIRA** : wiki-markup, AC sous `*Acceptance criteria*` pour filtres natifs.
+- **GitHub**: `<details>` blocks for context (readable issue), labels via body
+  (mapped directly by `tickets-adapter.sh`).
+- **GitLab**: inline `/label` quick actions (portable, no platform-specific
+  CLI flag).
+- **JIRA**: wiki-markup, AC under `*Acceptance criteria*` for native filters.
 
-## Push initial des templates docs
+## Initial push of docs templates
 
-Templates `docs-defaults/*.md` poussés via `docs-adapter.sh apply-template`
-au premier setup, puis appliqués à chaque création de page.
+`docs-defaults/*.md` templates pushed via `docs-adapter.sh apply-template` on
+first setup, then applied at each page creation.
 
-## Templates additionnels (autres usages)
+## Additional templates (other uses)
 
-- `_shared/templates/daemon.sh.tpl` — script daemon `/develop --loop=daemon`.
-- `_shared/templates/develop-daemon.sh.tpl` — variant daemon développe.
-- `_shared/templates/session-start-hook.sh.tpl` — hook SessionStart opt-in
-  (copie user-side).
+- `_shared/templates/daemon.sh.tpl` — daemon script for `/develop --loop=daemon`.
+- `_shared/templates/develop-daemon.sh.tpl` — develop daemon variant.
+- `_shared/templates/session-start-hook.sh.tpl` — opt-in SessionStart hook
+  (copied user-side).

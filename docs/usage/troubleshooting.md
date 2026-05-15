@@ -1,20 +1,20 @@
 # Troubleshooting
 
-Catalogue d'erreurs courantes — symptôme → cause → fix. Si un cas manque,
-ouvre une issue sur [github.com/BryanBerger98/snapship-plugin](https://github.com/BryanBerger98/snapship-plugin/issues).
+Catalog of common errors — symptom → cause → fix. If a case is missing,
+open an issue at [github.com/BryanBerger98/snapship-plugin](https://github.com/BryanBerger98/snapship-plugin/issues).
 
 ## Installation & runtime
 
-### `snap` n'apparaît pas dans `/plugin list`
+### `snap` doesn't show up in `/plugin list`
 
-- Vérifie le chemin : `ls ~/.claude/plugins/snap/.claude-plugin/plugin.json`.
-- Redémarre Claude Code (les plugins sont scannés au démarrage).
-- Si projet-scoped : `ls .claude/plugins/snap/.claude-plugin/plugin.json`
-  depuis la racine du repo.
+- Check the path: `ls ~/.claude/plugins/snap/.claude-plugin/plugin.json`.
+- Restart Claude Code (plugins are scanned at startup).
+- If project-scoped: `ls .claude/plugins/snap/.claude-plugin/plugin.json`
+  from the repo root.
 
-### `ERROR: jq required` au lancement d'un skill
+### `ERROR: jq required` when running a skill
 
-`jq` est obligatoire pour tous les helpers `_shared/`. Install :
+`jq` is required for all `_shared/` helpers. Install:
 
 ```bash
 brew install jq          # macOS
@@ -23,15 +23,15 @@ apt-get install -y jq    # Debian/Ubuntu
 
 ### `code-review-graph: command not found`
 
-Le binaire est déclaré dans `.mcp.json` du plugin mais **n'est pas
-auto-installé**.
+The binary is declared in the plugin's `.mcp.json` but is **not
+auto-installed**.
 
 ```bash
 pipx install code-review-graph
 ```
 
-Sans lui, `/snap:develop` et `/snap:qa` dégradent : pas d'impact radius,
-`qa.regression.scope` forcé à `tests-only`. Acceptable mais sous-optimal.
+Without it, `/snap:develop` and `/snap:qa` degrade: no impact radius,
+`qa.regression.scope` forced to `tests-only`. Acceptable but suboptimal.
 
 ## `/snap:init`
 
@@ -41,30 +41,30 @@ Sans lui, `/snap:develop` et `/snap:qa` dégradent : pas d'impact radius,
 /snap:init --force
 ```
 
-Le contenu de `.snap/` est **préservé** — seul le fichier de config est
-réécrit. Si tu veux vraiment repartir de zéro :
+The content of `.snap/` is **preserved** — only the config file is
+rewritten. If you truly want to start from scratch:
 
 ```bash
 trash .snap snapship.config.json
 ```
 
-(et **jamais** `rm -rf` — utiliser `trash` pour rester réversible.)
+(and **never** `rm -rf` — use `trash` to keep it reversible.)
 
-### Mode `--auto` échoue : « champ requis non résolu »
+### `--auto` mode fails: "required field unresolved"
 
-`--auto` exige que chaque champ obligatoire soit déductible. Si aucun MCP
-docs n'est détecté, `documentation.platform` reste vide et l'init s'arrête.
-Solution :
+`--auto` requires every required field to be deducible. If no docs MCP is
+detected, `documentation.platform` stays empty and init stops.
+Solution:
 
 ```text
-/snap:init             # mode interactif, choisis `none` ou install le MCP
+/snap:init             # interactive mode, choose `none` or install the MCP
 ```
 
 ## Secrets — `.env.snapship`
 
 ### `ERROR: .env.snapship not found`
 
-Le fichier doit exister à la **racine du projet** (pas dans `.snap/`).
+The file must exist at the **project root** (not in `.snap/`).
 
 ```bash
 touch .env.snapship
@@ -74,16 +74,16 @@ echo "FIGMA_ACCESS_TOKEN=figd_..." >> .env.snapship
 
 ### `key 'FIGMA_ACCESS_TOKEN' not found in .env.snapship`
 
-Format strict `KEY=VALUE`, **aucun espace** autour du `=`, pas d'expansion
-shell.
+Strict `KEY=VALUE` format, **no whitespace** around `=`, no shell
+expansion.
 
 ```dotenv
 FIGMA_ACCESS_TOKEN=figd_xxxxxxxx     # OK
 FIGMA_ACCESS_TOKEN =figd_xxxxxxxx    # KO
-FIGMA_ACCESS_TOKEN="$HOME/secret"    # KO — pas d'expansion
+FIGMA_ACCESS_TOKEN="$HOME/secret"    # KO — no expansion
 ```
 
-Override de nom de clé via `wireframes.figma.token_env` / `design.figma.token_env`.
+Override the key name via `wireframes.figma.token_env` / `design.figma.token_env`.
 
 ## MCP servers
 
@@ -93,125 +93,125 @@ Override de nom de clé via `wireframes.figma.token_env` / `design.figma.token_e
 claude mcp list
 ```
 
-- Si le serveur n'apparaît pas → install + redémarre Claude Code.
-- Si il apparaît mais répond pas → vérifier le token dans la conf MCP
-  (variable d'env exposée au serveur, **pas** dans `.env.snapship` —
-  `.env.snapship` est lu par snap directement, pas par les MCP).
-- Pour AFFiNE / Notion : tester l'API hors Claude Code avec `curl` pour
-  isoler un souci de scope / expiration token.
+- If the server doesn't appear → install + restart Claude Code.
+- If it appears but doesn't respond → check the token in the MCP config
+  (env variable exposed to the server, **not** in `.env.snapship` —
+  `.env.snapship` is read by snap directly, not by the MCPs).
+- For AFFiNE / Notion: test the API outside Claude Code with `curl` to
+  isolate a scope / token expiration issue.
 
-### Figma plugin Desktop Bridge ne répond pas
+### Figma Desktop Bridge plugin doesn't respond
 
-`/snap:wireframe figma` et `/snap:design figma` requièrent **Figma Desktop
-lancé** et le plugin `figma-console-mcp` actif dans le file ciblé.
+`/snap:wireframe figma` and `/snap:design figma` require **Figma Desktop
+running** and the `figma-console-mcp` plugin active in the targeted file.
 
-Checklist :
-1. Figma Desktop ouvert (pas le web).
-2. Plugin Bridge lancé via `Plugins → Development → figma-console-mcp`.
-3. `wireframes.figma.file_key` (ou `design.figma.file_key`) correspond au
-   `fileKey` du file actif. Sinon step-00 halt.
+Checklist:
+1. Figma Desktop open (not the web).
+2. Bridge plugin launched via `Plugins → Development → figma-console-mcp`.
+3. `wireframes.figma.file_key` (or `design.figma.file_key`) matches the
+   `fileKey` of the active file. Otherwise step-00 halts.
 
 ## Resume & progress
 
-### `/snap:* --resume` repart à un step inattendu
+### `/snap:* --resume` restarts at an unexpected step
 
-`progress.sh resume next --skill=<name>` lit `.snap/progress.json`
-`in_flight[]`. Si plusieurs features sont en cours en parallèle, ajoute
-`--feature-id=` explicitement.
+`progress.sh resume next --skill=<name>` reads `.snap/progress.json`
+`in_flight[]`. If several features are in progress in parallel, add
+`--feature-id=` explicitly.
 
-Inspecter l'état :
+Inspect the state:
 
 ```bash
 jq '.in_flight, .steps' .snap/progress.json
 ```
 
-Repartir from scratch sur une feature :
+Restart from scratch on a feature:
 
 ```bash
 jq 'del(.in_flight[] | select(.feature_id == "01-auth-email"))' \
    .snap/progress.json > .snap/progress.tmp && mv .snap/progress.tmp .snap/progress.json
 ```
 
-### Partial-match feature_id donne plusieurs candidats
+### Partial-match feature_id returns multiple candidates
 
-Depuis v1.0.0, partial-match n'est **plus** dans le helper (`progress.sh
-resume` exige un id exact). C'est le `step-00-init.md` de chaque skill qui
-fait le matching. Erreur typique :
+Since v1.0.0, partial-match is **no longer** in the helper (`progress.sh
+resume` requires an exact id). It's each skill's `step-00-init.md` that
+performs matching. Typical error:
 
 ```
-Plusieurs features matchent 'auth' : 01-auth-email, 02-auth-sso. Précise.
+Multiple features match 'auth': 01-auth-email, 02-auth-sso. Be more specific.
 ```
 
-→ utilise le `feature_id` complet.
+→ use the full `feature_id`.
 
-## Sync plateforme
+## Platform sync
 
-### `sync-push` échoue : `Platform error 429 / throttle`
+### `sync-push` fails: `Platform error 429 / throttle`
 
-Retry plus tard, ou côté plateforme augmente quota / API key scope.
-`sync-push.sh` est idempotent (write-through outbox + ack), un retry ne
-duplique pas la ressource.
+Retry later, or on the platform side increase quota / API key scope.
+`sync-push.sh` is idempotent (write-through outbox + ack), a retry does
+not duplicate the resource.
 
-### `manifest.refs.{X}.sync_status` reste `pending`
+### `manifest.refs.{X}.sync_status` stays `pending`
 
-Inspecter :
+Inspect:
 
 ```bash
 jq '.refs' .snap/manifests/<feature_id>.manifest.json
 ```
 
-`pending` = pas encore poussé (offline first run, ou échec silencieux).
-Replay :
+`pending` = not yet pushed (offline first run, or silent failure).
+Replay:
 
 ```text
-/snap:fetch <feature_id>       # re-sync depuis remote (lecture)
+/snap:fetch <feature_id>       # re-sync from remote (read)
 ```
 
-Pour repush forcé : relance le skill qui a produit la ref
-(`/snap:define --resume` repush PRD, etc.).
+For forced repush: re-run the skill that produced the ref
+(`/snap:define --resume` repushes the PRD, etc.).
 
 ## Version mismatch & migration
 
 ### `MAJOR version mismatch detected`
 
-Le plugin a été update (`git pull` sur `~/.claude/plugins/snap`) mais le
-workspace local est à un schéma antérieur.
+The plugin was updated (`git pull` on `~/.claude/plugins/snap`) but the
+local workspace is on an earlier schema.
 
 ```text
-/snap:upgrade --dry-run        # preview le plan
-/snap:upgrade                  # applique (backup auto .snap.bak-v{x}-{ts}/)
+/snap:upgrade --dry-run        # preview the plan
+/snap:upgrade                  # apply (auto backup .snap.bak-v{x}-{ts}/)
 ```
 
-### Workspace v0.6 (legacy `.claude/product/`)
+### v0.6 workspace (legacy `.claude/product/`)
 
 ```text
 /snap:upgrade --from=0.6.0
 ```
 
-Voir [migration-v1.md](migration-v1.md) pour les transformations détaillées.
+See [migration-v1.md](migration-v1.md) for detailed transformations.
 
 ## Tests & QA
 
-### `/snap:qa` flaky verdicts à répétition
+### `/snap:qa` repeated flaky verdicts
 
-Cause typique : ordre de test non déterministe ou état partagé. `/snap:qa`
-trace `qa_last_flaky_verdict` dans le ticket. Si `flaky` 2× consécutifs,
-escalade : ouvre un ticket dédié `test-flakiness` plutôt que de réessayer.
+Typical cause: non-deterministic test order or shared state. `/snap:qa`
+tracks `qa_last_flaky_verdict` in the ticket. If `flaky` 2× in a row,
+escalate: open a dedicated `test-flakiness` ticket rather than retrying.
 
-### Playwright wireframe diff toujours en échec
+### Playwright wireframe diff always fails
 
-- Vérifie que le ticket a `wireframe_url` (ou `design_url`) — sinon le diff
-  n'a pas de référence.
-- `qa.wireframe_check.tolerance` (config) : valeur trop stricte ? Default
-  raisonnable autour de 0.05.
-- MCP `playwright-mcp` actif ? `claude mcp list`.
+- Check that the ticket has `wireframe_url` (or `design_url`) — otherwise
+  the diff has no reference.
+- `qa.wireframe_check.tolerance` (config): too strict a value? Reasonable
+  default is around 0.05.
+- MCP `playwright-mcp` active? `claude mcp list`.
 
-## Où regarder ensuite
+## Where to look next
 
-| Symptôme                               | Doc                                                |
+| Symptom                                | Doc                                                |
 | -------------------------------------- | -------------------------------------------------- |
-| Comprendre la config                   | [configuration.md](configuration.md)               |
-| Comprendre le flux global              | [workflow.md](workflow.md)                         |
-| Comprendre la structure `.snap/`       | [structure.md](../contributing/structure.md)       |
-| Comprendre un skill précis             | [skills/](skills/)                                 |
+| Understand the config                  | [configuration.md](configuration.md)               |
+| Understand the global flow             | [workflow.md](workflow.md)                         |
+| Understand the `.snap/` structure      | [structure.md](../contributing/structure.md)       |
+| Understand a specific skill            | [skills/](skills/)                                 |
 | MCP refs (Frame0, AFFiNE, Playwright…) | [mcp-refs.md](mcp-refs.md)                         |

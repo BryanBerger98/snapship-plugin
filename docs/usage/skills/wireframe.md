@@ -1,41 +1,41 @@
-# `/snap:wireframe` — tickets UI → wireframes low-fi
+# `/snap:wireframe` — UI tickets → low-fi wireframes
 
-Génère des wireframes low-fi pour les tickets UI d'une feature via la plateforme
-de wireframe configurée (Frame0, Penpot ou Figma), construit une page Gallery
-dans la doc, et back-link les URLs de wireframe dans les tickets.
+Generates low-fi wireframes for a feature's UI tickets via the configured
+wireframe platform (Frame0, Penpot, or Figma), builds a Gallery page in the
+docs, and back-links the wireframe URLs into the tickets.
 
-## À quoi ça sert
+## What it does
 
-Passer une feature en wireframes basse fidélité **avant `/snap:develop`**,
-quand des tickets touchent l'UI.
+Take a feature to low-fidelity wireframes **before `/snap:develop`**,
+when tickets touch the UI.
 
-## Quand l'utiliser
+## When to use it
 
-- Une feature a un `tickets.json` avec au moins un ticket touchant des fichiers
-  UI (heuristique mots-clés + extensions, step-01).
-- Une plateforme de wireframe est configurée :
+- A feature has a `tickets.json` with at least one ticket touching UI
+  files (keyword + extension heuristic, step-01).
+- A wireframe platform is configured:
   `config.wireframes.platform ∈ {frame0, penpot, figma}`.
-- `/snap:define` a rempli `prd-feature.md` (noms d'écrans + états connus).
+- `/snap:define` has filled `prd-feature.md` (screen names + known states).
 
-## Plateformes supportées
+## Supported platforms
 
 | `wireframes.platform` | Helper                            | Surface                                      |
 | --------------------- | --------------------------------- | -------------------------------------------- |
-| `frame0`              | `_shared/frame0-helper.sh`        | App Desktop + MCP                            |
-| `penpot`              | `_shared/penpot-helper.sh`        | App web + plugin MCP                         |
-| `figma`               | `_shared/figma-helper.sh`         | Figma Desktop + `figma-console-mcp` + plugin Bridge |
-| `none` (absent)       | —                                 | Skill ignoré                                 |
+| `frame0`              | `_shared/frame0-helper.sh`        | Desktop app + MCP                            |
+| `penpot`              | `_shared/penpot-helper.sh`        | Web app + MCP plugin                         |
+| `figma`               | `_shared/figma-helper.sh`         | Figma Desktop + `figma-console-mcp` + Bridge plugin |
+| `none` (absent)       | —                                 | Skill skipped                                |
 
-Le skill est platform-agnostic au niveau orchestration : step-00 résout
-`config.wireframes.platform` → un helper, et chaque step suivant l'appelle via
-la variable `$helper`.
+The skill is platform-agnostic at the orchestration layer: step-00 resolves
+`config.wireframes.platform` → a helper, and each later step calls it via
+the `$helper` variable.
 
-> **Figma** : nécessite Figma Desktop lancé, le plugin Desktop Bridge actif, et
-> un token dans `.env.snapship` (clé `FIGMA_ACCESS_TOKEN`, override
-> `wireframes.figma.token_env`). step-00 halt si `figma.fileKey` ne correspond
-> pas à `wireframes.figma.file_key`.
+> **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
+> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
+> `wireframes.figma.token_env`). step-00 halts if `figma.fileKey` doesn't match
+> `wireframes.figma.file_key`.
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:wireframe [--resume|-r] [--feature=NN-slug] [--dry-run]
@@ -43,33 +43,33 @@ la variable `$helper`.
 
 ## Flags
 
-| Flag                | Effet                                                                            |
+| Flag                | Effect                                                                           |
 | ------------------- | -------------------------------------------------------------------------------- |
-| `--resume` / `-r`   | Reprend via `progress.sh resume next --skill=wireframe`.                            |
-| `--feature=NN-slug` | Cible le `feature_id` (requis si plusieurs features ; partial-match).            |
-| `--dry-run`         | Les helpers retournent des descripteurs mock : aucun appel MCP, aucun PNG ni écriture doc. |
+| `--resume` / `-r`   | Resumes via `progress.sh resume next --skill=wireframe`.                         |
+| `--feature=NN-slug` | Targets the `feature_id` (required if multiple features; partial-match).         |
+| `--dry-run`         | Helpers return mock descriptors: no MCP calls, no PNG, no doc writes.            |
 
 ## Pipeline
 
-| #  | Step                 | Rôle                                                                       |
+| #  | Step                 | Role                                                                       |
 | -- | -------------------- | -------------------------------------------------------------------------- |
-| 00 | `step-00-init.md`    | Parse les args, résout feature + plateforme + helper, préflight plateforme.|
-| 01 | `step-01-filter.md`  | Identifie les tickets UI via heuristique mots-clés + extensions.           |
-| 02 | `step-02-design.md`  | Par écran : crée la page, ajoute les shapes, exporte le PNG via le helper. |
-| 03 | `step-03-gallery.md` | Page Gallery dans la doc : upload des PNG, embed par écran + état.         |
-| 04 | `step-04-link.md`    | Met à jour chaque ticket UI avec `wireframe_url` + `wireframe_screen`.     |
+| 00 | `step-00-init.md`    | Parses args, resolves feature + platform + helper, platform preflight.     |
+| 01 | `step-01-filter.md`  | Identifies UI tickets via keyword + extension heuristic.                   |
+| 02 | `step-02-design.md`  | Per screen: creates the page, adds shapes, exports the PNG via the helper. |
+| 03 | `step-03-gallery.md` | Gallery page in the docs: uploads PNGs, embeds per screen + state.         |
+| 04 | `step-04-link.md`    | Updates each UI ticket with `wireframe_url` + `wireframe_screen`.          |
 
 ## Outputs
 
-- `.snap/wireframes/{feature_id}/{screen-id}-{state}.png` (cache local
-  pré-push).
-- Page Gallery dans la doc — ref persistée dans
+- `.snap/wireframes/{feature_id}/{screen-id}-{state}.png` (local cache
+  pre-push).
+- Gallery page in the docs — ref persisted in
   `manifests/{feature_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
-- `.snap/wireframes/{feature_id}/gallery.md` — une section par écran
-  (source rendue avant push doc).
-- Chaque ticket UI dans `.snap/tickets/{feature_id}.json` gagne
+- `.snap/wireframes/{feature_id}/gallery.md` — one section per screen
+  (source rendered before doc push).
+- Each UI ticket in `.snap/tickets/{feature_id}.json` gains
   `wireframe_screen` + `wireframe_url`.
 
-## Étape suivante
+## Next step
 
-`/snap:design` pour des maquettes haute fidélité, ou `/snap:develop`.
+`/snap:design` for hi-fi mockups, or `/snap:develop`.

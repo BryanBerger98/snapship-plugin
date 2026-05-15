@@ -1,50 +1,50 @@
-# `/snap:design` — maquettes hi-fi
+# `/snap:design` — hi-fi mockups
 
-Génère des maquettes haute fidélité pour ce qu'un ticket demande, via la
-plateforme de design configurée (Penpot ou Figma). Construit une page
-`design-gallery` dans la doc et back-link les URLs dans les tickets.
-**Optionnel** — parallèle ou séquentiel à `/snap:wireframe`.
+Generates high-fidelity mockups for what a ticket asks for, via the
+configured design platform (Penpot or Figma). Builds a
+`design-gallery` page in the docs and back-links the URLs into the tickets.
+**Optional** — parallel or sequential to `/snap:wireframe`.
 
-`/snap:design` fait **une seule chose** : des maquettes. Il ne crée ni ne
-modifie jamais le design system. Si un fichier DS est configuré, il peut être
-**lu** en référence de composants (opt-in via `mode_defaults.design_system_source`)
-— le DS est géré hors de ce skill.
+`/snap:design` does **one thing only**: mockups. It never creates or
+modifies the design system. If a DS file is configured, it can be
+**read** as a component reference (opt-in via `mode_defaults.design_system_source`)
+— the DS is managed outside this skill.
 
 ## Input
 
-Comme `/snap:develop` et `/snap:qa` :
+Like `/snap:develop` and `/snap:qa`:
 
-| Input          | Effet                                          |
-| -------------- | ---------------------------------------------- |
-| `<ticket-id>`  | Maquette le ticket unique.                     |
-| `<feature-id>` | Maquette tous les tickets UI de la feature (batch). |
+| Input          | Effect                                          |
+| -------------- | ----------------------------------------------- |
+| `<ticket-id>`  | Mocks up the single ticket.                     |
+| `<feature-id>` | Mocks up every UI ticket in the feature (batch). |
 
-Partial-match sur l'id. Sans argument (et sans `--resume`), step-00 propose via
-`AskUserQuestion` les tickets UI sans `design_url`.
+Partial-match on the id. With no argument (and no `--resume`), step-00 proposes
+the UI tickets with no `design_url` via `AskUserQuestion`.
 
-## Quand l'utiliser
+## When to use it
 
-- Une feature a un `tickets.json` avec au moins un ticket UI.
-- Une plateforme de design est configurée :
+- A feature has a `tickets.json` with at least one UI ticket.
+- A design platform is configured:
   `config.design.platform ∈ {penpot, figma}`.
 
-## Plateformes supportées
+## Supported platforms
 
 | `design.platform` | Helper                       | Surface                                                            |
 | ----------------- | ---------------------------- | ------------------------------------------------------------------ |
-| `penpot`          | `_shared/penpot-helper.sh`   | Même MCP que `/snap:wireframe penpot` — le skill applique les shapes hi-fi. |
-| `figma`           | `_shared/figma-helper.sh`    | Même helper et même plugin Desktop Bridge que `/snap:wireframe figma` (`figma-console-mcp`). |
-| `none` (absent)   | —                            | Skill ignoré.                                                      |
+| `penpot`          | `_shared/penpot-helper.sh`   | Same MCP as `/snap:wireframe penpot` — the skill applies hi-fi shapes. |
+| `figma`           | `_shared/figma-helper.sh`    | Same helper and same Desktop Bridge plugin as `/snap:wireframe figma` (`figma-console-mcp`). |
+| `none` (absent)   | —                            | Skill skipped.                                                     |
 
-`frame0` est **exclu** par conception : Frame0 est low-fi uniquement.
-`/snap:design figma` utilise exactement le même helper et le même plugin
-Desktop Bridge que `/snap:wireframe figma`.
+`frame0` is **excluded** by design: Frame0 is low-fi only.
+`/snap:design figma` uses the exact same helper and the same
+Desktop Bridge plugin as `/snap:wireframe figma`.
 
-> **Figma** : nécessite Figma Desktop lancé, le plugin Desktop Bridge actif, et
-> un token dans `.env.snapship` (clé `FIGMA_ACCESS_TOKEN`, override
+> **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
+> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
 > `design.figma.token_env`).
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:design <ticket-id|feature-id> [--resume|-r] [--dry-run] [--no-wireframe-reuse]
@@ -52,55 +52,55 @@ Desktop Bridge que `/snap:wireframe figma`.
 
 ## Flags
 
-| Flag                   | Effet                                                                                  |
+| Flag                   | Effect                                                                                 |
 | ---------------------- | -------------------------------------------------------------------------------------- |
-| `<ticket-id\|feature-id>` | Requis sauf avec `--resume`. Ticket id → un ticket ; feature id → tous les tickets UI. |
-| `--resume` / `-r`      | Reprend via `progress.sh resume next --skill=design`.                                     |
-| `--dry-run`            | Les helpers retournent des descripteurs mock : aucun appel MCP, aucun asset ni écriture doc. |
-| `--no-wireframe-reuse` | Saute le prompt « réutiliser les écrans `/wireframe` » ; reconstruit la liste depuis les tickets. |
+| `<ticket-id\|feature-id>` | Required except with `--resume`. Ticket id → one ticket; feature id → every UI ticket. |
+| `--resume` / `-r`      | Resumes via `progress.sh resume next --skill=design`.                                  |
+| `--dry-run`            | Helpers return mock descriptors: no MCP calls, no assets, no doc writes.               |
+| `--no-wireframe-reuse` | Skips the "reuse `/wireframe` screens" prompt; rebuilds the list from the tickets.    |
 
 ## Pipeline
 
-| #  | Step                        | Rôle                                                                                 |
+| #  | Step                        | Role                                                                                 |
 | -- | --------------------------- | ------------------------------------------------------------------------------------ |
-| 00 | `step-00-init.md`           | Parse les args, résout le scope ticket/feature, charge `config.design`, préflight plateforme, auto-link le binding wireframes si les plateformes correspondent. |
-| 01 | `step-01-source-resolve.md` | Construit la liste écran × état depuis le(s) ticket(s) cible(s) ; détecte les wireframes réutilisables. |
-| 02 | `step-02-mockup.md`         | Par écran × état : frame, applique shapes/composants, exporte l'asset.                |
-| 03 | `step-03-gallery.md`        | Page `design-gallery` dans la doc (séparée de `wireframes-gallery`).                  |
-| 04 | `step-04-link.md`           | Chaque ticket cible gagne `design_url` + `design_screen` + `design_mode`.             |
+| 00 | `step-00-init.md`           | Parses args, resolves ticket/feature scope, loads `config.design`, platform preflight, auto-links the wireframes binding if the platforms match. |
+| 01 | `step-01-source-resolve.md` | Builds the screen × state list from the target ticket(s); detects reusable wireframes. |
+| 02 | `step-02-mockup.md`         | Per screen × state: frame, applies shapes/components, exports the asset.             |
+| 03 | `step-03-gallery.md`        | `design-gallery` page in the docs (separate from `wireframes-gallery`).              |
+| 04 | `step-04-link.md`           | Each target ticket gains `design_url` + `design_screen` + `design_mode`.             |
 
-## Auto-link vers `/snap:wireframe`
+## Auto-link to `/snap:wireframe`
 
-Si `wireframes.platform == design.platform` **et** un binding wireframes existe
-**et** `design.{platform}.{file_id|file_key}` est null → `step-00` pose une
-`AskUserQuestion` :
+If `wireframes.platform == design.platform` **and** a wireframes binding exists
+**and** `design.{platform}.{file_id|file_key}` is null → `step-00` raises an
+`AskUserQuestion`:
 
-- **Oui, réutiliser le fichier wireframes** → copie le binding vers `design.{platform}`.
-- **Non, fichier séparé** → demande le binding `design.{platform}`.
-- **Sauvegarder en config** → persiste le choix pour les runs futurs.
+- **Yes, reuse the wireframes file** → copies the binding into `design.{platform}`.
+- **No, separate file** → asks for the `design.{platform}` binding.
+- **Save to config** → persists the choice for future runs.
 
-## Lecture DS optionnelle
+## Optional DS read
 
-`mode_defaults.design_system_source` pilote la référence de composants en step-02 :
+`mode_defaults.design_system_source` drives the component reference in step-02:
 
-| Valeur  | Effet                                                              |
+| Value   | Effect                                                             |
 | ------- | ------------------------------------------------------------------ |
-| `none`  | Aucune lecture DS — maquettes from scratch.                        |
-| `file`  | Lit le fichier DS configuré (`design.{platform}.design_system_page`) en référence visuelle. |
-| `auto`  | Lit le DS s'il est configuré, sinon `none`.                        |
+| `none`  | No DS read — mockups from scratch.                                 |
+| `file`  | Reads the configured DS file (`design.{platform}.design_system_page`) as a visual reference. |
+| `auto`  | Reads the DS if configured, otherwise `none`.                      |
 
-Le DS est **lu uniquement** — `/snap:design` n'y écrit jamais.
+The DS is **read-only** — `/snap:design` never writes to it.
 
 ## Outputs
 
-- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}` (cache local pré-push).
-- Page `design-gallery` dans la doc — ref persistée dans
+- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}` (local cache pre-push).
+- `design-gallery` page in the docs — ref persisted in
   `manifests/{feature_id}.manifest.json` → `refs.design_gallery.{page_id,url,synced_at,sync_status}`.
-- `.snap/designs/{feature_id}/gallery.md` — une section par écran (source rendue avant push).
-- Chaque ticket UI cible dans `.snap/tickets/{feature_id}.json` gagne
+- `.snap/designs/{feature_id}/gallery.md` — one section per screen (source rendered before push).
+- Each target UI ticket in `.snap/tickets/{feature_id}.json` gains
   `design_screen`, `design_url`, `design_mode` (`mockup` | `reused`).
 
-## Étape suivante
+## Next step
 
-`/snap:develop` — son step-00 affiche un banner designer-handoff si
-`tickets[].design_url` est présent.
+`/snap:develop` — its step-00 shows a designer-handoff banner if
+`tickets[].design_url` is set.

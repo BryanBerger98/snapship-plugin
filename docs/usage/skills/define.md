@@ -1,31 +1,31 @@
-# `/snap:define` — définition produit
+# `/snap:define` — product definition
 
-Construit les PRD (global puis par feature) à partir d'une vision, de personas
-et d'une liste de features. Déroule un questionnaire guidé via
-`AskUserQuestion` puis publie le résultat sur AFFiNE / Notion.
+Builds the PRDs (global, then per feature) from a vision, personas, and a
+feature list. Runs a guided questionnaire via `AskUserQuestion`, then
+publishes the result to AFFiNE / Notion.
 
-## À quoi ça sert
+## What it does
 
-Poser ou étendre la définition produit **avant tout ticket**. Le skill
-distingue deux chemins :
+Establish or extend the product definition **before any ticket**. The skill
+distinguishes two paths:
 
-- **Greenfield** : aucun PRD encore → questionnaire complet (vision → personas
+- **Greenfield**: no PRD yet → full questionnaire (vision → personas
   → features).
-- **Extension** : `.snap/` contient déjà des features → ajoute une ou
-  plusieurs nouvelles features.
+- **Extension**: `.snap/` already holds features → add one or more new
+  features.
 
-## Quand l'utiliser
+## When to use it
 
-- Juste après `/snap:init` sur un nouveau projet.
-- Sur un projet existant pour cadrer une nouvelle feature.
-- En reprise après interruption (`--resume`).
+- Right after `/snap:init` on a new project.
+- On an existing project to scope a new feature.
+- To resume after an interruption (`--resume`).
 
-## Prérequis
+## Prerequisites
 
-`/snap:init` lancé une fois. Le skill sort immédiatement si
-`snapship.config.json` est absent.
+`/snap:init` run once. The skill exits immediately if
+`snapship.config.json` is missing.
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:define [--resume|-r] [--lang=fr|en] [--feature=NN-slug]
@@ -33,37 +33,37 @@ distingue deux chemins :
 
 ## Flags
 
-| Flag                  | Effet                                                                                                       |
+| Flag                  | Effect                                                                                                      |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--resume` / `-r`     | Reprend au dernier step réussi enregistré dans `progress.json`. Partial-match du `feature_id` (`01` → `01-auth`). Sans run en cours, repart au step-00. |
-| `--lang=fr\|en`       | Force la langue du PRD (défaut : détectée depuis un PRD existant, sinon demandée).                          |
-| `--feature=NN-slug`   | Saute le chemin greenfield, va directement au PRD d'une feature existante.                                  |
+| `--resume` / `-r`     | Resumes at the last successful step recorded in `progress.json`. Partial-match on `feature_id` (`01` → `01-auth`). With no run in progress, restarts at step-00. |
+| `--lang=fr\|en`       | Forces the PRD language (default: detected from an existing PRD, otherwise prompted).                       |
+| `--feature=NN-slug`   | Skips the greenfield path, jumps straight to the PRD of an existing feature.                                |
 
 ## Pipeline
 
-| #  | Step                  | Rôle                                                                       |
+| #  | Step                  | Role                                                                       |
 | -- | --------------------- | -------------------------------------------------------------------------- |
-| 00 | `step-00-init.md`     | Parse les args, exige `snapship.config.json`, détecte le codebase, branche greenfield vs extension. |
-| 01 | `step-01-vision.md`   | Questionne la vision + la north star metric.                               |
-| 02 | `step-02-personas.md` | Questionne 1 à N personas.                                                 |
-| 03 | `step-03-features.md` | Questionne la liste de features avec priorités.                            |
-| 04 | `step-04-render.md`   | Génère les PRD par feature (format change-request) depuis les templates.   |
-| 05 | `step-05-publish.md`  | Archive les pages PRD par date, garantit l'existence des pages domaine + parcours. |
+| 00 | `step-00-init.md`     | Parses args, requires `snapship.config.json`, detects the codebase, branches greenfield vs extension. |
+| 01 | `step-01-vision.md`   | Asks about the vision and north-star metric.                               |
+| 02 | `step-02-personas.md` | Asks about 1 to N personas.                                                |
+| 03 | `step-03-features.md` | Asks for the feature list with priorities.                                 |
+| 04 | `step-04-render.md`   | Generates per-feature PRDs (change-request format) from the templates.     |
+| 05 | `step-05-publish.md`  | Archives PRD pages by date, ensures the domain + journey pages exist.      |
 
-Steps **idempotents** : relancer un step avec les mêmes entrées produit la même sortie.
+Steps are **idempotent**: re-running a step with the same inputs produces the same output.
 
 ## Outputs
 
-- `.snap/manifests/{feature_id}/prd-feature.md` — un par feature.
+- `.snap/manifests/{feature_id}/prd-feature.md` — one per feature.
 - `.snap/manifests/{feature_id}.manifest.json` — `state=defined`,
-  `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` après publication.
-- `.snap/manifests/_taxonomy.json` — IDs des pages domaine + parcours (idempotent).
-- `.snap/progress.json` — journal de run.
-- AFFiNE / Notion :
-  - Page PRD sous `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (archive immuable).
-  - Pages domaine + parcours sous `{functional_root}/{domain}/{journey}` (spec
-    vivante, corps rempli plus tard par `/snap:doc-update`).
+  `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` after publication.
+- `.snap/manifests/_taxonomy.json` — domain + journey page IDs (idempotent).
+- `.snap/progress.json` — run journal.
+- AFFiNE / Notion:
+  - PRD page under `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable archive).
+  - Domain + journey pages under `{functional_root}/{domain}/{journey}` (living spec,
+    body filled later by `/snap:doc-update`).
 
-## Étape suivante
+## Next step
 
-`/snap:ticket --feature=NN-slug` pour décomposer la feature en tickets.
+`/snap:ticket --feature=NN-slug` to break the feature down into tickets.

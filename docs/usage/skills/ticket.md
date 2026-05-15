@@ -1,27 +1,27 @@
 # `/snap:ticket` — feature → tickets
 
-Décompose le PRD d'une feature en tickets atomiques prêts pour le dev, enrichit
-chacun via des agents de recherche parallèles, les formate selon la plateforme
-et les pousse sur GitHub / GitLab / JIRA.
+Breaks a feature PRD into atomic, dev-ready tickets, enriches each one via
+parallel research agents, formats them per platform, and pushes them to
+GitHub / GitLab / JIRA.
 
-## À quoi ça sert
+## What it does
 
-Transformer un PRD de feature en liste numérotée de stories prêtes pour
-`/snap:develop` — chaque ticket fait 5 à 30 min de travail et touche 1 à 5
-fichiers.
+Turns a feature PRD into a numbered list of stories ready for
+`/snap:develop` — each ticket is 5 to 30 minutes of work and touches 1 to 5
+files.
 
-## Quand l'utiliser
+## When to use it
 
-- Un `prd-feature.md` existe dans `.snap/manifests/{feature_id}/`.
-- Tu veux des stories dev-ready sur la plateforme de tickets configurée.
-- En reprise après interruption (`--resume`).
+- A `prd-feature.md` exists under `.snap/manifests/{feature_id}/`.
+- You want dev-ready stories on the configured ticket platform.
+- To resume after an interruption (`--resume`).
 
-## Prérequis
+## Prerequisites
 
-`/snap:init` et `/snap:define` lancés. Une plateforme de tickets résolue
-(MCP en priorité, sinon CLI `gh` / `glab` / `jira`).
+`/snap:init` and `/snap:define` run. A resolved ticket platform
+(MCP first, otherwise the `gh` / `glab` / `jira` CLI).
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:ticket [--resume|-r] [--feature=NN-slug] [--platform=github|gitlab|jira]
@@ -30,36 +30,36 @@ fichiers.
 
 ## Flags
 
-| Flag                          | Effet                                                                                  |
+| Flag                          | Effect                                                                                 |
 | ----------------------------- | -------------------------------------------------------------------------------------- |
-| `--resume` / `-r`             | Reprend au dernier step réussi du `progress.json` de la feature (partial-match `feature_id`). |
-| `--feature=NN-slug`           | Cible le `feature_id` (requis si plusieurs features définies).                         |
-| `--platform=github\|gitlab\|jira` | Force la plateforme, surcharge `config.tickets.platform`.                          |
-| `--max-stories=N`             | Plafonne la décomposition automatique (défaut : 12).                                   |
-| `--dry-run`                   | Formate et journalise mais n'écrit pas sur la plateforme.                              |
+| `--resume` / `-r`             | Resumes at the last successful step in the feature's `progress.json` (partial-match on `feature_id`). |
+| `--feature=NN-slug`           | Targets the `feature_id` (required if multiple features are defined).                  |
+| `--platform=github\|gitlab\|jira` | Forces the platform, overrides `config.tickets.platform`.                          |
+| `--max-stories=N`             | Caps the automatic breakdown (default: 12).                                            |
+| `--dry-run`                   | Formats and logs but does not write to the platform.                                   |
 
 ## Pipeline
 
-| #  | Step                   | Rôle                                                              |
+| #  | Step                   | Role                                                              |
 | -- | ---------------------- | ----------------------------------------------------------------- |
-| 00 | `step-00-init.md`      | Parse les args, résout le `feature_id`, charge le PRD + config.   |
-| 01 | `step-01-load.md`      | Lit `prd-feature.md`, extrait les critères d'acceptation + le scope. |
-| 02 | `step-02-decompose.md` | Découpe la feature en stories atomiques (5-30 min, 1-5 fichiers). |
-| 03 | `step-03-enrich.md`    | Agents parallèles : codebase / docs / recherche web par story.    |
-| 04 | `step-04-format.md`    | Rend chaque story via le template résolu (override config > repo-native `.github`/`.gitlab` > bundlé). |
-| 05 | `step-05-push.md`      | Pousse via `tickets-adapter.sh` (MCP > CLI).                      |
-| 06 | `step-06-index.md`     | Met en cache `tickets.json` + met à jour le `manifest.json` de la feature. |
+| 00 | `step-00-init.md`      | Parses args, resolves the `feature_id`, loads the PRD + config.   |
+| 01 | `step-01-load.md`      | Reads `prd-feature.md`, extracts acceptance criteria + scope.     |
+| 02 | `step-02-decompose.md` | Splits the feature into atomic stories (5-30 min, 1-5 files).     |
+| 03 | `step-03-enrich.md`    | Parallel agents: codebase / docs / web search per story.          |
+| 04 | `step-04-format.md`    | Renders each story via the resolved template (config override > repo-native `.github`/`.gitlab` > bundled). |
+| 05 | `step-05-push.md`      | Pushes via `tickets-adapter.sh` (MCP > CLI).                      |
+| 06 | `step-06-index.md`     | Caches `tickets.json` + updates the feature's `manifest.json`.    |
 
 ## Outputs
 
-- `.snap/manifests/{feature_id}/tickets.json` — tableau de tickets en
-  cache (id, titre, body, labels, status, platform_url). Validé contre
+- `.snap/manifests/{feature_id}/tickets.json` — cached ticket array
+  (id, title, body, labels, status, platform_url). Validated against
   `_shared/schemas/tickets.schema.json`.
-- `.snap/manifests/{feature_id}.manifest.json` — `tickets_count` mis à jour.
-- Tickets créés sur GitHub / GitLab / JIRA (URLs cachées ci-dessus).
-- `.snap/manifests/{feature_id}/progress.json` — journal de run.
+- `.snap/manifests/{feature_id}.manifest.json` — `tickets_count` updated.
+- Tickets created on GitHub / GitLab / JIRA (URLs cached above).
+- `.snap/manifests/{feature_id}/progress.json` — run journal.
 
-## Étape suivante
+## Next step
 
-`/snap:wireframe` ou `/snap:design` si la feature a de l'UI, sinon directement
+`/snap:wireframe` or `/snap:design` if the feature has UI, otherwise straight to
 `/snap:develop`.

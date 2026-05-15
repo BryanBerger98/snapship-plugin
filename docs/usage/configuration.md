@@ -1,40 +1,40 @@
 # Config — `snapship.config.json`
 
-**Localisation:** racine projet (committable, partagée avec équipe).
+**Location:** project root (committable, shared with team).
 
 **Sections:** `repository`, `tickets`, `documentation`, `wireframes`, `design`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `templates`, `defaults`.
 
-## Schéma complet
+## Full schema
 
 ```jsonc
 {
   "$schema": "./.snap/schemas/config.schema.json",
   "version": "1.0",
-  // setup-config.sh copie schemas bundlés `_shared/schemas/*.schema.json` → `.snap/schemas/` au premier run
-  // load-config.sh valide config contre schema (Ajv ou jsonschema CLI). Fail explicite si invalide.
+  // setup-config.sh copies bundled schemas `_shared/schemas/*.schema.json` → `.snap/schemas/` on first run
+  // load-config.sh validates config against schema (Ajv or jsonschema CLI). Explicit fail if invalid.
   "repository": {
     "platform": "github",                  // github | gitlab
     "http_url": "https://github.com/org/repo.git",
     "ssh_url": "git@github.com:org/repo.git",
     "default_branch": "main",
-    "protected_branches": ["main", "develop"]   // refuse commit/push direct
-    // merge_method dropé v1 — user merge PR manuellement post-création
-    // `pr_template_path` retiré — utiliser `templates.pr` (cf. section `templates`)
+    "protected_branches": ["main", "develop"]   // refuses direct commit/push
+    // merge_method dropped in v1 — user merges PR manually post-creation
+    // `pr_template_path` removed — use `templates.pr` (see `templates` section)
   },
   "tickets": {
     "platform": "jira",                    // github | gitlab | jira | inherit
     "url": "https://company.atlassian.net/browse/PROJ",
     "default_labels": ["snap"],
-    "jira": {                              // section utilisée seulement si platform=jira
+    "jira": {                              // section used only if platform=jira
       "project_key": "PROJ",
       "default_issue_type": "Story",
-      "workflow_states": {                  // mapping états plateforme
+      "workflow_states": {                  // platform state mapping
         "todo": "To Do",
         "in_progress": "In Progress",
         "review": "In Review",
         "done": "Done"
       },
-      "transitions": {                      // noms transitions JIRA
+      "transitions": {                      // JIRA transition names
         "start": "Start Progress",
         "review": "Submit for Review",
         "complete": "Done"
@@ -60,41 +60,41 @@
       "wireframes_gallery": "Wireframes - {feature_name}"
     }
   },
-  "wireframes": {                          // optionnel, absent = /wireframe désactivé
+  "wireframes": {                          // optional, absent = /wireframe disabled
     "platform": "frame0",                  // frame0 | penpot | figma
     "export_format": "png",                // png | svg | pdf
-    "export_scale": 2,                     // 1x, 2x, 3x (retina, ignoré par export-png)
+    "export_scale": 2,                     // 1x, 2x, 3x (retina, ignored by export-png)
     "naming_pattern": "{feature_id}-{screen_name}",
-    "frame0": {                            // consulté seulement si platform=frame0
-      "api_port": 58320,                   // port HTTP API Frame0 desktop (export-png bypass)
-      "export_source_dir": null            // absolu, par défaut résolu runtime (cwd Frame0)
+    "frame0": {                            // read only if platform=frame0
+      "api_port": 58320,                   // Frame0 desktop HTTP API port (export-png bypass)
+      "export_source_dir": null            // absolute, by default resolved at runtime (Frame0 cwd)
     },
-    "penpot": {                            // consulté seulement si platform=penpot
-      "export_dir": null,                  // absolu (Penpot MCP exige filePath absolu) ; défaut runtime = features/{id}/wireframes/
-      "file_id": null,                     // UUID file ciblé (preflight step-00)
-      "file_name": null                    // nom humain pour message d'erreur mismatch
+    "penpot": {                            // read only if platform=penpot
+      "export_dir": null,                  // absolute (Penpot MCP requires absolute filePath); runtime default = features/{id}/wireframes/
+      "file_id": null,                     // UUID of the targeted file (step-00 preflight)
+      "file_name": null                    // human name for mismatch error message
     },
-    "figma": {                             // consulté seulement si platform=figma
-      "file_key": null,                    // clé file ciblé (preflight step-00 vs figma.fileKey)
-      "file_name": null,                   // nom humain pour mismatch
-      "token_env": "FIGMA_ACCESS_TOKEN"    // variable env du token Figma personnel
+    "figma": {                             // read only if platform=figma
+      "file_key": null,                    // targeted file key (step-00 preflight vs figma.fileKey)
+      "file_name": null,                   // human name for mismatch
+      "token_env": "FIGMA_ACCESS_TOKEN"    // env variable for the personal Figma token
     }
   },
-  "design": {                              // optionnel, absent = /design désactivé. Bloc parallèle wireframes
-    "platform": "penpot",                  // penpot | figma (frame0 exclu — low-fi only)
+  "design": {                              // optional, absent = /design disabled. Block parallel to wireframes
+    "platform": "penpot",                  // penpot | figma (frame0 excluded — low-fi only)
     "export_format": "png",                // png | svg | pdf
     "naming_pattern": "{feature_id}-{screen_name}-design",
     "mode_defaults": {
       "mockup_canvas": "mobile-portrait",  // mobile-portrait | mobile-landscape | desktop | tablet
-      "design_system_source": "auto"       // auto | file | none — DS lu en référence seulement, jamais écrit
+      "design_system_source": "auto"       // auto | file | none — DS read for reference only, never written
     },
-    "penpot": {                            // consulté seulement si platform=penpot. Helper réutilisé: penpot-helper.sh
+    "penpot": {                            // read only if platform=penpot. Helper reused: penpot-helper.sh
       "file_id": null,
       "file_name": null,
       "export_dir": null,
-      "design_system_page": "Components"   // page Penpot lue en référence visuelle — /design n'y écrit jamais
+      "design_system_page": "Components"   // Penpot page read as visual reference — /design never writes to it
     },
-    "figma": {                             // consulté seulement si platform=figma. Helper: figma-helper.sh (même helper que /wireframe figma)
+    "figma": {                             // read only if platform=figma. Helper: figma-helper.sh (same helper as /wireframe figma)
       "file_key": null,
       "file_name": null,
       "token_env": "FIGMA_ACCESS_TOKEN"
@@ -107,88 +107,88 @@
     "format_command": "pnpm format"
   },
   "naming": {
-    // feature_id format hardcoded: NN-kebab (ex: 01-auth) — pas configurable
-    "feature_slug_max_length": 40,         // troncature slug
+    // feature_id format hardcoded: NN-kebab (e.g. 01-auth) — not configurable
+    "feature_slug_max_length": 40,         // slug truncation
     "branch_pattern": "{type}/{ticket_id}-{slug}",
     "commit_pattern": "{type}({scope}): {message}",
-    "ticket_id_regex": "[A-Z]+-[0-9]+"     // extract ID depuis branch/commit
+    "ticket_id_regex": "[A-Z]+-[0-9]+"     // extract ID from branch/commit
   },
   "ai": {
     "max_parallel_agents": 5,
-    "mcp_servers_required": [              // fail-fast au startup si absent
+    "mcp_servers_required": [              // fail-fast at startup if absent
       "affine-mcp-server",
       "frame0-mcp-server"
     ],
-    "mcp_servers_optional": [              // log-warn si absent, skill consulte runtime pour activer features
-      "code-review-graph",                 // QA régression scope=impacted (fallback tests-only si absent)
-      "playwright"                         // wireframe_check (skill /qa ajoute dynamiquement à check-list si qa.wireframe_check.enabled=true)
+    "mcp_servers_optional": [              // warn-log if absent, skill checks at runtime to enable features
+      "code-review-graph",                 // QA regression scope=impacted (fallback tests-only if absent)
+      "playwright"                         // wireframe_check (skill /qa adds dynamically to check-list if qa.wireframe_check.enabled=true)
     ]
   },
   "develop": {
     "review_cycles_max": 3,                // max ping-pong review↔developer
-    "auto_apply_review_feedback": true,    // dev applique feedback auto sans confirm
-    "fail_strategy": "next-ticket",        // next-ticket|stop|retry — si max cycles atteint sans approval
-    "reviews": {                           // 3 reviews spécialisées (parallèles, statiques sur diff)
+    "auto_apply_review_feedback": true,    // dev auto-applies feedback without confirm
+    "fail_strategy": "next-ticket",        // next-ticket|stop|retry — if max cycles reached without approval
+    "reviews": {                           // 3 specialized reviews (parallel, static on diff)
       "technical": {
-        "severity_threshold": "minor"      // info|minor|major|critical — bloque si ≥ seuil
+        "severity_threshold": "minor"      // info|minor|major|critical — blocks if ≥ threshold
       },
       "functional": {
-        "severity_threshold": "minor"      // AC non remplis = major par défaut
+        "severity_threshold": "minor"      // unmet AC = major by default
       },
       "security": {
-        "severity_threshold": "info"       // strict — bloque sur tout sauf clean
+        "severity_threshold": "info"       // strict — blocks on anything but clean
       }
     }
-    // Désactivation par type runtime: flags --no-tech / --no-functional / --no-security
+    // Per-type runtime disable: flags --no-tech / --no-functional / --no-security
   },
   "qa": {
-    "qa_cycles_max": 2,                    // ping-pong QA↔dev (indépendant review cycle /develop)
-    "auto_apply_qa_feedback": true,        // dev applique fixes auto sans confirm
-    "severity_threshold": "minor",         // info|minor|major|critical — bloque exit Phase QA si ≥ seuil
-    "retrigger_review": false,             // si true ET fixes appliqués: re-run 3 reviewers /develop sur diff post-QA
+    "qa_cycles_max": 2,                    // ping-pong QA↔dev (independent from /develop review cycle)
+    "auto_apply_qa_feedback": true,        // dev auto-applies fixes without confirm
+    "severity_threshold": "minor",         // info|minor|major|critical — blocks exit of QA Phase if ≥ threshold
+    "retrigger_review": false,             // if true AND fixes applied: re-run /develop 3 reviewers on post-QA diff
     "regression": {
       "enabled": true,
       "scope": "impacted"                  // impacted (via code-review-graph MCP) | full | tests-only
     },
     "wireframe_check": {
-      "enabled": false,                    // opt-in (setup Playwright requis)
-      "mode": "playwright",                // playwright (seul mode supporté pour l'instant)
-      "diff_threshold_pct": 5,             // % pixel diff toléré
+      "enabled": false,                    // opt-in (Playwright setup required)
+      "mode": "playwright",                // playwright (only mode supported for now)
+      "diff_threshold_pct": 5,             // tolerated pixel diff %
       "severity_on_mismatch": "major"
     }
   },
-  "lifecycle_scripts": {                   // scripts lifecycle CUSTOM (≠ hooks Claude Code)
-    // ⚠️ Ces lifecycle_scripts sont DES SCRIPTS PROPRES À CE WORKFLOW.
-    //    Ils ne sont PAS interprétés par Claude Code (pas dans events natifs
-    //    SessionStart/PreToolUse/etc). Ils sont exécutés explicitement par
-    //    chaque skill via _shared/run-lifecycle-script.sh aux moments lifecycle skill.
-    // Définir uniquement scripts utiles. Clés absentes = skip implicite.
-    // Scripts supportés: pre_define, post_define, pre_ticket, post_ticket,
+  "lifecycle_scripts": {                   // CUSTOM lifecycle scripts (≠ Claude Code hooks)
+    // ⚠️ These lifecycle_scripts are SCRIPTS SPECIFIC TO THIS WORKFLOW.
+    //    They are NOT interpreted by Claude Code (not in native
+    //    SessionStart/PreToolUse/etc events). They are executed explicitly by
+    //    each skill via _shared/run-lifecycle-script.sh at skill lifecycle points.
+    // Define only useful scripts. Absent keys = implicit skip.
+    // Supported scripts: pre_define, post_define, pre_ticket, post_ticket,
     //                    pre_wireframe, post_wireframe, pre_design, post_design,
     //                    pre_develop, post_develop, pre_qa, post_qa
-    // Valeur = path script exécutable (recoit context JSON sur stdin).
-    // Exemple:
+    // Value = path to executable script (receives context JSON on stdin).
+    // Example:
     // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
   },
-  "templates": {                           // résolution template (cf. ../contributing/templates.md)
-    "use_repo_native": true,               // réutiliser les templates .github/.gitlab
+  "templates": {                           // template resolution (see ../contributing/templates.md)
+    "use_repo_native": true,               // reuse .github/.gitlab templates
     "tickets": {
-      "user_story": null,                  // ex: ".claude/templates/my-user-story.md"
+      "user_story": null,                  // e.g. ".claude/templates/my-user-story.md"
       "bug":         null,
       "epic":        null
     },
-    "pr":                  null,           // ex: ".claude/templates/my-pr.md"
-    "review_thread":       null,           // commentaire posté sur PR/MR (best-effort)
-    "aggregated_feedback": null            // blob interne fix-loop /develop
-    // Ordre de résolution : override explicite > repo-native > bundlé.
-    // use_repo_native=true (défaut) → /ticket et /develop réutilisent les
-    //   templates markdown de l'hôte (.github/ISSUE_TEMPLATE/, .gitlab/
-    //   issue_templates/, PULL_REQUEST_TEMPLATE.md) avant le fallback bundlé.
-    //   Les overrides explicites ci-dessus gagnent toujours. false → ignore
-    //   les templates repo-native. JIRA n'a pas de convention repo-native.
-    // Overrides null par défaut → fallback bundlé `_shared/templates/...`.
-    // Chemin relatif → résolu depuis project root. Absolu → tel quel.
-    // Override pointant vers fichier inexistant → resolve-template.sh exit 2.
+    "pr":                  null,           // e.g. ".claude/templates/my-pr.md"
+    "review_thread":       null,           // comment posted on PR/MR (best-effort)
+    "aggregated_feedback": null            // internal blob for /develop fix-loop
+    // Resolution order: explicit override > repo-native > bundled.
+    // use_repo_native=true (default) → /ticket and /develop reuse the host's
+    //   markdown templates (.github/ISSUE_TEMPLATE/, .gitlab/
+    //   issue_templates/, PULL_REQUEST_TEMPLATE.md) before falling back to bundled.
+    //   Explicit overrides above always win. false → ignores repo-native
+    //   templates. JIRA has no repo-native convention.
+    // Overrides null by default → fallback to bundled `_shared/templates/...`.
+    // Relative path → resolved from project root. Absolute → as-is.
+    // Override pointing to non-existent file → resolve-template.sh exits 2.
   },
   "defaults": {
     "lang": "fr",                          // fr | en
@@ -200,59 +200,59 @@
 }
 ```
 
-## Auth: ABSENTE
+## Auth: ABSENT
 
-MCP/CLI gèrent indépendamment:
+MCP/CLI handle independently:
 
 - `gh auth status`, `glab auth status`, `jira me`
-- AFFiNE/Notion MCP servers utilisent leur propre config (`$AFFINE_API_TOKEN` env, etc.)
-- Skill vérifie auth au runtime via `_shared/detect-platforms.sh`
+- AFFiNE/Notion MCP servers use their own config (`$AFFINE_API_TOKEN` env, etc.)
+- Skill checks auth at runtime via `_shared/detect-platforms.sh`
 
-## Règles de fallback
+## Fallback rules
 
-1. Config absente → defaults bundlés dans skill
-2. Section absente → defaults section (sauf `documentation`/`tickets`/`testing` → setup interactif)
-3. Champ absent → default ou inheritance:
+1. Config absent → defaults bundled in skill
+2. Section absent → section defaults (except `documentation`/`tickets`/`testing` → interactive setup)
+3. Field absent → default or inheritance:
    - `tickets.platform = "inherit"` → `= repository.platform`
    - `testing.*_command` absent → auto-detect via `package.json`/`pyproject.toml`/etc.
    - `repository.protected_branches` absent → `["main"]`
-   - `naming.ticket_id_regex` absent → patterns par platform (JIRA: `[A-Z]+-[0-9]+`, GitHub: `#[0-9]+`)
+   - `naming.ticket_id_regex` absent → patterns per platform (JIRA: `[A-Z]+-[0-9]+`, GitHub: `#[0-9]+`)
    - `naming.feature_slug_max_length` absent → 40
    - `develop.review_cycles_max` absent → 3
-   - `develop.reviews.{type}.severity_threshold` absent → `minor` (sauf `security` → `info`)
+   - `develop.reviews.{type}.severity_threshold` absent → `minor` (except `security` → `info`)
    - `qa.qa_cycles_max` absent → `2`
    - `qa.severity_threshold` absent → `minor`
    - `qa.retrigger_review` absent → `false`
-   - `qa.regression.scope` absent → `impacted` (fallback `tests-only` si code-review-graph MCP absent)
+   - `qa.regression.scope` absent → `impacted` (fallback `tests-only` if code-review-graph MCP absent)
    - `qa.wireframe_check.enabled` absent → `false` (opt-in)
-4. **`feature_id` format hardcoded:** `NN-kebab` (ex: `01-auth`). `NN` = numéro auto-incrémenté depuis `index.md`, `kebab` = slugify nom feature tronqué à `feature_slug_max_length`.
-5. Override CLI flag toujours prioritaire (`--platform=...`, `--review-cycles=N`)
-6. `ai.mcp_servers_required` validé au startup chaque skill — fail fast si absent
-7. `ai.mcp_servers_optional` validé au startup — log warning si absent, features dépendantes auto-désactivées (ex: code-review-graph absent → `qa.regression.scope` forcé `tests-only`)
+4. **`feature_id` format hardcoded:** `NN-kebab` (e.g. `01-auth`). `NN` = auto-incremented number from `index.md`, `kebab` = slugified feature name truncated to `feature_slug_max_length`.
+5. CLI flag override always wins (`--platform=...`, `--review-cycles=N`)
+6. `ai.mcp_servers_required` validated at startup for each skill — fail fast if absent
+7. `ai.mcp_servers_optional` validated at startup — log warning if absent, dependent features auto-disabled (e.g. code-review-graph absent → `qa.regression.scope` forced to `tests-only`)
 
-## Auto-génération premier run
+## First-run auto-generation
 
-1. `_shared/setup-config.sh` lance si `snapship.config.json` absent
-2. Parse `.git/config` → extract remote URL → detect repo platform + URLs
-3. Tente MCP servers actifs → propose match (atlassian, github, notion, affine, frame0)
-4. AskUserQuestion mapping pour ambigus + champs critiques (jira.project_key si JIRA, workspace_id, root_page_id, template_ids)
-5. Génère `snapship.config.json` avec sections détectées
-6. User peut éditer ensuite (config = source de vérité, pas re-détection)
+1. `_shared/setup-config.sh` runs if `snapship.config.json` is absent
+2. Parses `.git/config` → extracts remote URL → detects repo platform + URLs
+3. Tries active MCP servers → proposes match (atlassian, github, notion, affine, frame0)
+4. AskUserQuestion mapping for ambiguous cases + critical fields (jira.project_key if JIRA, workspace_id, root_page_id, template_ids)
+5. Generates `snapship.config.json` with detected sections
+6. User can edit afterwards (config = source of truth, no re-detection)
 
-## Auto-discovery sections par étape
+## Per-step section auto-discovery
 
-| Skill        | Sections requises                                       | Si absent                      |
+| Skill        | Required sections                                       | If absent                      |
 | ------------ | ------------------------------------------------------- | ------------------------------ |
-| `/define`    | `documentation`, `ai`                                   | Setup interactif documentation |
-| `/ticket`    | `tickets`, `repository`, `naming`                       | Setup interactif tickets       |
-| `/wireframe` | `wireframes`, `documentation`                           | Erreur si `wireframes` absent  |
-| `/design`    | `design`, `documentation`                               | Skill skippé silencieusement si `design` absent (optionnel) |
-| `/develop`   | `repository`, `tickets`, `testing`, `naming`, `develop` | Setup interactif si manquant   |
-| `/qa`        | `tickets`, `testing`, `qa`                              | Setup interactif si manquant   |
+| `/define`    | `documentation`, `ai`                                   | Interactive documentation setup |
+| `/ticket`    | `tickets`, `repository`, `naming`                       | Interactive tickets setup      |
+| `/wireframe` | `wireframes`, `documentation`                           | Error if `wireframes` absent   |
+| `/design`    | `design`, `documentation`                               | Skill silently skipped if `design` absent (optional) |
+| `/develop`   | `repository`, `tickets`, `testing`, `naming`, `develop` | Interactive setup if missing   |
+| `/qa`        | `tickets`, `testing`, `qa`                              | Interactive setup if missing   |
 
-## Exemples wireframes + design
+## Wireframes + design examples
 
-**Penpot uniquement (wireframe low-fi + design hi-fi mockup dans même fichier)**
+**Penpot only (low-fi wireframe + hi-fi design mockup in same file)**
 
 ```jsonc
 "wireframes": {
@@ -263,10 +263,10 @@ MCP/CLI gèrent indépendamment:
   "platform": "penpot",
   "penpot": { "file_id": "abc-uuid", "design_system_page": "Components" }
 }
-// step-00 /design détecte file_id identique → AskUserQuestion auto-link Yes
+// /design step-00 detects identical file_id → AskUserQuestion auto-link Yes
 ```
 
-**Figma uniquement (mockups hi-fi, pas de wireframes)**
+**Figma only (hi-fi mockups, no wireframes)**
 
 ```jsonc
 "design": {
@@ -290,70 +290,70 @@ MCP/CLI gèrent indépendamment:
   "platform": "figma",
   "figma": { "file_key": "..." }
 }
-// Pas d'auto-link (platforms différentes) — design.figma demande binding séparé
+// No auto-link (different platforms) — design.figma requires separate binding
 ```
 
-## Secrets : `.env.snapship`
+## Secrets: `.env.snapship`
 
-Les secrets (Figma PAT, autres tokens) **ne vivent pas dans `snapship.config.json`**
-(commit-friendly). Ils sont lus depuis `.env.snapship` à la racine du projet
-(gitignored par défaut).
+Secrets (Figma PAT, other tokens) **do not live in `snapship.config.json`**
+(commit-friendly). They are read from `.env.snapship` at the project root
+(gitignored by default).
 
-**Format :** `KEY=VALUE` par ligne. Commentaires `#`. Quotes `"…"` / `'…'`
-strippées automatiquement. Pas de substitution shell.
+**Format:** `KEY=VALUE` per line. Comments `#`. Quotes `"…"` / `'…'`
+stripped automatically. No shell substitution.
 
 ```bash
-# .env.snapship — gitignored, secrets per-projet
+# .env.snapship — gitignored, per-project secrets
 FIGMA_ACCESS_TOKEN=figd_abc123def456
 # OPENAI_API_KEY="sk-…"
 ```
 
-**Résolution :** skills `/design` (figma) et `/wireframe` (figma) appellent
-`skills/_shared/load-env.sh --project-root="$PWD" --key=<NAME>` où `<NAME>`
-provient de `design.figma.token_env` / `wireframes.figma.token_env` (défaut
-`FIGMA_ACCESS_TOKEN`). Valeur exportée dans l'env pour `figma-console-mcp`.
+**Resolution:** the `/design` (figma) and `/wireframe` (figma) skills call
+`skills/_shared/load-env.sh --project-root="$PWD" --key=<NAME>` where `<NAME>`
+comes from `design.figma.token_env` / `wireframes.figma.token_env` (default
+`FIGMA_ACCESS_TOKEN`). Value exported in env for `figma-console-mcp`.
 
-**Erreurs courantes :**
-- Fichier absent → skill halt avec instruction création.
-- Clé absente → skill halt avec instruction ajout.
-- Token Figma invalide → MCP server retourne 401 (cas distinct).
+**Common errors:**
+- File missing → skill halts with creation instructions.
+- Key missing → skill halts with add instructions.
+- Invalid Figma token → MCP server returns 401 (separate case).
 
-**Générer un Figma PAT :** Figma → Settings → Personal access tokens → Generate
-new token. Scope: lecture + édition du fichier.
+**Generate a Figma PAT:** Figma → Settings → Personal access tokens → Generate
+new token. Scope: read + edit the file.
 
-## Lifecycle scripts custom (≠ hooks Claude Code)
+## Custom lifecycle scripts (≠ Claude Code hooks)
 
-`pre_<skill>` exécuté avant step-00, `post_<skill>` après dernier step. Scripts supportés: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
+`pre_<skill>` executed before step-00, `post_<skill>` after the last step. Supported scripts: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
 
-Orchestrés explicitement par chaque skill via `_shared/run-lifecycle-script.sh` — scripts shell user, **pas** des hooks Claude Code natifs (qui eux opèrent au niveau session/tool: `SessionStart`, `PreToolUse`, etc.).
+Orchestrated explicitly by each skill via `_shared/run-lifecycle-script.sh` — user shell scripts, **not** native Claude Code hooks (which operate at session/tool level: `SessionStart`, `PreToolUse`, etc.).
 
 ## Migration v0.4 → v0.5
 
-Breaking — `wireframes.{frame0,penpot,figma}` blocs nested ; section `design` ajoutée ; champs `tickets[].{design_screen,design_url,design_mode}` ajoutés au schema tickets.
+Breaking — `wireframes.{frame0,penpot,figma}` nested blocks; `design` section added; `tickets[].{design_screen,design_url,design_mode}` fields added to tickets schema.
 
-Outil : `scripts/migrate-config-v04-to-v05.sh <path/to/snapship.config.json>` (jq one-shot, non-bundlé runtime).
+Tool: `scripts/migrate-config-v04-to-v05.sh <path/to/snapship.config.json>` (jq one-shot, not bundled at runtime).
 
-| Ancien (v0.4 plat)                        | Nouveau (v0.5 nested)                    |
+| Old (v0.4 flat)                           | New (v0.5 nested)                        |
 | ----------------------------------------- | ---------------------------------------- |
 | `wireframes.frame0_api_port`              | `wireframes.frame0.api_port`             |
 | `wireframes.export_source_dir`            | `wireframes.frame0.export_source_dir`    |
 | `wireframes.penpot_export_dir`            | `wireframes.penpot.export_dir`           |
 | `wireframes.penpot_file_id`               | `wireframes.penpot.file_id`              |
 | `wireframes.penpot_file_name`             | `wireframes.penpot.file_name`            |
-| —                                         | `wireframes.figma.{file_key,file_name,token_env}` (nouveau) |
-| —                                         | `design.{platform,export_format,mode_defaults,penpot,figma}` (nouveau) |
+| —                                         | `wireframes.figma.{file_key,file_name,token_env}` (new) |
+| —                                         | `design.{platform,export_format,mode_defaults,penpot,figma}` (new) |
 
-Skill passe contexte JSON via stdin (feature_id, ticket_ids, etc.).
+Skill passes JSON context via stdin (feature_id, ticket_ids, etc.).
 
-## Validation runtime (JSON Schema)
+## Runtime validation (JSON Schema)
 
-`load-config.sh` valide config contre `_shared/schemas/config.schema.json`:
+`load-config.sh` validates config against `_shared/schemas/config.schema.json`:
 
-- Ajv ou `jq` + check basique
-- Erreurs schema → exit 1 + chemin champ + raison
-- Check `version` champ — incompatibilité majeure → instruction migration
-- Warnings stderr non-bloquants:
-  - `tickets.platform != "jira"` + `tickets.jira.*` set → "Section tickets.jira ignorée sur platform Y"
-  - `lifecycle_scripts.<name>` set vers script inexistant → "script X path invalide"
+- Ajv or `jq` + basic check
+- Schema errors → exit 1 + field path + reason
+- Check `version` field — major incompatibility → migration instruction
+- Non-blocking stderr warnings:
+  - `tickets.platform != "jira"` + `tickets.jira.*` set → "tickets.jira section ignored on platform Y"
+  - `lifecycle_scripts.<name>` set to non-existent script → "script X invalid path"
 
-Cache résolution dans `.snap/.config-resolved.json` (invalidé si mtime change).
+Resolution cache in `.snap/.config-resolved.json` (invalidated if mtime changes).

@@ -1,137 +1,137 @@
-# Workflow détection & intégration
+# Detection & integration workflow
 
-## Setup initial (premier `/define` — config absente)
+## Initial setup (first `/define` — config absent)
 
 `_shared/setup-config.sh` auto-discovery:
 
 ```
 1. Parse .git/config → repository.{platform, http_url, ssh_url, default_branch}
-2. Liste MCP servers actifs (parse claude_desktop_config / .claude/settings.json)
-   → cherche: atlassian, github, gitlab, affine, notion, frame0
-3. Pour chaque section requise par skill courant:
-   - Si MCP trouvé pertinent → propose en option
-   - Sinon → propose CLI dispo (which gh/glab/jira)
-   - AskUserQuestion choix + paramètres
-4. Setup detail par section:
-   - tickets: platform + url + (si JIRA: jira.project_key + jira.workflow_states/transitions)
+2. List active MCP servers (parse claude_desktop_config / .claude/settings.json)
+   → look for: atlassian, github, gitlab, affine, notion, frame0
+3. For each section required by the current skill:
+   - If relevant MCP found → offer as option
+   - Otherwise → offer available CLI (which gh/glab/jira)
+   - AskUserQuestion choice + parameters
+4. Per-section setup detail:
+   - tickets: platform + url + (if JIRA: jira.project_key + jira.workflow_states/transitions)
    - documentation:
-     · Liste workspaces AFFiNE/Notion via MCP → AskUserQuestion choix
-     · Liste pages templates (heuristique nom contient "Template") → mapping
-     · Templates manquants → AskUserQuestion "Créer défauts maintenant ?"
-       Oui: push depuis `templates/docs-defaults/{prd-feature,wireframes-gallery}.md` (v0.2 — `prd-global` retiré)
-       Non: pages from scratch
-     · Choix `root_page_id`: page existante ou créer "Produit"
-   - wireframes: confirm frame0 ou skip
-   - testing: auto-detect commandes + override
-   - naming: defaults branch_pattern/commit_pattern + AskUserQuestion override
+     · List AFFiNE/Notion workspaces via MCP → AskUserQuestion choice
+     · List template pages (heuristic: name contains "Template") → mapping
+     · Missing templates → AskUserQuestion "Create defaults now?"
+       Yes: push from `templates/docs-defaults/{prd-feature,wireframes-gallery}.md` (v0.2 — `prd-global` removed)
+       No: pages from scratch
+     · `root_page_id` choice: existing page or create "Product"
+   - wireframes: confirm frame0 or skip
+   - testing: auto-detect commands + override
+   - naming: branch_pattern/commit_pattern defaults + AskUserQuestion override
    - develop: review_cycles_max + severity_threshold + fail_strategy
    - qa: qa_cycles_max + severity_threshold + retrigger_review
    - defaults: lang (FR/EN)
-5. AskUserQuestion confirm (montre aperçu)
-6. Write `snapship.config.json` racine
+5. AskUserQuestion confirm (shows preview)
+6. Write `snapship.config.json` at root
 ```
 
-Idempotent: si config existe partielle, propose update sections incomplètes uniquement.
+Idempotent: if partial config exists, only proposes update for incomplete sections.
 
-## Runtime check (config présente) — `detect-platforms.sh`
+## Runtime check (config present) — `detect-platforms.sh`
 
-**Source de vérité = `snapship.config.json`.** Aucune re-détection sauf vérif auth.
+**Source of truth = `snapship.config.json`.** No re-detection except auth check.
 
 ```
 1. Read snapship.config.json (via load-config.sh)
-2. Pour chaque platform configurée:
-   - MCP server actif? (vérifier listing MCP)
-   - Sinon CLI dispo? (which + auth check)
-   - Si rien dispo → erreur claire avec instructions install/auth
-3. Cache résultat session (in-memory, pas disque)
+2. For each configured platform:
+   - MCP server active? (check MCP listing)
+   - Otherwise CLI available? (which + auth check)
+   - If nothing available → clear error with install/auth instructions
+3. Cache result for session (in-memory, not disk)
 ```
 
-**Auth check par platform:**
+**Auth check per platform:**
 
 - `gh auth status` (exit 0 = ok)
 - `glab auth status`
 - `jira me` (jira-cli ankitpokhrel)
-- AFFiNE/Notion MCP: tente 1 read call, catch error
+- AFFiNE/Notion MCP: try 1 read call, catch error
 
-## Flux d'intégration docs/tickets par skill
+## Docs/tickets integration flows per skill
 
 ```
 /define (v0.2)
-  ├─ step-04: render per-feature PRD localement (drop prd-global)
-  ├─ step-05: push PRD page archive `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immuable, taggé domains)
-  │           + lookup-or-create domain + journey pages sous `{functional_root}/`
+  ├─ step-04: render per-feature PRD locally (drop prd-global)
+  ├─ step-05: push PRD page archive `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable, tagged with domains)
+  │           + lookup-or-create domain + journey pages under `{functional_root}/`
   └─ manifest.json: { prd: {page_id, url, path}, domains[], impacted_journeys[] }
      _taxonomy.json: { <domain>: {domain_page_id, journeys: { <slug>: {page_id, url} }} }
 
-/snap:doc-import (v0.2 — bootstrap legacy)
-  └─ AI cluster pages doc legacy → restructure (synthesize|copy|move)
-     → populate _taxonomy.json one-shot
+/snap:doc-import (v0.2 — legacy bootstrap)
+  └─ AI clusters legacy doc pages → restructure (synthesize|copy|move)
+     → one-shot populate _taxonomy.json
 
-/snap:doc-update (v0.2 — auto post-QA si auto_update_on_qa_success)
-  ├─ step-01: fetch PRD + journey pages courantes + git diff feature
-  ├─ step-02: AI patch (mode=diff) ou rewrite (mode=rewrite)
-  └─ step-03: push update-page-content (PRD jamais touché)
+/snap:doc-update (v0.2 — auto post-QA if auto_update_on_qa_success)
+  ├─ step-01: fetch PRD + current journey pages + git diff for the feature
+  ├─ step-02: AI patch (mode=diff) or rewrite (mode=rewrite)
+  └─ step-03: push update-page-content (PRD never touched)
 
 /ticket
-  ├─ step-00: lit PRD feature depuis docs platform (MCP fetch via manifest.json.prd.page_id)
-  ├─ step-05 (push): lien PRD ajouté en description ticket
-  └─ Optionnel: ajoute liens tickets dans page docs feature (section "Tickets")
+  ├─ step-00: reads feature PRD from docs platform (MCP fetch via manifest.json.prd.page_id)
+  ├─ step-05 (push): PRD link added to ticket description
+  └─ Optional: add ticket links in feature docs page ("Tickets" section)
 
 /wireframe
-  ├─ step-00: lit tickets cache + page docs feature
-  ├─ step-03: crée page "Wireframes Gallery" sub-page de PRD feature
-  │           - upload PNG via blob MCP
-  │           - embed images + liens tickets + liens Frame0
-  └─ Update tickets plateforme avec lien gallery
+  ├─ step-00: reads tickets cache + feature docs page
+  ├─ step-03: creates "Wireframes Gallery" page as sub-page of feature PRD
+  │           - uploads PNG via blob MCP
+  │           - embeds images + ticket links + Frame0 links
+  └─ Updates platform tickets with gallery link
 
 /develop
-  ├─ step-02: lit ticket + lit PRD feature docs → contexte enrichi + crée branche
-  │           (apply-naming.sh branch idempotent, skip si branch_mode=false)
+  ├─ step-02: reads ticket + reads feature docs PRD → enriched context + creates branch
+  │           (apply-naming.sh branch idempotent, skip if branch_mode=false)
   ├─ step-03a: 2 phases
-  │  ├─ Phase 1 — Code: workflow inline analyze/plan/execute/validate
+  │  ├─ Phase 1 — Code: inline workflow analyze/plan/execute/validate
   │  └─ Phase 2 — Review cycle (max `review_cycles_max`):
-  │              · 3 reviewers parallèles (technical, functional, security)
-  │              · severity check per type vs `reviews.{type}.severity_threshold`
-  │              · 1 dev agent applique {aggregated_feedback}
-  │              · early stop si TOUS types < seuil (premier batch clean accepté)
-  │  → 1 commit atomique par ticket (amend si fixes Phase 2)
-  └─ step-04: push commits + sync ticket + crée PR/MR
-              (template `templates.pr` user override > bundlé `_shared/templates/pr/{platform}.md`)
-              + post review-thread (commentaire PR rendu via `templates.review_thread`)
+  │              · 3 parallel reviewers (technical, functional, security)
+  │              · per-type severity check vs `reviews.{type}.severity_threshold`
+  │              · 1 dev agent applies {aggregated_feedback}
+  │              · early stop if ALL types < threshold (first clean batch accepted)
+  │  → 1 atomic commit per ticket (amend if Phase 2 fixes)
+  └─ step-04: push commits + sync ticket + create PR/MR
+              (template `templates.pr` user override > bundled `_shared/templates/pr/{platform}.md`)
+              + post review-thread (PR comment rendered via `templates.review_thread`)
 
-/qa  (skill séparée — validation runtime)
-  ├─ step-00: charge manifest.json + tickets.json + détermine diff scope (commits ticket/feature)
-  ├─ step-01-collect: raw outputs (régression scope=impacted via code-review-graph + wireframe via Playwright)
-  ├─ step-02-interpret: spawn `code-reviewer-qa` subagent → severity + feedback_md
-  ├─ step-03-fix: cycle dev↔qa (max `qa.qa_cycles_max`)
-  │             · exit si regression=pass ET wireframe=pass ET severity < threshold
-  │             · fixes amend commit ticket atomique
-  └─ step-04-retrigger (opt-in `qa.retrigger_review=true` ET fixes appliqués):
-              · re-run 3 reviewers /develop sur diff post-QA (1 retrigger max)
+/qa  (separate skill — runtime validation)
+  ├─ step-00: loads manifest.json + tickets.json + determines diff scope (ticket/feature commits)
+  ├─ step-01-collect: raw outputs (regression scope=impacted via code-review-graph + wireframe via Playwright)
+  ├─ step-02-interpret: spawns `code-reviewer-qa` subagent → severity + feedback_md
+  ├─ step-03-fix: dev↔qa cycle (max `qa.qa_cycles_max`)
+  │             · exit if regression=pass AND wireframe=pass AND severity < threshold
+  │             · fixes amend atomic ticket commit
+  └─ step-04-retrigger (opt-in `qa.retrigger_review=true` AND fixes applied):
+              · re-run /develop 3 reviewers on post-QA diff (1 retrigger max)
 ```
 
 ## Error handling (MCP/CLI fail mid-workflow)
 
-**Politique: fail-fast + resume.**
+**Policy: fail-fast + resume.**
 
 ```
-Tout appel MCP/CLI échoué (timeout, auth, API error):
-  1. Skill catch erreur, capture stack trace + step name
-  2. Update progress.json avec:
-     - timestamp, step échoué, erreur exacte
-     - état partiel (variables clés, IDs créés avant fail)
-  3. Affiche message clair:
-     - Cause probable (auth expirée, MCP server down, rate limit)
-     - Action requise user (re-auth, restart MCP, attendre)
-     - Commande resume: `/<skill> -r {feature_id}`
-  4. Exit non-zéro → workflow stop net
+Any failed MCP/CLI call (timeout, auth, API error):
+  1. Skill catches error, captures stack trace + step name
+  2. Updates progress.json with:
+     - timestamp, failed step, exact error
+     - partial state (key variables, IDs created before fail)
+  3. Displays clear message:
+     - Likely cause (expired auth, MCP server down, rate limit)
+     - Required user action (re-auth, restart MCP, wait)
+     - Resume command: `/<skill> -r {feature_id}`
+  4. Non-zero exit → workflow stops cleanly
 ```
 
-**Idempotence:** chaque step doit être ré-exécutable sans dupliquer:
+**Idempotence:** each step must be re-runnable without duplication:
 
-- `/snap:define`: avant create page PRD, check `manifest.json.prd.page_id` existe (v0.2)
-- `/ticket`: avant create ticket, check si déjà push (cache `tickets.json`)
-- `/wireframe`: blob upload checksum-based dedup
-- `/develop`: branch checkout idempotent, commit message diff-based
+- `/snap:define`: before creating PRD page, check `manifest.json.prd.page_id` exists (v0.2)
+- `/ticket`: before creating ticket, check if already pushed (cache `tickets.json`)
+- `/wireframe`: checksum-based blob upload dedup
+- `/develop`: idempotent branch checkout, diff-based commit message
 
-**Pas de retry auto.** User décide après diagnostic.
+**No auto-retry.** User decides after diagnosis.

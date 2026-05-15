@@ -2,13 +2,13 @@
 
 ## Distribution
 
-Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin.json`, MCP servers via `.mcp.json` racine, skills/agents auto-découverts depuis dossiers conventionnels.
+Plugin v1 packaged to the Claude Code schema: `.claude-plugin/plugin.json` manifest, MCP servers via `.mcp.json` at root, skills/agents auto-discovered from conventional folders.
 
-- Install marketplace `bryanberger` (Phase 10): `/plugin marketplace add BryanBerger98/claude-plugins` puis `/plugin install snap@bryanberger`
-- Ou clone manuel: `git clone … ~/.claude/plugins/snap` (auto-loaded)
-- Compatible installation projet via `.claude/settings.json` (`extraKnownMarketplaces` + `enabledPlugins`)
+- Install via the `bryanberger` marketplace (Phase 10): `/plugin marketplace add BryanBerger98/claude-plugins` then `/plugin install snap@bryanberger`
+- Or manual clone: `git clone … ~/.claude/plugins/snap` (auto-loaded)
+- Compatible with project install via `.claude/settings.json` (`extraKnownMarketplaces` + `enabledPlugins`)
 
-**Pas de symlink custom.** Paths officiels CC uniquement.
+**No custom symlink.** Official CC paths only.
 
 ## Manifest `.claude-plugin/plugin.json`
 
@@ -25,76 +25,76 @@ Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin
 }
 ```
 
-> **Seul `name` est requis** par le schéma CC. Les autres champs sont metadata recommandée.
+> **Only `name` is required** by the CC schema. The other fields are recommended metadata.
 
-### Champs **non utilisés** (et pourquoi)
+### Fields **not used** (and why)
 
-| Champ | Statut | Raison |
+| Field | Status | Reason |
 |-------|--------|--------|
-| `skills` | absent | Auto-discovery `skills/` racine plugin |
-| `agents` | absent | Auto-discovery `agents/` racine plugin |
-| `commands` | absent | Nos slash commands sont des **skills**, pas des `commands/*.md` |
-| `hooks` | absent | Pas de lifecycle plugin pour v0.1.0 |
-| `mcpServers` | absent inline | Déclarés via `.mcp.json` séparé (équivalent fonctionnel) |
-| `outputStyles` / `lspServers` | absent | Non pertinents |
+| `skills` | absent | Auto-discovery from `skills/` at plugin root |
+| `agents` | absent | Auto-discovery from `agents/` at plugin root |
+| `commands` | absent | Our slash commands are **skills**, not `commands/*.md` |
+| `hooks` | absent | No plugin lifecycle for v0.1.0 |
+| `mcpServers` | absent inline | Declared via separate `.mcp.json` (functionally equivalent) |
+| `outputStyles` / `lspServers` | absent | Not relevant |
 
-> **Champs custom anciennement présents et supprimés** (invalides — pas dans schéma CC): `skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path`, `mcp_servers` (snake_case).
+> **Custom fields formerly present and removed** (invalid — not in CC schema): `skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path`, `mcp_servers` (snake_case).
 
-## Layout repo plugin
+## Plugin repo layout
 
 ```
 snapship-plugin/
 ├── .claude-plugin/
-│   └── plugin.json                # manifest CC (name, version, metadata)
-├── .mcp.json                      # MCP servers bundlés (code-review-graph)
+│   └── plugin.json                # CC manifest (name, version, metadata)
+├── .mcp.json                      # bundled MCP servers (code-review-graph)
 ├── CHANGELOG.md                   # Keep-a-Changelog
-├── NOTICE                         # attributions community MCPs
+├── NOTICE                         # community MCPs attributions
 ├── LICENSE                        # MIT
 ├── README.md
-├── skills/                        # auto-découvert
+├── skills/                        # auto-discovered
 │   ├── define/
 │   ├── ticket/
 │   ├── wireframe/
 │   ├── develop/
 │   ├── qa/
-│   └── _shared/                   # scripts + templates + schemas partagés (utilisés par skills, pas un dossier CC standard)
-├── agents/                        # auto-découvert (préfixe `snap-` pour éviter collision avec agents projet)
+│   └── _shared/                   # shared scripts + templates + schemas (used by skills, not a standard CC folder)
+├── agents/                        # auto-discovered (`snap-` prefix to avoid collision with project agents)
 │   ├── snap-code-reviewer-technical.md
 │   ├── snap-code-reviewer-functional.md
 │   ├── snap-code-reviewer-security.md
 │   ├── snap-code-reviewer-qa.md
 │   └── snap-developer.md
-└── docs/                          # specs internes (pas distribuées run-time)
+└── docs/                          # internal specs (not distributed at runtime)
 ```
 
-Détails arbre complet: [structure.md](structure.md).
+Full tree details: [structure.md](structure.md).
 
 ## Validation
 
 ```bash
-claude plugin validate .          # ou /plugin validate . in-session
+claude plugin validate .          # or /plugin validate . in-session
 ```
 
-CI run cette validation à chaque push (Phase 7.3).
+CI runs this validation on every push (Phase 7.3).
 
 ## Install
 
-### Marketplace `bryanberger` (Phase 10)
+### `bryanberger` marketplace (Phase 10)
 
 ```bash
 /plugin marketplace add BryanBerger98/claude-plugins
 /plugin install snap@bryanberger
 ```
 
-### Clone manuel global
+### Global manual clone
 
 ```bash
 git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 ```
 
-Plugin auto-chargé au prochain démarrage Claude Code.
+Plugin auto-loaded on next Claude Code start.
 
-### Projet-scoped (équipe)
+### Project-scoped (team)
 
 `.claude/settings.json`:
 
@@ -109,24 +109,24 @@ Plugin auto-chargé au prochain démarrage Claude Code.
 
 ## MCP servers
 
-| MCP                 | Bundling     | Rôle                                             | Required par                                  |
+| MCP                 | Bundling     | Role                                             | Required by                                   |
 | ------------------- | ------------ | ------------------------------------------------ | --------------------------------------------- |
 | `code-review-graph` | **bundled**  | Knowledge graph (impact, flows, tests)           | `/develop` (warm-up), `/qa` (scope=impacted)  |
-| `affine-mcp-server` | required     | Docs primaire (PRD + features + galleries)      | `/define`, `/wireframe`, `/ticket`            |
+| `affine-mcp-server` | required     | Primary docs (PRD + features + galleries)       | `/define`, `/wireframe`, `/ticket`            |
 | `frame0-mcp-server` | optional     | Wireframes shapes/pages/export                   | `/wireframe`                                  |
-| `playwright`        | optional     | Headless browser screenshot                      | `/qa` si `wireframe_check.enabled=true`       |
+| `playwright`        | optional     | Headless browser screenshot                      | `/qa` if `wireframe_check.enabled=true`       |
 
-`code-review-graph` est déclaré dans `.mcp.json` (auto-start). Binaire installé séparément: `pipx install code-review-graph`. Voir [mcp-refs.md](../usage/mcp-refs.md) pour autres MCPs.
+`code-review-graph` is declared in `.mcp.json` (auto-start). Binary installed separately: `pipx install code-review-graph`. See [mcp-refs.md](../usage/mcp-refs.md) for other MCPs.
 
 ## Versioning
 
-Manifest `version` = SemVer. Compat config:
+Manifest `version` = SemVer. Config compatibility:
 
 - Minor bump → backward compatible
-- Major bump → instructions migration via `load-config.sh` (check `version` champ config user)
+- Major bump → migration instructions via `load-config.sh` (checks user config `version` field)
 
-Schemas JSON validés runtime (voir [configuration.md](../usage/configuration.md) section validation).
+JSON schemas validated at runtime (see [configuration.md](../usage/configuration.md) validation section).
 
-## Templates docs-defaults
+## docs-defaults templates
 
-Bundlés dans `skills/_shared/templates/docs-defaults/` (push opt-in via setup-config.sh premier run). Voir [templates.md](templates.md).
+Bundled in `skills/_shared/templates/docs-defaults/` (opt-in push via `setup-config.sh` on first run). See [templates.md](templates.md).

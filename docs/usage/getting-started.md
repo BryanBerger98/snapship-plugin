@@ -1,144 +1,143 @@
-# Getting started — première feature en 5 minutes
+# Getting started — first feature in 5 minutes
 
-Pré-requis : plugin installé ([install.md](install.md)) et `claude` lancé
-depuis la racine d'un repo Git.
+Prerequisites: plugin installed ([install.md](install.md)) and `claude` launched
+from the root of a Git repo.
 
 ## 1. `/snap:init` — bootstrap workspace
 
-Lancer **une fois par projet** :
+Run **once per project**:
 
 ```text
 /snap:init
 ```
 
-Snap probe l'environnement (`.git/config`, MCPs actifs, `package.json`,
-`pyproject.toml`…) et propose les defaults via `AskUserQuestion`. Réponse
-type :
+Snap probes the environment (`.git/config`, active MCPs, `package.json`,
+`pyproject.toml`…) and suggests defaults via `AskUserQuestion`. Typical answers:
 
-| Question     | Réponse exemple                              |
+| Question     | Example answer                               |
 | ------------ | -------------------------------------------- |
-| Repo         | `github` (détecté depuis `.git/config`)      |
+| Repo         | `github` (detected from `.git/config`)       |
 | Tickets      | `linear`                                     |
 | Docs         | `notion`                                     |
 | Wireframes   | `frame0`                                     |
-| Design       | `figma` (optionnel)                          |
+| Design       | `figma` (optional)                           |
 | Lang         | `fr`                                         |
 
-Mode autonome — utilise tous les defaults détectés :
+Autonomous mode — uses all detected defaults:
 
 ```text
 /snap:init --auto
 ```
 
-À la sortie :
+On exit:
 
 ```
 <project>/
-  snapship.config.json     # ← committable, partagé équipe
-  .snap/                   # ← workspace local
-    manifests/             # ← committed (références plateformes)
-    tickets/               # ← committed (cache tickets)
+  snapship.config.json     # ← committable, shared with team
+  .snap/                   # ← local workspace
+    manifests/             # ← committed (platform references)
+    tickets/               # ← committed (ticket cache)
     PRDs/ designs/ wireframes/ queues/   # ← gitignored (staging)
-    progress.json          # ← gitignored (état runtime)
+    progress.json          # ← gitignored (runtime state)
 ```
 
-> Re-init plus tard : `/snap:init --force` (réécrit `snapship.config.json`,
-> **préserve** `.snap/`).
+> Re-init later: `/snap:init --force` (rewrites `snapship.config.json`,
+> **preserves** `.snap/`).
 
-## 2. `/snap:define` — première feature
+## 2. `/snap:define` — first feature
 
 ```text
-/snap:define "Authentification email + magic link"
+/snap:define "Email + magic link authentication"
 ```
 
-Pipeline :
+Pipeline:
 
-1. **step-00** crée le `feature_id` (ex. `01-auth-email`) et le slug.
-2. **step-01..03** brainstorm interactif PRD : objectif, scope, écrans,
-   critères d'acceptation. Réponses via `AskUserQuestion`.
-3. **step-04** écrit `.snap/PRDs/01-auth-email.md` + push vers la plateforme
-   docs configurée (Notion/AFFiNE). La page distante devient source de
-   vérité ; le local sert au staging.
-4. **step-05** crée `.snap/manifests/01-auth-email.manifest.json` avec
-   `state: defined` et `refs.prd_page = { platform, page_id, url, synced_at }`.
+1. **step-00** creates the `feature_id` (e.g. `01-auth-email`) and slug.
+2. **step-01..03** interactive PRD brainstorm: goal, scope, screens,
+   acceptance criteria. Answers via `AskUserQuestion`.
+3. **step-04** writes `.snap/PRDs/01-auth-email.md` + pushes to the configured
+   docs platform (Notion/AFFiNE). The remote page becomes the source of
+   truth; local serves as staging.
+4. **step-05** creates `.snap/manifests/01-auth-email.manifest.json` with
+   `state: defined` and `refs.prd_page = { platform, page_id, url, synced_at }`.
 
-Reprise possible à tout instant : `/snap:define --resume` (ou `-r`).
+Resumable at any point: `/snap:define --resume` (or `-r`).
 
-## 3. `/snap:ticket` — décomposer en tickets
+## 3. `/snap:ticket` — break down into tickets
 
 ```text
 /snap:ticket 01-auth-email
 ```
 
-Lit le PRD, propose une décomposition en tickets typés conventional commit
-(`feat`, `fix`, `chore`…), te demande confirmation, écrit
-`.snap/tickets/01-auth-email.json`, puis pousse sur la plateforme tickets
-configurée (GitHub Issues, GitLab, JIRA, Linear). Chaque ticket gagne un
-`platform_id` (`#42`, `PROJ-123`…) et une `url`.
+Reads the PRD, proposes a breakdown into conventional-commit-typed tickets
+(`feat`, `fix`, `chore`…), asks for confirmation, writes
+`.snap/tickets/01-auth-email.json`, then pushes to the configured tickets
+platform (GitHub Issues, GitLab, JIRA, Linear). Each ticket gets a
+`platform_id` (`#42`, `PROJ-123`…) and a `url`.
 
-Templates repo-native : si ton repo expose `.github/ISSUE_TEMPLATE/*.md` ou
-`.gitlab/issue_templates/*.md`, snap les détecte et les remplit
-section-par-section au lieu d'écrire le bundled template. Voir
+Repo-native templates: if your repo exposes `.github/ISSUE_TEMPLATE/*.md` or
+`.gitlab/issue_templates/*.md`, snap detects them and fills them
+section-by-section instead of writing the bundled template. See
 [templates.md](../contributing/templates.md).
 
-## 4. (optionnel) `/snap:wireframe` puis `/snap:design`
+## 4. (optional) `/snap:wireframe` then `/snap:design`
 
-Si la feature a au moins un ticket UI :
+If the feature has at least one UI ticket:
 
 ```text
 /snap:wireframe                 # low-fi via Frame0/Penpot/Figma
 /snap:design 01-auth-email      # hi-fi via Penpot/Figma
 ```
 
-Chaque skill génère les assets, push vers la plateforme, back-linke
-`wireframe_url` + `design_url` dans `tickets/{feature_id}.json`.
+Each skill generates the assets, pushes to the platform, and back-links
+`wireframe_url` + `design_url` in `tickets/{feature_id}.json`.
 
-## 5. `/snap:develop` — implémenter ticket par ticket
+## 5. `/snap:develop` — implement ticket by ticket
 
 ```text
-/snap:develop 01-auth-email          # batch tous les tickets de la feature
-# ou
-/snap:develop t-001                  # un ticket précis (local_id ou platform_id)
+/snap:develop 01-auth-email          # batch all tickets of the feature
+# or
+/snap:develop t-001                  # one specific ticket (local_id or platform_id)
 ```
 
-Loop **standalone** ou **session** :
+**Standalone** or **session** loop:
 
-- standalone : un ticket → un commit atomique → continue.
-- session : enchaîne tous les tickets ouverts d'une feature jusqu'au PR.
+- standalone: one ticket → one atomic commit → continue.
+- session: chains all open tickets of a feature through to the PR.
 
-Trois reviewers automatiques (technical / functional / security) tournent
-post-commit ; un PR brouillon est ouvert avec le résumé.
+Three automatic reviewers (technical / functional / security) run
+post-commit; a draft PR is opened with the summary.
 
-> Le mode `daemon` a été retiré en v1.0.0. Pas de boucle hors-session.
+> The `daemon` mode was removed in v1.0.0. No out-of-session loop.
 
-## 6. `/snap:qa` — validation runtime
+## 6. `/snap:qa` — runtime validation
 
 ```text
 /snap:qa 01-auth-email
 ```
 
-Lance les tests scope régression (via `code-review-graph` impact radius si
-disponible), puis un diff visuel Playwright vs les wireframes/maquettes
-référencés dans les tickets. Échec critique → ré-ouvre les tickets concernés
-en `qa_blocked`.
+Runs regression-scope tests (via `code-review-graph` impact radius if
+available), then a Playwright visual diff against the wireframes/mockups
+referenced in the tickets. Critical failure → reopens the affected tickets
+as `qa_blocked`.
 
-## Cycle complet
+## Full cycle
 
 ```text
-/snap:init                           # 1× par projet
-/snap:define "..."                   # 1× par feature
+/snap:init                           # 1× per project
+/snap:define "..."                   # 1× per feature
 /snap:ticket   <feature_id>
-/snap:wireframe                      # si UI
-/snap:design   <feature_id>          # si UI hi-fi
+/snap:wireframe                      # if UI
+/snap:design   <feature_id>          # if hi-fi UI
 /snap:develop  <feature_id>
 /snap:qa       <feature_id>
-/snap:doc-update <feature_id>        # post-ship — rafraîchit la doc fonctionnelle
+/snap:doc-update <feature_id>        # post-ship — refreshes the functional doc
 ```
 
-Voir [workflow.md](workflow.md) pour les détails plateformes et
-[skills/](skills/) pour chaque skill (flags, pipeline, outputs).
+See [workflow.md](workflow.md) for platform details and
+[skills/](skills/) for each skill (flags, pipeline, outputs).
 
-## Si ça casse
+## If something breaks
 
-[troubleshooting.md](troubleshooting.md) — auth MCP, conflits resume,
+[troubleshooting.md](troubleshooting.md) — MCP auth, resume conflicts,
 secrets, sync fail, version mismatch.

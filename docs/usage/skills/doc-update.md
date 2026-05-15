@@ -1,36 +1,36 @@
-# `/snap:doc-update` — rafraîchir la doc fonctionnelle vivante
+# `/snap:doc-update` — refresh the living functional docs
 
-Met à jour les pages parcours impactées par une feature après son ship. Lit le
-PRD + le contenu parcours courant + le diff git de la feature, puis patche ou
-réécrit les pages parcours via l'IA.
+Updates the journey pages impacted by a feature after it ships. Reads the
+PRD + current journey content + the feature's git diff, then patches or
+rewrites the journey pages via AI.
 
-## À quoi ça sert
+## What it does
 
-Garder la doc fonctionnelle **vivante** à jour après livraison.
+Keep the functional docs **alive** and up to date after shipping.
 
-- La page **PRD** (`Change Requests/{YYYY}/{MM-YYYY}/`) n'est **jamais
-  modifiée** — archive immuable de l'intention.
-- Les pages **parcours** (`Product Docs/{domain}/{journey}/`) sont la spec
-  vivante — ce skill les maintient à jour.
+- The **PRD** page (`Change Requests/{YYYY}/{MM-YYYY}/`) is **never
+  modified** — immutable archive of intent.
+- The **journey** pages (`Product Docs/{domain}/{journey}/`) are the
+  living spec — this skill keeps them current.
 
-## Quand l'utiliser
+## When to use it
 
 | Source                  | Condition                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------- |
-| Auto post-`/snap:qa`    | `documentation.auto_update_on_qa_success: true` ET la feature passe à `qa-validated`. |
-| Manuel                  | `/snap:doc-update --feature=NN-slug`.                                           |
+| Auto post-`/snap:qa`    | `documentation.auto_update_on_qa_success: true` AND the feature reaches `qa-validated`. |
+| Manual                  | `/snap:doc-update --feature=NN-slug`.                                           |
 
-## Prérequis
+## Prerequisites
 
-- `/snap:init` lancé (`snapship.config.json` existe).
-- `documentation.platform ∈ {affine, notion}` (ignoré si `none`).
-- MCP de cette plateforme joignable.
-- La feature a un `manifest.json` avec `state == "qa-validated"` et `prd.page_id`
-  renseigné.
-- Chaque entrée `impacted_journeys[]` a une entrée correspondante dans
+- `/snap:init` run (`snapship.config.json` exists).
+- `documentation.platform ∈ {affine, notion}` (skipped if `none`).
+- MCP for that platform reachable.
+- The feature has a `manifest.json` with `state == "qa-validated"` and `prd.page_id`
+  set.
+- Every `impacted_journeys[]` entry has a matching entry in
   `_taxonomy.json`.
 
-## Syntaxe
+## Syntax
 
 ```
 /snap:doc-update --feature=NN-slug [--mode=diff|rewrite] [--dry-run] [-a]
@@ -38,32 +38,32 @@ Garder la doc fonctionnelle **vivante** à jour après livraison.
 
 ## Flags
 
-| Flag                  | Effet                                                                            |
+| Flag                  | Effect                                                                           |
 | --------------------- | -------------------------------------------------------------------------------- |
-| `--feature=NN-slug`   | **Requis.** Partial-match sur `feature_id` (ex. `01` → `01-auth`).               |
-| `--mode=diff\|rewrite`| Surcharge `documentation.auto_update_mode`. `diff` = patch IA, `rewrite` = réécriture complète. |
-| `--dry-run`           | Rend les mises à jour proposées en local, ne pousse pas vers AFFiNE / Notion.    |
-| `-a` / `--auto`       | Ignore les confirmations (utilisé par le hook post-QA).                          |
+| `--feature=NN-slug`   | **Required.** Partial-match on `feature_id` (e.g. `01` → `01-auth`).             |
+| `--mode=diff\|rewrite`| Overrides `documentation.auto_update_mode`. `diff` = AI patch, `rewrite` = full rewrite. |
+| `--dry-run`           | Renders the proposed updates locally, does not push to AFFiNE / Notion.          |
+| `-a` / `--auto`       | Skips confirmations (used by the post-QA hook).                                  |
 
 ## Pipeline
 
-| #  | Step                  | Rôle                                                                              |
+| #  | Step                  | Role                                                                              |
 | -- | --------------------- | --------------------------------------------------------------------------------- |
-| 00 | `step-00-init.md`     | Parse args, exige `/snap:init`, valide l'état de la feature, charge PRD + refs parcours. |
-| 01 | `step-01-collect.md`  | Récupère le contenu de la page PRD, les pages parcours courantes, le diff git ticket-level de la feature. |
-| 02 | `step-02-update.md`   | Par parcours impacté : l'IA génère un patch (`mode=diff`) ou une réécriture complète (`mode=rewrite`). |
-| 03 | `step-03-publish.md`  | Pousse les mises à jour via `docs-adapter --action=update-page-content`.          |
-| 04 | `step-04-finish.md`   | Télémétrie + entrée progress. Terminal.                                           |
+| 00 | `step-00-init.md`     | Parses args, requires `/snap:init`, validates the feature state, loads PRD + journey refs. |
+| 01 | `step-01-collect.md`  | Fetches the PRD page content, the current journey pages, and the feature's ticket-level git diff. |
+| 02 | `step-02-update.md`   | Per impacted journey: AI generates a patch (`mode=diff`) or a full rewrite (`mode=rewrite`). |
+| 03 | `step-03-publish.md`  | Pushes the updates via `docs-adapter --action=update-page-content`.               |
+| 04 | `step-04-finish.md`   | Telemetry + progress entry. Terminal.                                             |
 
-Steps **idempotents** : relancer avec la même feature + le même état git produit
-le même diff (modulo non-déterminisme IA — relire avant push).
+Steps are **idempotent**: re-running with the same feature + same git state
+produces the same diff (modulo AI non-determinism — review before push).
 
 ## Outputs
 
-- Page(s) parcours mises à jour sur AFFiNE / Notion (la page PRD reste intacte).
-- Entrée `progress.json` : `doc-update step-04 finish — ok` (ou `dry-run` / `skip`).
-- Événement de télémétrie `doc-update`.
+- Updated journey page(s) on AFFiNE / Notion (the PRD page stays intact).
+- `progress.json` entry: `doc-update step-04 finish — ok` (or `dry-run` / `skip`).
+- `doc-update` telemetry event.
 
-## Étape suivante
+## Next step
 
-Terminal — la feature est livrée et sa doc est à jour.
+Terminal — the feature is shipped and its docs are up to date.
