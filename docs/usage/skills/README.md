@@ -18,7 +18,7 @@ One usage doc per `/snap:*` command: flags, pipeline, outputs.
 
 | Skill                              | Role                                                          |
 | ---------------------------------- | ------------------------------------------------------------- |
-| [`/snap:doc-import`](doc-import.md) | Import legacy docs into the SnapShip hierarchy. One-shot.    |
+| [`/snap:doc-import`](doc-import.md) | Import existing docs into the SnapShip hierarchy. One-shot.  |
 | [`/snap:doc-update`](doc-update.md) | Refresh the living functional doc after a feature ships.     |
 
 ---

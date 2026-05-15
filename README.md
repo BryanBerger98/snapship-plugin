@@ -39,7 +39,7 @@ SnapShip is a Claude Code plugin that turns a one-line feature idea into a shipp
 
 | Slash               | What it does                                                       | Primary storage                                  |
 | ------------------- | ------------------------------------------------------------------ | ------------------------------------------------ |
-| `/snap:doc-import`  | Imports legacy docs into the SnapShip hierarchy. One-shot.          | AFFiNE / Notion + `.snap/manifests/_taxonomy.json` |
+| `/snap:doc-import`  | Imports existing docs into the SnapShip hierarchy. One-shot.        | AFFiNE / Notion + `.snap/manifests/_taxonomy.json` |
 | `/snap:doc-update`  | Refreshes the living functional doc after a feature ships.          | AFFiNE / Notion (journey pages)                  |
 
 > 📖 Each skill has a dedicated usage doc (flags, pipeline, outputs) under [`docs/usage/skills/`](docs/usage/skills/).
@@ -88,7 +88,6 @@ claude
 
 📂 Install + prerequisites → [docs/usage/install.md](docs/usage/install.md)
 🎬 Full walkthrough → [docs/usage/getting-started.md](docs/usage/getting-started.md)
-🔄 Migration v0.6 → v1.0 → [docs/usage/migration-v1.md](docs/usage/migration-v1.md)
 
 ---
 
@@ -130,7 +129,6 @@ Full specs in [`docs/`](docs/README.md) — split between **usage** (for plugin 
 | [concepts.md](docs/usage/concepts.md)                 | PRD vs living functional doc (journeys)                    |
 | [diagram.md](docs/usage/diagram.md)                   | Mermaid diagrams of the workflow                           |
 | [troubleshooting.md](docs/usage/troubleshooting.md)   | Common errors (MCP auth, secrets, resume, sync)            |
-| [migration-v1.md](docs/usage/migration-v1.md)         | v0.6 → v1.0 migration guide                                |
 | [skills/](docs/usage/skills/)                         | Per-skill usage docs (flags, pipeline, outputs)            |
 
 ### 🛠️ Contributing
@@ -148,11 +146,9 @@ Full specs in [`docs/`](docs/README.md) — split between **usage** (for plugin 
 
 ## 📦 Status
 
-**`v1.0.0`** — breaking refactor (remote-first, reorganised `.snap/`).
+**`v1.0.0`** — remote-first workspace.
 
 Published via the [`BryanBerger98/claude-plugins`](https://github.com/BryanBerger98/claude-plugins) marketplace → `/plugin install snap@bryanberger`.
-
-Upgrading from v0.6.x? Run `/snap:upgrade` (see [docs/migration-v1.md](docs/migration-v1.md)).
 
 ---
 

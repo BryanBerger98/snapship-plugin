@@ -23,7 +23,6 @@ Everything you need to install, configure, and ship features with SnapShip.
 ## 🆘 When things break
 
 - [Troubleshooting](troubleshooting.md) — common errors and fixes
-- [Migration v0.6 → v1.0](migration-v1.md) — upgrading from older versions
 
 ---
 

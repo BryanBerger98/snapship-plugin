@@ -7,8 +7,8 @@ feedback, then produces atomic commits and pushes the branch.
 ## What it does
 
 Take a ticket (standalone mode) or iterate over a feature's tickets
-(session / daemon loop mode), implement them, drive the reviewers to
-convergence, and ship one atomic commit per ticket.
+(session loop), implement them, drive the reviewers to convergence, and
+ship one atomic commit per ticket.
 
 ## When to use it
 
@@ -23,9 +23,7 @@ convergence, and ship one atomic commit per ticket.
 ```
 /snap:develop                              # AskUserQuestion → pick ticket or feature
 /snap:develop <ticket-id>                  # standalone (e.g. AUTH-12, #42, t-001)
-/snap:develop <feature-id>                 # loop — asks for --loop=session|daemon
-/snap:develop <feature-id> --loop=session  # iterates in the same Claude session
-/snap:develop <feature-id> --loop=daemon   # generates daemon.sh (manual launch)
+/snap:develop <feature-id>                 # session loop (iterates in the same Claude session)
 /snap:develop --resume | -r
 /snap:develop --dry-run
 /snap:develop --allow-dirty
@@ -37,9 +35,7 @@ convergence, and ship one atomic commit per ticket.
 | Flag                                       | Effect                                                                                 |
 | ------------------------------------------ | -------------------------------------------------------------------------------------- |
 | `<ticket-id>`                              | Standalone mode: a single ticket.                                                      |
-| `<feature-id>`                             | Loop mode: iterates over the feature's tickets (asks for the mode if not specified).   |
-| `--loop=session`                           | Iterates over tickets in the same Claude session.                                      |
-| `--loop=daemon`                            | Generates `daemon.sh` (never auto-launched — the user runs `bash daemon.sh -n N`).    |
+| `<feature-id>`                             | Session loop: iterates over the feature's tickets in the same Claude session.          |
 | `--resume` / `-r`                          | Resumes via `progress.sh resume next --skill=develop`.                                 |
 | `--dry-run`                                | No writes: no commit, no push; reviewers run on the staged diff.                       |
 | `--allow-dirty`                            | Tolerates uncommitted changes before the run.                                          |
@@ -54,7 +50,6 @@ convergence, and ship one atomic commit per ticket.
 | 02  | `step-02-prepare.md`       | Idempotent branch, loads conventions (CLAUDE.md, CONTRIBUTING.md), impact radius.     |
 | 03a | `step-03a-standalone.md`   | Single ticket: Phase 1 (analyze / plan / execute / validate) + Phase 2 (3 reviewers in parallel + dev fix loop). |
 | 03b | `step-03b-loop-session.md` | Multiple tickets, same session: foreach ticket → step-03a → atomic commit.            |
-| 03c | `step-03c-loop-daemon.md`  | Generates `daemon.sh` (no auto-launch) — the user runs `bash daemon.sh -n N`.         |
 | 04  | `step-04-sync.md`          | Pushes the branch, opens the PR (or updates the existing one) via the resolved template (config override > `.github`/`.gitlab` PR template > bundled), patches `platform_url` + ticket status. |
 | 05  | `step-05-finish.md`        | Updates `tickets.json`, suggests `/snap:qa`, telemetry, terminal.                     |
 

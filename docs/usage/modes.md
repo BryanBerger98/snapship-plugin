@@ -66,7 +66,7 @@ Each skill, step-00:
 If {resume_id} set:
   1. ls .snap/manifests/ | grep ^{resume_id}
   2. If match: read manifest.json, tickets.json, wireframes/manifest.json, progress.json
-  3. (Optional) fetch PRD docs via manifest.json.prd.page_id if product context required (v0.2)
+  3. (Optional) fetch PRD docs via manifest.json.prd.page_id if product context required
   4. Determine last completed step (parse progress.json)
   5. Load next step
   6. Otherwise: list available features, AskUserQuestion

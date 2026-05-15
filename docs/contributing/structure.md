@@ -55,17 +55,14 @@ snapship-plugin/  (plugin repo)
 │   │
 │   ├── develop/
 │   │   ├── SKILL.md
-│   │   ├── steps/
-│   │   │   ├── step-00-init.md
-│   │   │   ├── step-01-fetch.md
-│   │   │   ├── step-02-prepare.md
-│   │   │   ├── step-03a-standalone.md
-│   │   │   ├── step-03b-loop-session.md
-│   │   │   ├── step-03c-loop-daemon.md
-│   │   │   ├── step-04-sync.md
-│   │   │   └── step-05-finish.md
-│   │   └── templates/
-│   │       └── daemon.sh.tpl
+│   │   └── steps/
+│   │       ├── step-00-init.md
+│   │       ├── step-01-fetch.md
+│   │       ├── step-02-prepare.md
+│   │       ├── step-03a-standalone.md
+│   │       ├── step-03b-loop-session.md
+│   │       ├── step-04-sync.md
+│   │       └── step-05-finish.md
 │   │
 │   ├── qa/
 │   │   ├── SKILL.md
@@ -113,15 +110,13 @@ snapship-plugin/  (plugin repo)
 │       │   ├── docs-defaults/               # shared docs templates (pushed by /define + /wireframe)
 │       │   │   ├── prd-feature.md
 │       │   │   └── wireframes-gallery.md
-│       │   ├── daemon.sh.tpl                # /develop loop daemon template
-│       │   ├── develop-daemon.sh.tpl
 │       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # bundled JSON Schemas for runtime validation
 │       │   ├── config.schema.json          # snapship.config.json
 │       │   ├── manifest.schema.json            # manifests/{id}.manifest.json
 │       │   ├── tickets.schema.json         # features/{id}/tickets.json
-│       │   └── domains.schema.json         # v0.2 — .snap/manifests/_taxonomy.json
-│       ├── taxonomy-state.sh                # v0.2 — CRUD _taxonomy.json (cache domain/journey ↔ page ID)
+│       │   └── domains.schema.json         # .snap/manifests/_taxonomy.json
+│       ├── taxonomy-state.sh                # CRUD _taxonomy.json (cache domain/journey ↔ page ID)
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
 │
 └── agents/                                 # bundled in the plugin (prefixed `snap-` to avoid collision with project agents)
@@ -141,10 +136,10 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
 ├── snapship.config.json            # Unified config (extends bundled defaults)
 └── .snap/
     ├── index.md                    # Track features (state + page IDs)
-    ├── _taxonomy.json                # v0.2 — cache domain + journey → page IDs (persistent)
+    ├── _taxonomy.json                # cache domain + journey → page IDs (persistent)
     └── features/
         └── 01-feature-name/
-            ├── manifest.json           # v0.2 — prd.{page_id,url,path}, domains[], impacted_journeys[]
+            ├── manifest.json           # prd.{page_id,url,path}, domains[], impacted_journeys[]
             ├── tickets.json        # Tickets cache (platform id, AC, status)
             ├── prd-feature.md      # Locally rendered PRD (before push to archive {prd_root}/{YYYY}/{MM-YYYY}/)
             ├── wireframes/
@@ -153,18 +148,9 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
             └── progress.json         # Decisions + learnings log
 ```
 
-**Gone vs v1 plan:**
-
-- ❌ Global local `PRD.md` → AFFiNE
-- ❌ Local `features/*/PRD.md` → AFFiNE
-- ❌ `platform.json` (merged into `snapship.config.json`)
-- ❌ `affine.config.json` (merged into `snapship.config.json`)
-- ✅ `manifest.json` added (local ↔ platform docs link)
-- ✅ `snapship.config.json` at project root (single config)
-
 ## 3. State (centralized via `manifests/_taxonomy.json` + per-feature manifests)
 
-The `index.md` index table from v0.6.0 is removed. Progression lives in:
+Progression lives in:
 - `.snap/manifests/{feature_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
 - `.snap/manifests/_taxonomy.json` — workspace, domains, journeys
 - `.snap/progress.json` — in-flight runs (gitignored)

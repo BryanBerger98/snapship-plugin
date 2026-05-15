@@ -1,11 +1,7 @@
-# Documentation Architecture v0.2
+# Documentation Architecture
 
-Overhaul of the product documentation model. Separates the PRD (immutable
-archive of an evolution) from the living functional doc (current spec of a
-user journey).
-
-> **Status:** draft spec. Plugin v0.2 implementation (post-v0.1.0
-> dogfooding). Breaking change vs v0.1.0.
+Product documentation model. Separates the PRD (immutable archive of an
+evolution) from the living functional doc (current spec of a user journey).
 
 ## Concepts
 
@@ -116,7 +112,7 @@ every skill run, suggests existing values at the next `/snap:define`.
 }
 ```
 
-The `affine_page_id` field (v0.1) is removed. Replaced by `prd.page_id`.
+Feature manifests reference the PRD via `prd.page_id`.
 
 ## Slugs vs titles
 
@@ -230,13 +226,12 @@ fi
 ## New `/snap:doc-import` skill
 
 Bootstrap-import. Reads existing AFFiNE pages (workspace or root) → proposes
-domain/journey split for snap → restructures. Targets projects with legacy
+domain/journey split for snap → restructures. Targets projects with
 upstream docs that don't match the snap hierarchy.
 
 ### Use cases
 
 - Onboarding an existing project with free/scattered accumulated AFFiNE doc
-- Not for snap v0.1 → v0.2 migration (dropped for pilot, no migration script)
 
 ### Flags
 
@@ -255,7 +250,7 @@ upstream docs that don't match the snap hierarchy.
 
 | Strategy | Mechanics | When |
 |----------|-----------|------|
-| **synthesize** (default) | AI reads N source pages → consolidates into a single journey doc. Originals tagged `[snap-imported]`. | Legacy doc messy/scattered. |
+| **synthesize** (default) | AI reads N source pages → consolidates into a single journey doc. Originals tagged `[snap-imported]`. | Existing doc messy/scattered. |
 | **copy** | Duplicates content to new snap-path pages. Originals moved to `Archive/imported-{date}/`. | Preserve verbatim content. |
 | **move** | Relocates source pages to snap-path (rename + reparent). Preserves AFFiNE history. | Doc already well structured, just wrong path. |
 
@@ -349,27 +344,18 @@ taxonomy-state.sh list-journeys --domain=auth                   # NDJSON
 taxonomy-state.sh validate                                      # schema check
 ```
 
-### `manifest.schema.json` modified
+### `manifest.schema.json`
 
-Diff vs v0.1:
+Fields:
 
-- DROP: `affine_page_id`, `affine_url`, `notion_page_id`, `notion_url`
-- ADD: `domains` (array), `impacted_journeys` (array), `prd` (object)
-
-## Migration v0.1 → v0.2
-
-No migration script. v0.1.0 = dogfood pilot only (1 user, 1 test project).
-v0.2 = wipe `.snap/manifests/` + redefine features with the new schema.
-
-For real users (post-marketplace publication), v0.1 will be the initial
-publication version AND v0.2 — no public v0.1. So no-op migration.
+- `domains` (array), `impacted_journeys` (array), `prd` (object)
 
 ## Implementation order
 
 1. **Schemas** — `config.schema.json` + `manifest.schema.json` + new `domains.schema.json`
 2. **Shared scripts** — `taxonomy-state.sh` + new `docs-adapter.sh` actions
 3. **Init skill** — `step-00-detect.md` ask paths (functional_root, prd_root)
-4. **Doc-import skill** — full creation of `skills/doc-import/` (before define refactor: allows bootstrapping a project with legacy doc)
+4. **Doc-import skill** — full creation of `skills/doc-import/`
 5. **Define skill** — `step-03-features.md` ask domains/journeys, `step-05-publish.md` refactor publish
 6. **Doc-update skill** — full creation of `skills/doc-update/`
 7. **QA hook** — `qa/step-finish.md` conditional doc-update trigger
@@ -388,4 +374,4 @@ publication version AND v0.2 — no public v0.1. So no-op migration.
 - Post-ship auto-update via `/snap:doc-update` skill, mode `diff` (default) or `rewrite`
 - PRD frozen after creation (immutable, never re-touched)
 - user_journey slug free, human page title
-- `/snap:doc-import` skill for bootstrap from existing AFFiNE legacy doc (3 strategies: synthesize default, copy, move)
+- `/snap:doc-import` skill for bootstrap from existing AFFiNE doc (3 strategies: synthesize default, copy, move)

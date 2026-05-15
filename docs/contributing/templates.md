@@ -36,8 +36,8 @@ a JSON object `{path, source, render_mode}`. Three sources, in priority order:
 | `docs-defaults/prd-feature` | — | (standard markdown) | `_shared/templates/docs-defaults/prd-feature.md` |
 | `docs-defaults/wireframes-gallery` | — | (standard markdown) | `_shared/templates/docs-defaults/wireframes-gallery.md` |
 
-> v0.1 `prd-global.md` removed: the "global PRD" is replaced by domain pages
-> generated idempotently by `/snap:doc-import` or `/snap:define` (publish step).
+The "global PRD" is represented by domain pages generated idempotently by
+`/snap:doc-import` or `/snap:define` (publish step).
 
 ## Repo-native templates (`.github` / `.gitlab`)
 
@@ -47,7 +47,7 @@ the bundled one. Scanned conventions (`detect-repo-templates.sh`):
 
 | Kind | Platform | Locations |
 |------|-----------|--------------|
-| `ticket` | `github` | `.github/ISSUE_TEMPLATE/*.md`, legacy `.github/ISSUE_TEMPLATE.md` |
+| `ticket` | `github` | `.github/ISSUE_TEMPLATE/*.md`, `.github/ISSUE_TEMPLATE.md` |
 | `ticket` | `gitlab` | `.gitlab/issue_templates/*.md` |
 | `ticket` | `jira` | — (no repo-native convention) |
 | `pr` | `github` | `.github/PULL_REQUEST_TEMPLATE.md` (+ root, `docs/`, directory form) |
@@ -58,8 +58,8 @@ Rules:
 - **Markdown only** — YAML issue forms (`.yml`/`.yaml`) are ignored (the plugin
   doesn't parse form schemas).
 - **Name → type mapping**: name containing `bug`/`defect` → `bug`, `epic` →
-  `epic`, `story`/`feature` → `user-story`. No match → falls back to legacy
-  single-file (GitHub) or bundled.
+  `epic`, `story`/`feature` → `user-story`. No match → falls back to the
+  single-file form (GitHub) or bundled.
 - **PR directory form** → prefers a file named `default.md`, otherwise the
   first one in alphabetical order.
 - `review-thread` and `aggregated-feedback` are internal snap artifacts: no
@@ -160,7 +160,5 @@ first setup, then applied at each page creation.
 
 ## Additional templates (other uses)
 
-- `_shared/templates/daemon.sh.tpl` — daemon script for `/develop --loop=daemon`.
-- `_shared/templates/develop-daemon.sh.tpl` — develop daemon variant.
 - `_shared/templates/session-start-hook.sh.tpl` — opt-in SessionStart hook
   (copied user-side).

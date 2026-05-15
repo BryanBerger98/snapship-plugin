@@ -108,8 +108,6 @@ Each skill generates the assets, pushes to the platform, and back-links
 Three automatic reviewers (technical / functional / security) run
 post-commit; a draft PR is opened with the summary.
 
-> The `daemon` mode was removed in v1.0.0. No out-of-session loop.
-
 ## 6. `/snap:qa` — runtime validation
 
 ```text
@@ -140,4 +138,4 @@ See [workflow.md](workflow.md) for platform details and
 ## If something breaks
 
 [troubleshooting.md](troubleshooting.md) — MCP auth, resume conflicts,
-secrets, sync fail, version mismatch.
+secrets, sync fail.

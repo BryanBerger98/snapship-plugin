@@ -33,7 +33,7 @@ flowchart TB
     end
 
     subgraph EXT["Sources of truth (external)"]
-        AFFINE[(AFFiNE / Notion<br/>v0.2: PRD archive + Functional doc<br/>{domain}/{journey})]
+        AFFINE[(AFFiNE / Notion<br/>PRD archive + Functional doc<br/>{domain}/{journey})]
         PLAT[(Tickets platform<br/>JIRA/GH/GL)]
         FRAME[(Frame0<br/>shapes + PNG)]
         GIT[(Git repo<br/>branches + commits)]
@@ -55,8 +55,8 @@ flowchart TB
     S1 --> S2[step-02-vision<br/>progressive AskUserQuestion]
     GREEN --> S2
     S2 --> S3[step-03-features<br/>list + MoSCoW prioritization]
-    S3 --> S4[step-04-render<br/>v0.2: per-feature PRD only]
-    S4 --> S5[step-05-publish<br/>v0.2: PRD archive page<br/>+ domain/journey lookup-or-create]
+    S3 --> S4[step-04-render<br/>per-feature PRD only]
+    S4 --> S5[step-05-publish<br/>PRD archive page<br/>+ domain/journey lookup-or-create]
 ```
 
 ## 4. `/develop` standalone — 2 phases + review cycle
@@ -99,23 +99,18 @@ flowchart TB
     STRAT -->|retry max 1| P1
 ```
 
-## 5. `/develop` loop modes (3 variants)
+## 5. `/develop` loop modes
 
 ```mermaid
 flowchart LR
     ARG[<arg>] --> MATCH{format?}
     MATCH -->|ticket-id| STD[Standalone<br/>1 ticket = 1 cycle]
-    MATCH -->|NN-kebab| LOOP{--loop=?}
-    LOOP -->|none| ASK[AskUserQuestion<br/>session or daemon?]
-    LOOP -->|session| SESS[Sequential loop<br/>same session<br/>step-03b]
-    LOOP -->|daemon| DAEMON[Generates daemon.sh<br/>step-03c<br/>user runs manually]
+    MATCH -->|NN-kebab| SESS[Sequential loop<br/>same session<br/>step-03b]
 
     SESS --> ITER[For each ticket:<br/>step-03a Phase 1+2<br/>+ atomic commit]
     ITER --> NEXT{remaining<br/>tickets?}
     NEXT -->|yes| ITER
     NEXT -->|no| PUSH[Push branch in bulk<br/>step-04-sync]
-
-    DAEMON --> MANUAL[bash daemon.sh -n 20<br/>external loop<br/>1 session = 1 ticket]
 ```
 
 ## 6. `/qa` — regression + wireframe + retrigger cycle

@@ -58,7 +58,6 @@ All scripts in `skills/_shared/`. Reusable across skills.
 #   - Reads `_shared/schemas/config.schema.json` (or `.snap/schemas/` if copied)
 #   - Validates via `jq` + basic check OR `ajv-cli` if available
 #   - Schema errors → exit 1 + field path + reason
-#   - Check `version` field — major incompatibility → migration instruction
 # Warnings (stderr, non-blocking):
 #   - tickets.platform != "jira" + tickets.jira.* set
 #     → "tickets.jira section ignored on platform Y"
@@ -183,23 +182,23 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # Actions (read):
 #   - get <page_id>                        → markdown content
 #   - search <query>
-#   - lookup-page (--title) (--workspace-id|--parent-id)        → page_id|empty (v0.2)
+#   - lookup-page (--title) (--workspace-id|--parent-id)        → page_id|empty
 # Actions (write):
 #   - create <parent_id> <title> <md>      → page_id + url
 #   - apply-template <tpl_id> <parent_id> <title> <vars_json> → page_id + url
 #   - upload-blob <file_path>              → blob_id (for embedding images)
 #   - update <page_id> <markdown>
-#   - lookup-or-create-page (idempotent) → page_id (existing or new) (v0.2)
-#   - update-page-content <page_id> <markdown>                  (v0.2)
-#   - set-page-tags <page_id> <tags_json_array>                 (v0.2)
-#   - create-page-tree <path=A/B/C> (--workspace-id|--parent-id)→ leaf page_id (v0.2)
+#   - lookup-or-create-page (idempotent) → page_id (existing or new)
+#   - update-page-content <page_id> <markdown>
+#   - set-page-tags <page_id> <tags_json_array>
+#   - create-page-tree <path=A/B/C> (--workspace-id|--parent-id)→ leaf page_id
 # Implementations:
 #   - affine: affine-mcp-server MCP calls
 #   - notion: notion-mcp MCP calls (community)
 # Mode: write actions emit an MCP descriptor (exit 10) + short-circuit on --dry-run.
 ```
 
-## taxonomy-state.sh (v0.2 — domain/journey ↔ page IDs cache)
+## taxonomy-state.sh (domain/journey ↔ page IDs cache)
 
 ```bash
 # CRUD .snap/manifests/_taxonomy.json (persistent, schema: domains.schema.json)
@@ -247,7 +246,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 #   --platform=github|gitlab|jira  (ticket) | github|gitlab (pr)
 #   --project-root=PATH        (default: $PWD or $SNAP_PROJECT_ROOT)
 # Scanned conventions (markdown only — .yml/.yaml forms are ignored):
-#   ticket/github → .github/ISSUE_TEMPLATE/*.md, legacy .github/ISSUE_TEMPLATE.md
+#   ticket/github → .github/ISSUE_TEMPLATE/*.md, .github/ISSUE_TEMPLATE.md
 #   ticket/gitlab → .gitlab/issue_templates/*.md
 #   ticket/jira   → (none — JIRA has no repo-native convention)
 #   pr/github     → .github/PULL_REQUEST_TEMPLATE.md (+ root, docs/, directory form)

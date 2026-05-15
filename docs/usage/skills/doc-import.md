@@ -1,6 +1,6 @@
-# `/snap:doc-import` — import legacy docs into the SnapShip structure
+# `/snap:doc-import` — import existing docs into the SnapShip structure
 
-Imports free-form doc pages (AFFiNE / Notion) into the SnapShip v0.2
+Imports free-form doc pages (AFFiNE / Notion) into the SnapShip
 hierarchy (`functional_root` → domain → user journey). One-shot per project;
 produces `_taxonomy.json`.
 
@@ -10,12 +10,9 @@ Onboard a codebase that already has scattered doc pages. Produces a
 populated `Product Docs/` hierarchy + `_taxonomy.json`, so that subsequent
 `/snap:define` runs can find-or-create journey pages by slug.
 
-> This is **not a migration tool**: SnapShip v0.1 → v0.2 has no
-> migration path (pilots only).
-
 ## When to use it
 
-- Existing project with scattered legacy doc pages, too many to
+- Existing project with scattered doc pages, too many to
   reorganize by hand before the first `/snap:define`.
 - **One-shot** bootstrap. Re-runs require `--force` (typically after a
   failed dry-run or to redo the analysis with a different source root).

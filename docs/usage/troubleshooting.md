@@ -134,9 +134,9 @@ jq 'del(.in_flight[] | select(.feature_id == "01-auth-email"))' \
 
 ### Partial-match feature_id returns multiple candidates
 
-Since v1.0.0, partial-match is **no longer** in the helper (`progress.sh
-resume` requires an exact id). It's each skill's `step-00-init.md` that
-performs matching. Typical error:
+Partial-match isn't in the helper (`progress.sh resume` requires an exact
+id). It's each skill's `step-00-init.md` that performs matching. Typical
+error:
 
 ```
 Multiple features match 'auth': 01-auth-email, 02-auth-sso. Be more specific.
@@ -169,26 +169,6 @@ Replay:
 
 For forced repush: re-run the skill that produced the ref
 (`/snap:define --resume` repushes the PRD, etc.).
-
-## Version mismatch & migration
-
-### `MAJOR version mismatch detected`
-
-The plugin was updated (`git pull` on `~/.claude/plugins/snap`) but the
-local workspace is on an earlier schema.
-
-```text
-/snap:upgrade --dry-run        # preview the plan
-/snap:upgrade                  # apply (auto backup .snap.bak-v{x}-{ts}/)
-```
-
-### v0.6 workspace (legacy `.claude/product/`)
-
-```text
-/snap:upgrade --from=0.6.0
-```
-
-See [migration-v1.md](migration-v1.md) for detailed transformations.
 
 ## Tests & QA
 

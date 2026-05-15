@@ -327,22 +327,6 @@ new token. Scope: read + edit the file.
 
 Orchestrated explicitly by each skill via `_shared/run-lifecycle-script.sh` — user shell scripts, **not** native Claude Code hooks (which operate at session/tool level: `SessionStart`, `PreToolUse`, etc.).
 
-## Migration v0.4 → v0.5
-
-Breaking — `wireframes.{frame0,penpot,figma}` nested blocks; `design` section added; `tickets[].{design_screen,design_url,design_mode}` fields added to tickets schema.
-
-Tool: `scripts/migrate-config-v04-to-v05.sh <path/to/snapship.config.json>` (jq one-shot, not bundled at runtime).
-
-| Old (v0.4 flat)                           | New (v0.5 nested)                        |
-| ----------------------------------------- | ---------------------------------------- |
-| `wireframes.frame0_api_port`              | `wireframes.frame0.api_port`             |
-| `wireframes.export_source_dir`            | `wireframes.frame0.export_source_dir`    |
-| `wireframes.penpot_export_dir`            | `wireframes.penpot.export_dir`           |
-| `wireframes.penpot_file_id`               | `wireframes.penpot.file_id`              |
-| `wireframes.penpot_file_name`             | `wireframes.penpot.file_name`            |
-| —                                         | `wireframes.figma.{file_key,file_name,token_env}` (new) |
-| —                                         | `design.{platform,export_format,mode_defaults,penpot,figma}` (new) |
-
 Skill passes JSON context via stdin (feature_id, ticket_ids, etc.).
 
 ## Runtime validation (JSON Schema)
@@ -351,7 +335,6 @@ Skill passes JSON context via stdin (feature_id, ticket_ids, etc.).
 
 - Ajv or `jq` + basic check
 - Schema errors → exit 1 + field path + reason
-- Check `version` field — major incompatibility → migration instruction
 - Non-blocking stderr warnings:
   - `tickets.platform != "jira"` + `tickets.jira.*` set → "tickets.jira section ignored on platform Y"
   - `lifecycle_scripts.<name>` set to non-existent script → "script X invalid path"

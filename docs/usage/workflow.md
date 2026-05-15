@@ -18,7 +18,7 @@
      · List AFFiNE/Notion workspaces via MCP → AskUserQuestion choice
      · List template pages (heuristic: name contains "Template") → mapping
      · Missing templates → AskUserQuestion "Create defaults now?"
-       Yes: push from `templates/docs-defaults/{prd-feature,wireframes-gallery}.md` (v0.2 — `prd-global` removed)
+       Yes: push from `templates/docs-defaults/{prd-feature,wireframes-gallery}.md`
        No: pages from scratch
      · `root_page_id` choice: existing page or create "Product"
    - wireframes: confirm frame0 or skip
@@ -56,18 +56,18 @@ Idempotent: if partial config exists, only proposes update for incomplete sectio
 ## Docs/tickets integration flows per skill
 
 ```
-/define (v0.2)
-  ├─ step-04: render per-feature PRD locally (drop prd-global)
+/define
+  ├─ step-04: render per-feature PRD locally
   ├─ step-05: push PRD page archive `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable, tagged with domains)
   │           + lookup-or-create domain + journey pages under `{functional_root}/`
   └─ manifest.json: { prd: {page_id, url, path}, domains[], impacted_journeys[] }
      _taxonomy.json: { <domain>: {domain_page_id, journeys: { <slug>: {page_id, url} }} }
 
-/snap:doc-import (v0.2 — legacy bootstrap)
-  └─ AI clusters legacy doc pages → restructure (synthesize|copy|move)
+/snap:doc-import
+  └─ AI clusters existing doc pages → restructure (synthesize|copy|move)
      → one-shot populate _taxonomy.json
 
-/snap:doc-update (v0.2 — auto post-QA if auto_update_on_qa_success)
+/snap:doc-update (auto post-QA if auto_update_on_qa_success)
   ├─ step-01: fetch PRD + current journey pages + git diff for the feature
   ├─ step-02: AI patch (mode=diff) or rewrite (mode=rewrite)
   └─ step-03: push update-page-content (PRD never touched)
@@ -129,7 +129,7 @@ Any failed MCP/CLI call (timeout, auth, API error):
 
 **Idempotence:** each step must be re-runnable without duplication:
 
-- `/snap:define`: before creating PRD page, check `manifest.json.prd.page_id` exists (v0.2)
+- `/snap:define`: before creating PRD page, check `manifest.json.prd.page_id` exists
 - `/ticket`: before creating ticket, check if already pushed (cache `tickets.json`)
 - `/wireframe`: checksum-based blob upload dedup
 - `/develop`: idempotent branch checkout, diff-based commit message

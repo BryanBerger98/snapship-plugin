@@ -2,7 +2,7 @@
 
 ## Distribution
 
-Plugin v1 packaged to the Claude Code schema: `.claude-plugin/plugin.json` manifest, MCP servers via `.mcp.json` at root, skills/agents auto-discovered from conventional folders.
+Plugin packaged to the Claude Code schema: `.claude-plugin/plugin.json` manifest, MCP servers via `.mcp.json` at root, skills/agents auto-discovered from conventional folders.
 
 - Install via the `bryanberger` marketplace (Phase 10): `/plugin marketplace add BryanBerger98/claude-plugins` then `/plugin install snap@bryanberger`
 - Or manual clone: `git clone … ~/.claude/plugins/snap` (auto-loaded)
@@ -34,11 +34,9 @@ Plugin v1 packaged to the Claude Code schema: `.claude-plugin/plugin.json` manif
 | `skills` | absent | Auto-discovery from `skills/` at plugin root |
 | `agents` | absent | Auto-discovery from `agents/` at plugin root |
 | `commands` | absent | Our slash commands are **skills**, not `commands/*.md` |
-| `hooks` | absent | No plugin lifecycle for v0.1.0 |
+| `hooks` | absent | No plugin lifecycle |
 | `mcpServers` | absent inline | Declared via separate `.mcp.json` (functionally equivalent) |
 | `outputStyles` / `lspServers` | absent | Not relevant |
-
-> **Custom fields formerly present and removed** (invalid — not in CC schema): `skills_path`, `agents_path`, `shared_scripts_path`, `schemas_path`, `templates_path`, `mcp_servers` (snake_case).
 
 ## Plugin repo layout
 
@@ -120,10 +118,7 @@ Plugin auto-loaded on next Claude Code start.
 
 ## Versioning
 
-Manifest `version` = SemVer. Config compatibility:
-
-- Minor bump → backward compatible
-- Major bump → migration instructions via `load-config.sh` (checks user config `version` field)
+Manifest `version` = SemVer.
 
 JSON schemas validated at runtime (see [configuration.md](../usage/configuration.md) validation section).
 
