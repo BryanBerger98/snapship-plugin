@@ -53,8 +53,6 @@ _`match` = pixel-equivalent, `close` = minor deviation acceptable, `diff` = inte
 | Security | {{review_security_severity}} | {{review_security_summary}} |
 | QA | {{review_qa_severity}} | {{review_qa_summary}} |
 
-Full review reports: `.claude/product/features/{{feature_id}}/reviews/{{run_id}}/`.
-
 ## Screenshots
 
 {{#screenshots}}

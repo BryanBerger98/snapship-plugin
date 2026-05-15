@@ -11,7 +11,7 @@ distingue deux chemins :
 
 - **Greenfield** : aucun PRD encore → questionnaire complet (vision → personas
   → features).
-- **Extension** : `.claude/product/` contient déjà des features → ajoute une ou
+- **Extension** : `.snap/` contient déjà des features → ajoute une ou
   plusieurs nouvelles features.
 
 ## Quand l'utiliser
@@ -35,7 +35,7 @@ distingue deux chemins :
 
 | Flag                  | Effet                                                                                                       |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--resume` / `-r`     | Reprend au dernier step réussi enregistré dans `progress.md`. Partial-match du `feature_id` (`01` → `01-auth`). Sans run en cours, repart au step-00. |
+| `--resume` / `-r`     | Reprend au dernier step réussi enregistré dans `progress.json`. Partial-match du `feature_id` (`01` → `01-auth`). Sans run en cours, repart au step-00. |
 | `--lang=fr\|en`       | Force la langue du PRD (défaut : détectée depuis un PRD existant, sinon demandée).                          |
 | `--feature=NN-slug`   | Saute le chemin greenfield, va directement au PRD d'une feature existante.                                  |
 
@@ -54,11 +54,11 @@ Steps **idempotents** : relancer un step avec les mêmes entrées produit la mê
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/prd-feature.md` — un par feature.
-- `.claude/product/features/{feature_id}/meta.json` — `state=defined`,
+- `.snap/manifests/{feature_id}/prd-feature.md` — un par feature.
+- `.snap/manifests/{feature_id}.manifest.json` — `state=defined`,
   `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` après publication.
-- `.claude/product/domains.json` — IDs des pages domaine + parcours (idempotent).
-- `.claude/product/progress.md` — journal de run.
+- `.snap/manifests/_taxonomy.json` — IDs des pages domaine + parcours (idempotent).
+- `.snap/progress.json` — journal de run.
 - AFFiNE / Notion :
   - Page PRD sous `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (archive immuable).
   - Pages domaine + parcours sous `{functional_root}/{domain}/{journey}` (spec

@@ -44,7 +44,7 @@
 
 ## References
 
-- Feature PRD: `.claude/product/features/{{feature_id}}/prd-feature.md`
+- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
 - First seen: {{first_seen}}
 - Related: {{related_refs}}
 

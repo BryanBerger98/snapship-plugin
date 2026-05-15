@@ -81,16 +81,20 @@ introduces a write to `$PRD_PAGE_ID`, this step should refuse — assert in code
 }
 ```
 
-### C. Progress
+### C. Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=doc-update \
+  --step-num=03 --step-name=publish --status=ok
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=doc-update \
   --feature-id="$FEATURE_ID" \
   --step-num=03 \
   --step-name=publish \
-  --status=ok \
-  --skill=doc-update
+  --status=ok
 ```
 
 ## Failure handling

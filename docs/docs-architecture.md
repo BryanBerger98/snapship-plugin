@@ -61,7 +61,7 @@ Exemple chemin PRD: `Change Requests/2026/05-2026/01-bouton-login-simple`.
 
 ## Storage local
 
-### `.claude/product/domains.json` (nouveau)
+### `.snap/manifests/_taxonomy.json` (nouveau)
 
 Cache de mapping domains + journeys ↔ AFFiNE page IDs. Évite re-lookup à chaque
 skill run, suggère valeurs existantes au prochain `/snap:define`.
@@ -93,7 +93,7 @@ skill run, suggère valeurs existantes au prochain `/snap:define`.
 }
 ```
 
-### `meta.json` feature (révisé)
+### `manifest.json` feature (révisé)
 
 ```json
 {
@@ -132,14 +132,14 @@ Slug user_journey libre (pas d'enum config). User saisit titre → slug auto-gé
 Pour chaque feature, après collecte AC + scope, demander:
 
 1. **Domains impactés** (multi-select + free input):
-   - Suggest depuis `domains.json` (déjà connus)
+   - Suggest depuis `_taxonomy.json` (déjà connus)
    - Allow ajouter nouveau domain (saisie title + slug auto)
 
 2. **Journeys impactés par domain**:
    - Pour chaque domain choisi: select journeys existants OU créer nouveau
    - Si nouveau: ask title humain → slug auto
 
-Persiste dans state file + plus tard meta.json.
+Persiste dans state file + plus tard manifest.json.
 
 ### step-05-publish (refactor majeur)
 
@@ -162,19 +162,19 @@ Pour chaque feature:
 
 3. **Lookup-or-create domain pages** (idempotent):
    - Pour chaque domain dans `feature.domains`:
-     - Lookup `{functional_root}/{domain}` dans `domains.json`
-     - Si miss: create page → save `domain_page_id` dans `domains.json`
+     - Lookup `{functional_root}/{domain}` dans `_taxonomy.json`
+     - Si miss: create page → save `domain_page_id` dans `_taxonomy.json`
 
 4. **Lookup-or-create journey pages** (idempotent):
    - Pour chaque `(domain, journey_slug)` dans `feature.impacted_journeys`:
-     - Lookup dans `domains.json[domain].journeys[journey_slug]`
-     - Si miss: create page sous domain page → save dans `domains.json`
+     - Lookup dans `_taxonomy.json[domain].journeys[journey_slug]`
+     - Si miss: create page sous domain page → save dans `_taxonomy.json`
      - Si nouveau: page initialisée vide (sera populée par premier
        `/snap:doc-update` post-ship)
 
 5. **Save IDs**:
-   - `feature.meta.json`: `prd.page_id`, `prd.url`, `prd.path`
-   - `domains.json`: nouveaux domain/journey entries
+   - `feature.manifest.json`: `prd.page_id`, `prd.url`, `prd.path`
+   - `_taxonomy.json`: nouveaux domain/journey entries
 
 6. **PAS de modification**:
    - PAS de log entry sur domain page
@@ -207,7 +207,7 @@ skills/doc-update/
 Pour chaque journey impacté:
 
 ```bash
-MODE=$(jq -r '.documentation.auto_update_mode // "diff"' .claude/product/.config-resolved.json)
+MODE=$(jq -r '.documentation.auto_update_mode // "diff"' .snap/.config-resolved.json)
 
 if [ "$MODE" = "diff" ]; then
   # AI prompt: read current journey doc, identify sections impacted by PRD,
@@ -223,7 +223,7 @@ fi
 
 - Journey page(s) AFFiNE updated
 - Telemetry event `doc-update`, status `ok`
-- progress.md entry
+- progress.json entry
 - PRD page **non touchée**
 
 ## Nouveau skill `/snap:doc-import`
@@ -245,9 +245,9 @@ amont qui ne respecte pas la hiérarchie snap.
                                          # (ou workspace entier si absent)
   --strategy=move|copy|synthesize       # default: synthesize
   [--dry-run]                           # preview mapping, no AFFiNE write
-  [--backup]                            # export source pages → .claude/product/.backup/
+  [--backup]                            # export source pages → .snap/.backup/
   [-a]                                  # autonome (skip confirms)
-  [--force]                             # bypass garde "domains.json non-vide"
+  [--force]                             # bypass garde "_taxonomy.json non-vide"
 ```
 
 ### Stratégies
@@ -268,7 +268,7 @@ skills/doc-import/
 ├── step-02-analyze.md        (AI: propose domains + journeys + mapping page→target)
 ├── step-03-confirm.md        (AskUserQuestion review mapping, edit JSON via $EDITOR)
 ├── step-04-restructure.md    (execute strategy)
-└── step-05-finish.md         (write domains.json + telemetry + progress)
+└── step-05-finish.md         (write _taxonomy.json + telemetry + progress)
 ```
 
 ### step-02 output JSON proposé
@@ -307,7 +307,7 @@ skills/doc-import/
 
 - Confirmation explicite avant step-04 (table récap N pages affectées)
 - `--backup` recommandé fortement (warning stderr si absent)
-- Refuse run si `domains.json` non-vide ET pas `--force` (déjà importé une fois)
+- Refuse run si `_taxonomy.json` non-vide ET pas `--force` (déjà importé une fois)
 - Idempotent partial: re-run après fail skip pages déjà migrées (track via tag
   `[snap-imported]`)
 - Telemetry event `doc-import` avec status + nombre pages affectées
@@ -315,16 +315,16 @@ skills/doc-import/
 ### Output post-import
 
 - ✅ `Product Docs/` populé (domains + journeys)
-- ✅ `domains.json` rempli
+- ✅ `_taxonomy.json` rempli
 - ❌ `Change Requests/` empty (PRDs viennent via futurs `/snap:define`)
-- ❌ `meta.json` features absent (pas de feature_id encore — viendra avec PRDs)
+- ❌ `manifest.json` features absent (pas de feature_id encore — viendra avec PRDs)
 
 ### Workflow user
 
 1. `/snap:init` (bootstrap config)
 2. `/snap:doc-import --source-page=<root>` (cette skill) → snap structure populée
-3. `/snap:define --feature=NN-...` (premier change post-import) → crée meta.json
-   - PRD + lie au journey existant via `domains.json`
+3. `/snap:define --feature=NN-...` (premier change post-import) → crée manifest.json
+   - PRD + lie au journey existant via `_taxonomy.json`
 
 ## Scripts changes
 
@@ -336,19 +336,19 @@ skills/doc-import/
 - `set-page-tags --page-id=... --tags=tag1,tag2` — replace tags list
 - `create-page-tree --path=...` — recursive parent creation, return leaf page_id
 
-### `domains-state.sh` (nouveau)
+### `taxonomy-state.sh` (nouveau)
 
 ```bash
-domains-state.sh add-domain --slug=auth --title="Authentication" --page-id=... --url=...
-domains-state.sh add-journey --domain=auth --slug=login-flow --title="Login Flow" --page-id=... --url=...
-domains-state.sh get-domain --slug=auth                        # JSON ou exit 1
-domains-state.sh get-journey --domain=auth --slug=login-flow   # JSON ou exit 1
-domains-state.sh list-domains                                  # NDJSON
-domains-state.sh list-journeys --domain=auth                   # NDJSON
-domains-state.sh validate                                      # schema check
+taxonomy-state.sh add-domain --slug=auth --title="Authentication" --page-id=... --url=...
+taxonomy-state.sh add-journey --domain=auth --slug=login-flow --title="Login Flow" --page-id=... --url=...
+taxonomy-state.sh get-domain --slug=auth                        # JSON ou exit 1
+taxonomy-state.sh get-journey --domain=auth --slug=login-flow   # JSON ou exit 1
+taxonomy-state.sh list-domains                                  # NDJSON
+taxonomy-state.sh list-journeys --domain=auth                   # NDJSON
+taxonomy-state.sh validate                                      # schema check
 ```
 
-### `meta.schema.json` modifié
+### `manifest.schema.json` modifié
 
 Diff vs v0.1:
 
@@ -358,7 +358,7 @@ Diff vs v0.1:
 ## Migration v0.1 → v0.2
 
 Pas de script migration. v0.1.0 = pilote dogfood seulement (1 user, 1 projet
-test). v0.2 = wipe `.claude/product/features/` + redéfinir features avec
+test). v0.2 = wipe `.snap/manifests/` + redéfinir features avec
 nouveau schéma.
 
 Pour les vrais users (post-publication marketplace), v0.1 sera la version de
@@ -366,14 +366,14 @@ publication initiale ET v0.2 — pas de v0.1 publique. Donc no-op migration.
 
 ## Implementation order
 
-1. **Schemas** — `config.schema.json` + `meta.schema.json` + nouveau `domains.schema.json`
-2. **Scripts shared** — `domains-state.sh` + nouvelles actions `docs-adapter.sh`
+1. **Schemas** — `config.schema.json` + `manifest.schema.json` + nouveau `domains.schema.json`
+2. **Scripts shared** — `taxonomy-state.sh` + nouvelles actions `docs-adapter.sh`
 3. **Init skill** — `step-00-detect.md` ask paths (functional_root, prd_root)
 4. **Doc-import skill** — création complète `skills/doc-import/` (avant define refactor: permet bootstrap projet avec doc legacy)
 5. **Define skill** — `step-03-features.md` ask domains/journeys, `step-05-publish.md` refactor publish
 6. **Doc-update skill** — création complète `skills/doc-update/`
 7. **QA hook** — `qa/step-finish.md` trigger doc-update conditionnel
-8. **Tests** — extend `test-define-e2e.sh`, nouveaux `test-doc-import-e2e.sh`, `test-doc-update-e2e.sh`, `test-domains-state.sh`, `test-docs-adapter.sh` (nouvelles actions)
+8. **Tests** — extend `test-define-e2e.sh`, nouveaux `test-doc-import-e2e.sh`, `test-doc-update-e2e.sh`, `test-taxonomy-state.sh`, `test-docs-adapter.sh` (nouvelles actions)
 9. **Docs** — update `docs/decisions.md`, `docs/scripts.md`, `docs/skills/define.md`, nouveaux `docs/skills/doc-import.md` + `docs/skills/doc-update.md`
 10. **CHANGELOG** — section `[Unreleased]` BREAKING CHANGE
 

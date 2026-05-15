@@ -17,8 +17,8 @@ are the living spec; this skill keeps them current.
 - `/snap:init` already run (`snapship.config.json` exists)
 - `documentation.platform` ∈ {affine, notion} (skip if `none`)
 - MCP for that platform reachable
-- Feature has `meta.json` with `state == "qa-validated"` and `prd.page_id` populated
-- Each `impacted_journeys[]` entry has a corresponding cache entry in `domains.json`
+- Feature manifest (`.snap/manifests/${feature_id}.manifest.json`) has `state == "qa-validated"` and `refs.prd.page_id` populated
+- Each `impacted_journeys[]` entry has a corresponding cache entry in `_taxonomy.json`
 
 ## Trigger
 
@@ -51,7 +51,7 @@ are the living spec; this skill keeps them current.
 ## Outputs
 
 - Journey page(s) on AFFiNE/Notion updated (PRD page untouched).
-- `progress.md` entry: `doc-update step-04 finish — ok` (or `dry-run` / `skip`).
+- `progress.json` entry: `doc-update step-04 finish — ok` (or `dry-run` / `skip`).
 - Telemetry event `doc-update`.
 
 ## How to run a step

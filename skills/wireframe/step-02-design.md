@@ -30,7 +30,7 @@ them from `snapship.config.json` and persisted them to skill state.
 ## Resolve export format (once, at start of step)
 
 ```bash
-fmt=$(jq -r '.wireframes.export_format // "png"' .claude/product/.config-resolved.json)
+fmt=$(jq -r '.wireframes.export_format // "png"' <<<"$CONFIG_JSON")
 # fmt ∈ {png, svg, pdf} per config schema; helpers validate per-platform support.
 ```
 
@@ -81,7 +81,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    Supported `$fmt` values: `png|jpeg|webp` (Frame0's HTTP API surface — no
    `svg`/`pdf`; switch to `wireframes.platform = "penpot"` for SVG).
    ```bash
-   target=".claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
+   target=".snap/wireframes/${feature_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
@@ -97,7 +97,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    dispatcher invokes the tool. Output path must be absolute. Supported
    `$fmt` values: `png|svg` (no `jpeg`/`webp`/`pdf`).
    ```bash
-   target="$PWD/.claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
+   target="$PWD/.snap/wireframes/${feature_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
@@ -114,7 +114,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    The skill then invokes `save-export` to decode the base64 to disk.
    Supported `$fmt` values: `png|svg|jpg|pdf`. Default scale is `2`.
    ```bash
-   target=".claude/product/features/${feature_id}/wireframes/${page_title}.${fmt}"
+   target=".snap/wireframes/${feature_id}/${page_title}.${fmt}"
 
    # Step 1: emit figma_execute descriptor (exit 10), MCP returns base64.
    exec_result=$(bash "$helper" export-png \
@@ -132,7 +132,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    # exit 0 on success ({written:true,bytes:N}).
    ```
 
-4. **Cache descriptor result**: append to `.wireframes-draft.json`:
+4. **Cache descriptor result**: append to `.snap/wireframes/${feature_id}.draft.json`:
    ```json
    {
      "screens": [
@@ -189,13 +189,13 @@ Platform-specific:
 ## Append progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=wireframe \
   --feature-id="$feature_id" \
   --step-num=02 \
   --step-name=design \
-  --status=ok \
-  --skill=wireframe
+  --status=ok
 ```
 
 ## Acceptance check

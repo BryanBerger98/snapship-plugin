@@ -17,8 +17,8 @@ feature.
 
 2. **Resume short-circuit**:
    ```bash
-   resume_json=$(bash skills/_shared/resume-state.sh next \
-     --skill=qa --project-root="$PWD")
+   resume_json=$(bash skills/_shared/progress.sh resume \
+     --project-root="$PWD" --skill=qa)
    ```
 
 3. **Resolve target**:
@@ -33,13 +33,13 @@ feature.
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
      exit 1
    }
-   cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
-   qa_cycles_max=$(echo "$cfg" | jq '.qa.qa_cycles_max // 2')
-   sev_thr=$(echo "$cfg" | jq -r '.qa.severity_threshold // "minor"')
-   regression_enabled=$(echo "$cfg" | jq '.qa.regression.enabled // true')
-   regression_scope=$(echo "$cfg" | jq -r '.qa.regression.scope // "impacted"')
-   wireframe_enabled=$(echo "$cfg" | jq '.qa.wireframe_check.enabled // false')
-   retrigger_default=$(echo "$cfg" | jq '.qa.retrigger_review // false')
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   qa_cycles_max=$(jq '.qa.qa_cycles_max // 2' <<<"$CONFIG_JSON")
+   sev_thr=$(jq -r '.qa.severity_threshold // "minor"' <<<"$CONFIG_JSON")
+   regression_enabled=$(jq '.qa.regression.enabled // true' <<<"$CONFIG_JSON")
+   regression_scope=$(jq -r '.qa.regression.scope // "impacted"' <<<"$CONFIG_JSON")
+   wireframe_enabled=$(jq '.qa.wireframe_check.enabled // false' <<<"$CONFIG_JSON")
+   retrigger_default=$(jq '.qa.retrigger_review // false' <<<"$CONFIG_JSON")
    ```
    `--no-wireframe-check` forces `wireframe_enabled=false` regardless of config.
    `--retrigger` forces `retrigger=true` even if config says otherwise.
@@ -55,6 +55,7 @@ feature.
 
 6. **Compute diff scope** for each target ticket:
    ```bash
+   tickets_file=".snap/tickets/${feature_id}.json"
    sha=$(jq -r --arg lid "$lid" \
      '.tickets[] | select(.local_id == $lid).commit_sha' \
      "$tickets_file")
@@ -63,9 +64,13 @@ feature.
    Cache `$files` per ticket — drives step-01 regression scoping and step-04
    reviewer fan-out.
 
-7. **Append progress**:
+7. **Telemetry + progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/telemetry.sh log \
+     --project-root="$PWD" --skill=qa \
+     --step-num=00 --step-name=init --status=ok
+
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" --feature-id="$feature_id" \
      --skill=qa --step-num=00 --step-name=init --status=ok \
      --note="targets=$count regression=$regression_scope wireframe=$wireframe_enabled"

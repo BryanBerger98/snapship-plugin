@@ -90,9 +90,8 @@ snapship-plugin/  (plugin repo)
 │       ├── apply-naming.sh                 # render branch/commit/feature_id selon naming.*
 │       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) au startup
 │       ├── telemetry.sh                    # append _shared/telemetry.log NDJSON (duration_ms, status, ticket_id)
-│       ├── setup-product-dir.sh
-│       ├── update-index.sh
-│       ├── update-progress.sh
+│       ├── setup-snap-dir.sh
+│       ├── progress.sh
 │       ├── resolve-template.sh              # résout override config > repo-native > bundlé → JSON {path, source, render_mode}
 │       ├── detect-repo-templates.sh         # détecte les templates .github/.gitlab (issue/PR), markdown only
 │       ├── render-template.sh               # rendu Mustache-subset {{var}} {{#list}} {{^missing}} {{!comment}} {{&unescaped}}
@@ -119,10 +118,10 @@ snapship-plugin/  (plugin repo)
 │       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # JSON Schema bundlés validation runtime
 │       │   ├── config.schema.json          # snapship.config.json
-│       │   ├── meta.schema.json            # features/{id}/meta.json
+│       │   ├── manifest.schema.json            # manifests/{id}.manifest.json
 │       │   ├── tickets.schema.json         # features/{id}/tickets.json
-│       │   └── domains.schema.json         # v0.2 — .claude/product/domains.json
-│       ├── domains-state.sh                # v0.2 — CRUD domains.json (cache domain/journey ↔ page ID)
+│       │   └── domains.schema.json         # v0.2 — .snap/manifests/_taxonomy.json
+│       ├── taxonomy-state.sh                # v0.2 — CRUD _taxonomy.json (cache domain/journey ↔ page ID)
 │       └── telemetry.log                   # NDJSON append-only (rotation > 10MB) — runtime, gitignored
 │
 └── agents/                                 # bundlés dans le plugin (préfixés `snap-` pour éviter collision avec project agents)
@@ -133,25 +132,25 @@ snapship-plugin/  (plugin repo)
     └── snap-developer.md                   # applique aggregated feedback (write tools)
 ```
 
-## 2. Stockage projet — `.claude/product/` (minimal)
+## 2. Stockage projet — `.snap/` (minimal)
 
 AFFiNE/Notion = source primaire docs. Local = cache + progress uniquement. Config vit racine projet.
 
 ```
 <project_root>/
 ├── snapship.config.json            # Config unifiée (étend defaults bundlés)
-└── .claude/product/
+└── .snap/
     ├── index.md                    # Track features (état + page IDs)
-    ├── domains.json                # v0.2 — cache domain + journey → page IDs (persistant)
+    ├── _taxonomy.json                # v0.2 — cache domain + journey → page IDs (persistant)
     └── features/
         └── 01-feature-name/
-            ├── meta.json           # v0.2 — prd.{page_id,url,path}, domains[], impacted_journeys[]
+            ├── manifest.json           # v0.2 — prd.{page_id,url,path}, domains[], impacted_journeys[]
             ├── tickets.json        # Cache tickets (id plateforme, AC, status)
             ├── prd-feature.md      # PRD rendu local (avant push archive {prd_root}/{YYYY}/{MM-YYYY}/)
             ├── wireframes/
             │   ├── manifest.json   # mapping screen ↔ ticket_id ↔ frame0_page_id
             │   └── *.png           # exports Frame0 (uploadés vers gallery)
-            └── progress.md         # Log decisions + learnings
+            └── progress.json         # Log decisions + learnings
 ```
 
 **Disparu vs plan v1:**
@@ -160,33 +159,16 @@ AFFiNE/Notion = source primaire docs. Local = cache + progress uniquement. Confi
 - ❌ `features/*/PRD.md` local → AFFiNE
 - ❌ `platform.json` (fusionné dans `snapship.config.json`)
 - ❌ `affine.config.json` (fusionné dans `snapship.config.json`)
-- ✅ `meta.json` ajouté (lien local ↔ docs platform)
+- ✅ `manifest.json` ajouté (lien local ↔ docs platform)
 - ✅ `snapship.config.json` racine projet (config unique)
 
-## 3. État `index.md` (centralise progression)
+## 3. État (centralisé via `manifests/_taxonomy.json` + per-feature manifests)
 
-```markdown
-# Product Index
+Le tableau d'index `index.md` v0.6.0 est supprimé. La progression vit dans :
+- `.snap/manifests/{feature_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
+- `.snap/manifests/_taxonomy.json` — workspace, domains, journeys
+- `.snap/progress.json` — runs in-flight (gitignored)
 
-## Features
+États possibles: `defined`, `ticketed`, `wireframed`, `designed`, `developed`, `qa-validated`, `shipped`.
 
-| feature_id        | Nom           | État       | AFFiNE              | Tickets            | Wireframes              | Dev  |
-| ----------------- | ------------- | ---------- | ------------------- | ------------------ | ----------------------- | ---- |
-| 01-auth           | Auth          | developed  | [PRD](affine://...) | 8 (JIRA AUTH-1..8) | [Gallery](affine://...) | 8/8  |
-| 02-dashboard      | Dashboard     | wireframed | [PRD](affine://...) | 12                 | [Gallery](affine://...) | 0/12 |
-| 03-notifications  | Notifications | defined    | [PRD](affine://...) | -                  | -                       | -    |
-
-## Plateforme tickets
-- Type: jira (via MCP atlassian)
-- Project: PROJ
-- Last sync: 2026-05-08T...
-
-## AFFiNE
-- Workspace: ws-abc123 ("Mon Produit")
-- Root page: page-product-root
-- Templates configurés: prd_global, prd_feature, wireframes_gallery
-```
-
-États possibles: `defined`, `ticketed`, `wireframed`, `developed`, `qa-validated`.
-
-Update via `_shared/update-index.sh feature_id state`.
+Update via `jq` patch atomique sur le manifest (skills écrivent eux-mêmes — pas de helper dédié).

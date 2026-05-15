@@ -2,17 +2,20 @@
 .env.snapship
 .env.snapship.*
 
-# Telemetry (NDJSON append-only, gitignored)
-skills/_shared/telemetry.log
-skills/_shared/telemetry.log.*
+# .snap/ — whitelist manifests + tickets, ignore the rest (caches, queues,
+# telemetry, progress, backups, staging galleries — sources of truth are
+# the remote platforms).
+.snap/*
+!.snap/manifests/
+!.snap/tickets/
 
-# Config resolution cache (per-project)
+# Migration backups (pre-v1.0.0 snapshots)
+.snap.bak-*
+
+# Legacy resolved-config cache (pre-v1.0.0)
 .config-resolved.json
 
-# QA raw outputs (per-cycle)
-.qa-raw-*.json
-
-# Product cache (when used as project plugin)
+# Legacy product cache (pre-v1.0.0)
 .claude/product/
 
 # OS junk

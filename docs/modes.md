@@ -64,15 +64,15 @@ Chaque skill, step-00:
 
 ```
 Si {resume_id} set:
-  1. ls .claude/product/features/ | grep ^{resume_id}
-  2. Si match: read meta.json, tickets.json, wireframes/manifest.json, progress.md
-  3. (Optionnel) fetch PRD docs via meta.json.prd.page_id si contexte produit requis (v0.2)
-  4. Détermine dernière étape complétée (parse progress.md)
+  1. ls .snap/manifests/ | grep ^{resume_id}
+  2. Si match: read manifest.json, tickets.json, wireframes/manifest.json, progress.json
+  3. (Optionnel) fetch PRD docs via manifest.json.prd.page_id si contexte produit requis (v0.2)
+  4. Détermine dernière étape complétée (parse progress.json)
   5. Load step suivant
   6. Sinon: liste features dispo, AskUserQuestion
 ```
 
-## Format strict `progress.md`
+## Format strict `progress.json`
 
 Fichier append-only par feature. Chaque ligne = 1 event horodaté. Parser regex line-based, pas markdown sémantique.
 
@@ -124,7 +124,7 @@ started: 2026-05-09T10:00:00Z
 
 ## Flaky detection heuristique (`/qa` step-02-interpret)
 
-Subagent `code-reviewer-qa` reçoit raw output + extrait `progress.md` (events `qa` même feature/ticket fenêtre 7 jours). Logique:
+Subagent `code-reviewer-qa` reçoit raw output + extrait `progress.json` (events `qa` même feature/ticket fenêtre 7 jours). Logique:
 
 ```
 flaky_score = 0
@@ -200,7 +200,7 @@ chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
 ```bash
 #!/usr/bin/env bash
 # Pre-load snap context si projet courant a config
-CONFIG=".claude/product/snapship.config.json"
+CONFIG=".snap/snapship.config.json"
 [ -f "$CONFIG" ] || exit 0
 
 # Output additionalContext via JSON sortie (format CC SessionStart)

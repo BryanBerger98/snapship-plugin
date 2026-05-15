@@ -33,7 +33,7 @@ uses the exact same helper and Desktop Bridge plugin as `/wireframe figma`.
 
 ## When to use
 
-- A feature has `tickets.json` with at least one UI ticket.
+- A feature has `.snap/tickets/{fid}.json` with at least one UI ticket.
 - A design platform is configured:
   `config.design.platform ∈ {"penpot","figma"}`.
 
@@ -62,12 +62,16 @@ uses the exact same helper and Desktop Bridge plugin as `/wireframe figma`.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/design/{screen-id}-{state}.{fmt}`
-  (local cache).
-- Docs `design-gallery` page (URL cached in `.docs-cache.json` under
-  `design_gallery.{feature_id}`).
-- Each targeted UI ticket in `tickets.json` gains `design_screen`,
-  `design_url`, `design_mode` (`mockup|reused`).
+- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}`
+  (local exports — helper handles platform-specific write path).
+- Remote Docs `design-gallery` page, recorded in
+  `.snap/manifests/{feature_id}.manifest.json` at `.refs.design_gallery`
+  (`platform`, `url`, `page_id`, `synced_at`, `sync_status: "synced"`); staging
+  `design-gallery.md` is trashed after ack.
+- Each targeted UI ticket in `.snap/tickets/{feature_id}.json` gains
+  `design_screen`, `design_url`, `design_mode` (`mockup|reused`).
+- Manifest `state` advances `wireframed` → `designed` (or `ticketed` →
+  `designed` if `/wireframe` was skipped).
 
 ## Auto-link to /wireframe
 
@@ -82,10 +86,12 @@ raises `AskUserQuestion`:
 ## Resume protocol
 
 Same pattern as `/wireframe`: `/design --resume` delegates to
-`resume-state.sh next --skill=design` (scope-aware state).
+`progress.sh resume --skill=design --feature-id=…`.
 
 ## Acceptance check
 
-- Every targeted UI ticket has `design_url` set in `tickets.json`.
-- `design-gallery.md` exists at `.claude/product/design-gallery.md` with one
-  section per screen.
+- Every targeted UI ticket has `design_url` set in
+  `.snap/tickets/{feature_id}.json`.
+- `manifest.refs.design_gallery.sync_status = "synced"` (or step-03 skipped if
+  `documentation.platform = "none"`).
+- Manifest `state ∈ {"designed", …terminal}`.

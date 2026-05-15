@@ -12,14 +12,14 @@ Cluster pages from `step-01` index into a proposed snap hierarchy.
 
 1. **Read index**:
    ```bash
-   INDEX_FILE=".claude/product/.doc-import-index.ndjson"
+   INDEX_FILE=".snap/.doc-import-index.ndjson"
    PAGE_COUNT=$(wc -l < "$INDEX_FILE" | tr -d ' ')
    ```
 
 2. **Read full content** of each indexed page (chunk by chunk to fit context):
    For each `page_id` in the index, fetch body via
    `docs-adapter --action=get --page-id=...`. Cache to
-   `.claude/product/.doc-import-cache/{page_id}.md`.
+   `.snap/.doc-import-cache/{page_id}.md`.
 
    Skip pages already cached (idempotent re-entry).
 
@@ -35,7 +35,7 @@ Cluster pages from `step-01` index into a proposed snap hierarchy.
    - Pages that don't fit any clear cluster → `unmapped_pages[]`.
 
 4. **Emit proposed structure** as JSON to
-   `.claude/product/.doc-import-proposal.json`:
+   `.snap/.doc-import-proposal.json`:
    ```json
    {
      "strategy": "synthesize",

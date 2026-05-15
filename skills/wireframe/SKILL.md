@@ -28,10 +28,11 @@ for the platform-specific blocks.
 
 ## When to use
 
-- A feature has `tickets.json` and at least one ticket touches UI files (heuristic
-  in step-01).
+- A feature has `.snap/tickets/{fid}.json` and at least one ticket touches UI
+  files (heuristic in step-01).
 - A wireframe platform is configured: `config.wireframes.platform ∈ {"frame0","penpot","figma"}`.
-- `/define` has populated `prd-feature.md` so screen names + states are known.
+- `/define` has produced `.snap/PRDs/{fid}.md` (or remote PRD via
+  `manifest.refs.prd`) so screen names + states are known.
 
 ## Pipeline
 
@@ -55,20 +56,26 @@ for the platform-specific blocks.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/wireframes/{screen-id}-{state}.png`
-  (local cache — the resolved helper handles platform-specific write path).
-- Docs Gallery page (URL cached in `.docs-cache.json` under
-  `wireframes_gallery.url`).
-- Each UI ticket in `tickets.json` gains `wireframe_screen` + `wireframe_url`.
+- `.snap/wireframes/{feature_id}/{screen-id}-{state}.{png|svg|…}`
+  (local exports — the resolved helper handles platform-specific write path;
+  format from `config.wireframes.export_format`).
+- Remote Docs Gallery page, recorded in
+  `.snap/manifests/{feature_id}.manifest.json` at `.refs.wireframes_gallery`
+  (`platform`, `url`, `page_id`, `synced_at`, `sync_status: "synced"`); staging
+  `wireframes-gallery.md` is trashed after ack.
+- Each UI ticket in `.snap/tickets/{feature_id}.json` gains `wireframe_screen`
+  + `wireframe_url`.
+- Manifest `state` advances `ticketed` → `wireframed`.
 
 ## Resume protocol
 
 Same pattern as `/define` and `/ticket`: `/wireframe --resume` delegates to
-`resume-state.sh next --skill=wireframe`.
+`progress.sh resume --skill=wireframe --feature-id=…`.
 
 ## Acceptance check
 
 - Every UI ticket flagged in step-01 has a `wireframe_url` populated in
-  `tickets.json`.
-- `wireframes-gallery.md` exists at `.claude/product/wireframes-gallery.md` with
-  one section per screen.
+  `.snap/tickets/{feature_id}.json`.
+- `manifest.refs.wireframes_gallery.sync_status = "synced"` (or step-03 skipped
+  if `documentation.platform = "none"`).
+- Manifest `state = "wireframed"`.

@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0.0",
+  "current_version": "1.0.0",
+  "migrations": [
+    {
+      "from": "0.6.0",
+      "to": "1.0.0",
+      "script": "v0.6.0_to_v1.0.0.sh",
+      "breaking": true,
+      "summary": "Move .claude/product/ → .snap/. Split features/{id}/ par type (PRDs/, manifests/, designs/, wireframes/, tickets/). meta.json → manifest.json. domains.json → _taxonomy.json. Drop progress.md (replaced by progress.json runtime). Drop daemon mode + activity log + .config-resolved.json cache.",
+      "decisions": [
+        {
+          "key": "old_workspace",
+          "question": "Que faire de l'ancien dossier .claude/product/ ?",
+          "header": "Legacy dir",
+          "options": [
+            { "value": "backup", "label": "Garder en backup (.snap.bak-v0.6.0-{ts}/)", "description": "Recommandé. Trashable plus tard à la main." },
+            { "value": "trash",  "label": "Trash immédiat",                              "description": "Aucune trace locale, mais récupérable via corbeille." },
+            { "value": "keep",   "label": "Laisser intact à côté",                       "description": "Garde .claude/product/ sans la copier en backup. Migration partielle, à tes risques." }
+          ],
+          "default": "backup"
+        },
+        {
+          "key": "republish_prds",
+          "question": "Re-publier les PRDs vers la plateforme doc ?",
+          "header": "PRDs sync",
+          "options": [
+            { "value": "skip",    "label": "Skip — se fier aux refs manifests",      "description": "Recommandé si docs déjà synced en v0.6." },
+            { "value": "refresh", "label": "Forcer refresh push tous les PRDs",       "description": "Re-pousse chaque PRD local vers la plateforme doc." }
+          ],
+          "default": "skip"
+        },
+        {
+          "key": "tickets_no_tracker",
+          "question": "Configurer une plateforme tickets maintenant ?",
+          "header": "Tickets",
+          "condition": "tickets_platform_missing",
+          "options": [
+            { "value": "configure", "label": "Configurer maintenant (recommandé)", "description": "Ouvre wizard tickets.platform. Sinon /ticket sera bloqué en v1.0." },
+            { "value": "skip",      "label": "Skip — /ticket bloqué jusqu'à config", "description": "OK si tu n'utilises pas /snap:ticket." }
+          ],
+          "default": "configure"
+        },
+        {
+          "key": "daemon_users",
+          "question": "Mode --loop=daemon supprimé. Basculer vers --loop=session ?",
+          "header": "Daemon",
+          "condition": "daemon_referenced",
+          "options": [
+            { "value": "session", "label": "OK, --loop=session", "description": "Session = même comportement sans process détaché." },
+            { "value": "manual",  "label": "Je gère manuellement", "description": "Tu mettras à jour tes scripts plus tard." }
+          ],
+          "default": "session"
+        }
+      ]
+    }
+  ]
+}

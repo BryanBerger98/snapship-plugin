@@ -63,9 +63,9 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
      style. Drop placeholder/comment prose, leave a section empty rather than
      inventing content. The result is `body_rendered`.
 
-3. **Inject the docs link**: read `.claude/product/.docs-cache.json` for the
-   feature's `prd_feature.url` (or `null` if `documentation.platform=none`); render
-   it into the ticket body header (`Spec: <url>`).
+3. **Inject the docs link**: read `.snap/manifests/${feature_id}.manifest.json`
+   for `.refs.prd.url` (absent if `documentation.platform=none`); render it
+   into the ticket body header (`Spec : <url>`).
 
 4. **Format-specific tweaks**:
    - **GitHub**: use `<details>` blocks for context to keep the issue readable; map
@@ -82,13 +82,13 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
 
 7. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=ticket \
      --feature-id="$feature_id" \
      --step-num=04 \
      --step-name=format \
-     --status=ok \
-     --skill=ticket
+     --status=ok
    ```
 
 ## Acceptance check

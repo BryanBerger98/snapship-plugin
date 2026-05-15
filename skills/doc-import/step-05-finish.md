@@ -1,6 +1,6 @@
 ---
 step: 05-finish
-description: Persist domains.json, write telemetry + progress entry, clean ephemeral state. Terminal step.
+description: Validate _taxonomy.json, write telemetry + progress entry, clean ephemeral state. Terminal step.
 ---
 
 # step-05 — finish
@@ -9,48 +9,55 @@ Close out the import run.
 
 ## Tasks
 
-1. **Validate `domains.json`** (skip in dry-run):
+1. **Validate `_taxonomy.json`** (skip in dry-run):
    ```bash
    if [ "$DRY_RUN" != "true" ]; then
-     bash skills/_shared/domains-state.sh validate --project-root="$PWD" \
-       || { echo "ERROR: domains.json failed validate" >&2; exit 1; }
+     bash skills/_shared/taxonomy-state.sh validate --project-root="$PWD" \
+       || { echo "ERROR: _taxonomy.json failed validate" >&2; exit 1; }
    fi
    ```
 
-2. **Append progress entry**:
+2. **Telemetry summary event**:
    ```bash
    STATUS=ok
    [ "$DRY_RUN" = "true" ] && STATUS=dry-run
 
-   bash skills/_shared/update-progress.sh \
+   DOMAINS_COUNT=$(bash skills/_shared/taxonomy-state.sh list-domains \
+     --project-root="$PWD" | wc -l | tr -d ' ')
+   JOURNEYS_COUNT=$(bash skills/_shared/taxonomy-state.sh list-journeys \
+     --project-root="$PWD" | wc -l | tr -d ' ')
+
+   bash skills/_shared/telemetry.sh log \
+     --project-root="$PWD" --skill=doc-import \
+     --step-num=05 --step-name=finish --status="$STATUS" \
+     --extra="{\"strategy\":\"$STRATEGY\",\"domains\":$DOMAINS_COUNT,\"journeys\":$JOURNEYS_COUNT,\"dry_run\":$DRY_RUN}"
+   ```
+
+3. **Append progress entry**:
+   ```bash
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=doc-import \
      --feature-id="_global" \
      --step-num=05 \
      --step-name=finish \
-     --status="$STATUS" \
-     --skill=doc-import
-   ```
+     --status="$STATUS"
 
-3. **Telemetry summary event**:
-   ```bash
-   DOMAINS_COUNT=$(bash skills/_shared/domains-state.sh list-domains | wc -l | tr -d ' ')
-   JOURNEYS_COUNT=$(bash skills/_shared/domains-state.sh list-journeys | wc -l | tr -d ' ')
-
-   bash skills/_shared/telemetry.sh append \
+   bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=doc-import \
-     --status="$STATUS" \
-     --extra="{\"strategy\":\"$STRATEGY\",\"domains\":$DOMAINS_COUNT,\"journeys\":$JOURNEYS_COUNT,\"dry_run\":$DRY_RUN}"
+     --feature-id="_global" \
+     --status="$STATUS"
    ```
 
 4. **Clean ephemeral state** (keeps backup if `--backup`):
    ```bash
-   trash .claude/product/.doc-import-index.ndjson 2>/dev/null
-   trash .claude/product/.doc-import-cache 2>/dev/null
-   trash .claude/product/.doc-import-proposal.json 2>/dev/null
-   trash .claude/product/.doc-import-failures.ndjson 2>/dev/null
+   trash .snap/.doc-import-index.ndjson 2>/dev/null
+   trash .snap/.doc-import-cache 2>/dev/null
+   trash .snap/.doc-import-proposal.json 2>/dev/null
+   trash .snap/.doc-import-failures.ndjson 2>/dev/null
    ```
-   `.claude/product/.backup/{timestamp}/` is **kept** — user decides when to
+   `.snap/.backup/{timestamp}/` is **kept** — user decides when to
    delete it.
 
 5. **Print suggested next steps** to the user:
@@ -63,16 +70,16 @@ Close out the import run.
 
    Next:
      /snap:define --feature=NN-…    # first feature post-import
-                                     # PRD will link to existing journeys via domains.json
+                                     # PRD will link to existing journeys via _taxonomy.json
      /snap:doc-import --force        # re-run if you want a different cluster split
    ```
 
 ## Acceptance check
 
-- `progress.md` has new entry.
+- `progress.json` updated (in_flight entry removed).
 - Telemetry NDJSON appended.
 - No leftover `.doc-import-*` files (except `.backup/`).
-- For non-dry run: `domains.json` validates.
+- For non-dry run: `_taxonomy.json` validates.
 
 ## Next step
 

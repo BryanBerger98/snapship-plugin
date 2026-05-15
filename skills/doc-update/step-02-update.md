@@ -127,16 +127,20 @@ if [ "$AUTO" != "true" ] && [ "$DRY_RUN" != "true" ]; then
 fi
 ```
 
-## Progress
+## Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=doc-update \
+  --step-num=02 --step-name=update --status=ok
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=doc-update \
   --feature-id="$FEATURE_ID" \
   --step-num=02 \
   --step-name=update \
-  --status=ok \
-  --skill=doc-update
+  --status=ok
 ```
 
 ## Acceptance check

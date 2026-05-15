@@ -2,9 +2,7 @@
 # E2E test for /wireframe pipeline (step-00 → step-04) using dry-run helpers.
 #
 # Simulates the orchestration documented in skills/wireframe/step-*.md without
-# invoking real Frame0/AFFiNE MCP tools. Verifies that the helpers cooperate:
-# filter-ui-tickets → frame0-helper (per screen×state) → render-template gallery
-# → docs-adapter create → jq-patch tickets.json → ajv validate.
+# invoking real Frame0/AFFiNE MCP tools.
 
 set -uo pipefail
 
@@ -14,7 +12,8 @@ FRAME0="${ROOT}/skills/_shared/frame0-helper.sh"
 DOCS="${ROOT}/skills/_shared/docs-adapter.sh"
 RENDER="${ROOT}/skills/_shared/render-template.sh"
 TICKETS_ADAPTER="${ROOT}/skills/_shared/tickets-adapter.sh"
-PROGRESS="${ROOT}/skills/_shared/update-progress.sh"
+PROGRESS="${ROOT}/skills/_shared/progress.sh"
+SETUP="${ROOT}/skills/_shared/setup-snap-dir.sh"
 TEMPLATE="${ROOT}/skills/_shared/templates/docs-defaults/wireframes-gallery.md"
 SCHEMA="${ROOT}/skills/_shared/schemas/tickets.schema.json"
 
@@ -33,14 +32,22 @@ DIR=$(mktemp -d -t snap-wf-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"
-FEATURE_DIR="${DIR}/.claude/product/features/${FEATURE_ID}"
-mkdir -p "${FEATURE_DIR}/wireframes" "${DIR}/.claude/product"
+bash "$SETUP" --project-root="$DIR" --feature-id="$FEATURE_ID" --feature-name="Auth" --lang=en >/dev/null
+
+MANIFEST="${DIR}/.snap/manifests/${FEATURE_ID}.manifest.json"
+TICKETS="${DIR}/.snap/tickets/${FEATURE_ID}.json"
+WF_DIR="${DIR}/.snap/wireframes/${FEATURE_ID}"
+mkdir -p "$WF_DIR"
+
+# Seed manifest with PRD ref so step-03 can read it
+jq '.refs.prd = {platform:"affine", page_id:"DRY-GLOBAL-0", url:"https://affine.example/prd-global", sync_status:"synced"}' \
+  "$MANIFEST" > "$DIR/.m.tmp" && mv "$DIR/.m.tmp" "$MANIFEST"
 
 echo "=== /wireframe E2E (dry-run) ==="
 echo ""
 
-# --- Setup fixtures -------------------------------------------------------
-cat > "${FEATURE_DIR}/tickets.json" <<JSON
+# --- Setup tickets fixture ------------------------------------------------
+cat > "$TICKETS" <<JSON
 {
   "feature_id": "${FEATURE_ID}",
   "platform": "github",
@@ -53,22 +60,15 @@ cat > "${FEATURE_DIR}/tickets.json" <<JSON
 }
 JSON
 
-cat > "${DIR}/.claude/product/.docs-cache.json" <<JSON
-{
-  "prd_global": {"page_id":"DRY-GLOBAL-0","url":"https://affine.example/prd-global"}
-}
-JSON
-
 # --- Step-01: filter UI tickets -------------------------------------------
 echo "[step-01] filter UI tickets"
-ui_json=$(bash "$FILTER" --tickets-file="${FEATURE_DIR}/tickets.json")
+ui_json=$(bash "$FILTER" --tickets-file="$TICKETS")
 ui_count=$(echo "$ui_json" | jq 'length')
 assert_eq "01.1 3 UI tickets (excl. DB migration)" "3" "$ui_count"
 
 hint1=$(echo "$ui_json" | jq -r '.[] | select(.local_id=="t-001").screen_hint')
 assert_eq "01.2 t-001 hint = signup-screen" "signup-screen" "$hint1"
 
-# Build screens manifest: 3 screens, 2 states each
 screens_json=$(echo "$ui_json" | jq '
   [.[] | {screen_id: .screen_hint, states: ["empty","filled"], local_id}]
   | group_by(.screen_id)
@@ -77,13 +77,12 @@ screens_json=$(echo "$ui_json" | jq '
 screen_count=$(echo "$screens_json" | jq 'length')
 assert_eq "01.3 screens manifest count" "3" "$screen_count"
 
-# Stash draft (mirrors step-01 task 4)
-draft_path="${FEATURE_DIR}/.wireframes-draft.json"
+draft_path="${DIR}/.snap/queues/${FEATURE_ID}.wireframes-draft.json"
 echo "$ui_json" | jq --argjson screens "$screens_json" '{ui_tickets: ., screens: $screens}' > "$draft_path"
-[ -f "$draft_path" ] && ok "01.4 .wireframes-draft.json stashed" || ko "01.4" "missing draft"
+[ -f "$draft_path" ] && ok "01.4 wireframes-draft stashed in queues/" || ko "01.4" "missing draft"
 
-bash "$PROGRESS" --project-root="$DIR" --feature-id="$FEATURE_ID" \
-  --skill=wireframe --step-num=01 --step-name=filter --status=ok >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+  --step-num=01 --step-name=filter --status=ok >/dev/null
 
 # --- Step-02: Frame0 dry-run loop -----------------------------------------
 echo ""
@@ -99,8 +98,7 @@ while IFS= read -r screen_id; do
     is_dry=$(echo "$out" | jq -r '.mode')
     [ "$is_dry" = "dry-run" ] || ko "02.create $screen_id/$state" "mode=$is_dry"
 
-    png_path="${FEATURE_DIR}/wireframes/${screen_id}-${state}.png"
-    # Synthesize 1×1 transparent PNG (placeholder per step-02 dry-run spec)
+    png_path="${WF_DIR}/${screen_id}-${state}.png"
     printf '\x89PNG\r\n\x1a\n' > "$png_path"
     pages_log+=("DRY-${i}|${screen_id}|${state}|${png_path}")
   done < <(echo "$screens_json" | jq -r --arg sid "$screen_id" '.[] | select(.screen_id==$sid).states[]')
@@ -108,7 +106,6 @@ done < <(echo "$screens_json" | jq -r '.[].screen_id')
 
 [ "${#pages_log[@]}" = "6" ] && ok "02.1 6 pages created (3 screens × 2 states)" || ko "02.1" "got ${#pages_log[@]}"
 
-# All PNGs exist
 all_exist=true
 for line in "${pages_log[@]}"; do
   p="${line##*|}"
@@ -116,25 +113,23 @@ for line in "${pages_log[@]}"; do
 done
 [ "$all_exist" = "true" ] && ok "02.2 every PNG written" || ko "02.2" "some PNGs missing"
 
-# Update draft with pages info
 draft_with_pages=$(jq --argjson pages "$(printf '%s\n' "${pages_log[@]}" | jq -R 'split("|") | {frame0_page_id:.[0], screen_id:.[1], state:.[2], png_path:.[3]}' | jq -s .)" '
   .screens |= map(. as $s | .pages = ($pages | map(select(.screen_id == $s.screen_id) | {state, frame0_page_id, png_path})))
 ' "$draft_path")
 echo "$draft_with_pages" > "$draft_path"
 
-bash "$PROGRESS" --project-root="$DIR" --feature-id="$FEATURE_ID" \
-  --skill=wireframe --step-num=02 --step-name=design --status=ok >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+  --step-num=02 --step-name=design --status=ok >/dev/null
 
 # --- Step-03: render gallery + dry-run docs publish -----------------------
 echo ""
 echo "[step-03] gallery render + publish (dry-run)"
 
-# Build context for wireframes-gallery.md template
 ctx=$(jq -n \
   --arg fid "$FEATURE_ID" \
   --arg ftitle "Auth" \
   --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  --arg dir "features/${FEATURE_ID}/wireframes" \
+  --arg dir ".snap/wireframes/${FEATURE_ID}" \
   --argjson screens "$(echo "$draft_with_pages" | jq '.screens')" '
   {
     product_name: "TestApp",
@@ -157,39 +152,37 @@ ctx=$(jq -n \
     screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, feature_id: $fid, state, path: .png_path})) | flatten)
   }')
 
-gallery_md="${DIR}/.claude/product/wireframes-gallery.md"
+gallery_md="${WF_DIR}/gallery.md"
 bash "$RENDER" --template="$TEMPLATE" --vars="$ctx" > "$gallery_md"
 
 [ -s "$gallery_md" ] && ok "03.1 gallery md non-empty" || ko "03.1" "empty"
 grep -q "signup-screen" "$gallery_md" && ok "03.2 contains signup-screen" || ko "03.2" "missing signup"
 grep -q "verify-screen" "$gallery_md" && ok "03.3 contains verify-screen" || ko "03.3" "missing verify"
-# Modal hint produced 'modal-section' (bare keyword normalisation)
 grep -q "modal-section" "$gallery_md" && ok "03.4 contains modal-section" || ko "03.4" "missing modal"
 
-# Docs-adapter create dry-run
+PRD_PAGE_ID=$(jq -r '.refs.prd.page_id' "$MANIFEST")
 publish_out=$(bash "$DOCS" --action=create --platform=affine \
-  --parent-id="DRY-GLOBAL-0" \
+  --parent-id="$PRD_PAGE_ID" \
   --title="Wireframes — Auth" \
   --content-file="$gallery_md" \
   --project-root="$DIR" --dry-run 2>&1)
 publish_mode=$(echo "$publish_out" | jq -r '.mode')
 assert_eq "03.5 docs-adapter dry-run mode" "dry-run" "$publish_mode"
 
-# Cache the gallery URL (simulate descriptor → MCP → cache step)
+# Ack into manifest.refs.wireframes_gallery (simulate sync-push ack)
 gallery_url="https://affine.example/feature/${FEATURE_ID}/wireframes"
-jq --arg fid "$FEATURE_ID" --arg url "$gallery_url" \
-  '.wireframes_gallery[$fid] = {page_id:"DRY-WF-0", url:$url}' \
-  "${DIR}/.claude/product/.docs-cache.json" > "${DIR}/.docs-cache.tmp" \
-  && mv "${DIR}/.docs-cache.tmp" "${DIR}/.claude/product/.docs-cache.json"
+NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+jq --arg url "$gallery_url" --arg ts "$NOW" \
+  '.refs.wireframes_gallery = {platform:"affine", page_id:"DRY-WF-0", url:$url, synced_at:$ts, sync_status:"synced"}' \
+  "$MANIFEST" > "$DIR/.m.tmp" && mv "$DIR/.m.tmp" "$MANIFEST"
 
-bash "$PROGRESS" --project-root="$DIR" --feature-id="$FEATURE_ID" \
-  --skill=wireframe --step-num=03 --step-name=gallery --status=ok >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+  --step-num=03 --step-name=gallery --status=ok >/dev/null
 
 # --- Step-04: link tickets ------------------------------------------------
 echo ""
-echo "[step-04] link wireframes into tickets.json"
+echo "[step-04] link wireframes into tickets/{id}.json"
 
-# For each UI ticket, look up screen via screen_hint, patch tickets.json
 while IFS= read -r entry; do
   lid=$(echo "$entry" | jq -r '.local_id')
   sid=$(echo "$entry" | jq -r '.screen_hint')
@@ -197,28 +190,23 @@ while IFS= read -r entry; do
   jq --arg lid "$lid" --arg sid "$sid" --arg url "$url" \
     '(.tickets[] | select(.local_id == $lid))
        |= (.wireframe_screen = $sid | .wireframe_url = $url)' \
-    "${FEATURE_DIR}/tickets.json" > "${FEATURE_DIR}/tickets.tmp" \
-    && mv "${FEATURE_DIR}/tickets.tmp" "${FEATURE_DIR}/tickets.json"
+    "$TICKETS" > "$DIR/.t.tmp" && mv "$DIR/.t.tmp" "$TICKETS"
 done < <(echo "$ui_json" | jq -c '.[]')
 
-# Verify every UI ticket has both fields
-linked=$(jq '[.tickets[] | select(.wireframe_screen != null and .wireframe_url != null)] | length' "${FEATURE_DIR}/tickets.json")
+linked=$(jq '[.tickets[] | select(.wireframe_screen != null and .wireframe_url != null)] | length' "$TICKETS")
 assert_eq "04.1 3 tickets linked" "3" "$linked"
 
-# Non-UI ticket t-004 should NOT have wireframe fields
-t4_ws=$(jq -r '[.tickets[] | select(.local_id=="t-004")][0].wireframe_screen // "null"' "${FEATURE_DIR}/tickets.json")
+t4_ws=$(jq -r '[.tickets[] | select(.local_id=="t-004")][0].wireframe_screen // "null"' "$TICKETS")
 assert_eq "04.2 t-004 (non-UI) untouched" "null" "$t4_ws"
 
-# URL format check
-t1_url=$(jq -r '.tickets[] | select(.local_id=="t-001").wireframe_url' "${FEATURE_DIR}/tickets.json")
+t1_url=$(jq -r '.tickets[] | select(.local_id=="t-001").wireframe_url' "$TICKETS")
 case "$t1_url" in
   *"#signup-screen") ok "04.3 t-001 url anchored to screen" ;;
   *) ko "04.3" "url=$t1_url" ;;
 esac
 
-# Schema validation
 if command -v ajv >/dev/null 2>&1; then
-  if ajv validate -s "$SCHEMA" -d "${FEATURE_DIR}/tickets.json" --spec=draft2020 --strict=false >/dev/null 2>&1; then
+  if ajv validate -s "$SCHEMA" -d "$TICKETS" --spec=draft2020 --strict=false >/dev/null 2>&1; then
     ok "04.4 tickets.json valid post-link"
   else
     ko "04.4" "ajv rejected"
@@ -227,29 +215,28 @@ else
   echo "  SKIP  04.4 ajv not installed"
 fi
 
-# Cleanup draft (mirrors step-04 task D)
-trash "$draft_path" 2>/dev/null || rm -f "$draft_path" 2>/dev/null
+trash "$draft_path" 2>/dev/null || true
 [ ! -f "$draft_path" ] && ok "04.5 draft cleaned up" || ko "04.5" "draft remains"
 
-bash "$PROGRESS" --project-root="$DIR" --feature-id="$FEATURE_ID" \
-  --skill=wireframe --step-num=04 --step-name=link --status=ok >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+  --step-num=04 --step-name=link --status=ok >/dev/null
+bash "$PROGRESS" finish --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" --status=ok >/dev/null
 
-# --- progress.md final state ----------------------------------------------
+# --- progress.json final state --------------------------------------------
 echo ""
-echo "[progress] entries"
-prog="${FEATURE_DIR}/progress.md"
-for step in filter design gallery link; do
-  if grep -qE "wireframe step-[0-9]+ ${step} — ok" "$prog"; then
-    ok "progress contains ${step} ok"
-  else
-    ko "progress ${step}" "missing"
-  fi
-done
+echo "[progress] in_flight purged after finish"
+in_flight=$(bash "$PROGRESS" list --project-root="$DIR")
+remaining=$(echo "$in_flight" | jq '[.[] | select(.skill == "wireframe" and .feature_id == "01-auth")] | length')
+assert_eq "progress.1 wireframe entry purged" "0" "$remaining"
+
+# --- Manifest state -------------------------------------------------------
+gallery_synced=$(jq -r '.refs.wireframes_gallery.sync_status' "$MANIFEST")
+assert_eq "manifest.1 refs.wireframes_gallery.sync_status=synced" "synced" "$gallery_synced"
 
 # --- Idempotence: re-run step-04 should be no-op --------------------------
 echo ""
 echo "[idempotence] re-run link"
-before=$(sha1sum "${FEATURE_DIR}/tickets.json" | awk '{print $1}')
+before=$(sha1sum "$TICKETS" | awk '{print $1}')
 while IFS= read -r entry; do
   lid=$(echo "$entry" | jq -r '.local_id')
   sid=$(echo "$entry" | jq -r '.screen_hint')
@@ -257,13 +244,11 @@ while IFS= read -r entry; do
   jq --arg lid "$lid" --arg sid "$sid" --arg url "$url" \
     '(.tickets[] | select(.local_id == $lid))
        |= (.wireframe_screen = $sid | .wireframe_url = $url)' \
-    "${FEATURE_DIR}/tickets.json" > "${FEATURE_DIR}/tickets.tmp" \
-    && mv "${FEATURE_DIR}/tickets.tmp" "${FEATURE_DIR}/tickets.json"
+    "$TICKETS" > "$DIR/.t.tmp" && mv "$DIR/.t.tmp" "$TICKETS"
 done < <(echo "$ui_json" | jq -c '.[]')
-after=$(sha1sum "${FEATURE_DIR}/tickets.json" | awk '{print $1}')
+after=$(sha1sum "$TICKETS" | awk '{print $1}')
 assert_eq "idem.1 second link is no-op" "$before" "$after"
 
-# Reference adapter exists (contract check, not invoked here)
 [ -f "$TICKETS_ADAPTER" ] && ok "ref tickets-adapter present" || ko "ref" "missing"
 
 echo ""

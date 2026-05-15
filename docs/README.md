@@ -10,14 +10,14 @@ Workflow propre, autonome, packagé en plugin CC v1. Patterns réécrits inline,
 
 | Slash               | Rôle                                                          | Stockage primaire                     |
 | ------------------- | ------------------------------------------------------------- | ------------------------------------- |
-| `/snap:init`        | Bootstrap workspace (config + `.claude/product/`). 1× par projet. | `snapship.config.json` + `.claude/product/` |
+| `/snap:init`        | Bootstrap workspace (config + `.snap/`). 1× par projet. | `snapship.config.json` + `.snap/` |
 | `/snap:define`      | Définit produit + features. Brainstorm PRD interactif.        | AFFiNE/Notion (PRD + pages parcours)  |
 | `/snap:ticket`      | Décompose un PRD feature en tickets adaptés à la plateforme.  | Plateforme tickets + `tickets.json`   |
 | `/snap:wireframe`   | Wireframes low-fi multi-écrans (Frame0/Penpot/Figma).         | Plateforme wireframe + gallery doc    |
 | `/snap:design`      | Maquettes hi-fi pour un ticket/feature (Penpot/Figma). Optionnel. | Plateforme design + gallery doc   |
 | `/snap:develop`     | Développe ticket(s). Standalone + loop session/daemon.        | Code + commits atomiques              |
 | `/snap:qa`          | Validation runtime: régression scope + diff wireframe Playwright. | Tests + Playwright vs wireframes  |
-| `/snap:doc-import`  | Importe des docs legacy dans la hiérarchie SnapShip. One-shot/projet. | AFFiNE/Notion + `domains.json` |
+| `/snap:doc-import`  | Importe des docs legacy dans la hiérarchie SnapShip. One-shot/projet. | AFFiNE/Notion + `_taxonomy.json` |
 | `/snap:doc-update`  | Rafraîchit la doc fonctionnelle vivante post-ship.            | AFFiNE/Notion (pages parcours)        |
 
 Chaining manuel (skill suggère prochain à fin). `/snap:init` est obligatoire avant tout autre skill — les autres skills exit early si `snapship.config.json` absent.

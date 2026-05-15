@@ -19,12 +19,12 @@ once and downstream steps pass values explicitly.
 
 1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--dry-run`.
 
-2. **Resume short-circuit**: delegate to `resume-state.sh`:
+2. **Resume short-circuit**: delegate to `progress.sh resume`:
    ```bash
-   resume_json=$(bash skills/_shared/resume-state.sh next \
-     --skill=wireframe \
+   resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
-     ${feature:+--feature="$feature"})
+     --skill=wireframe \
+     --feature-id="${feature:-_global}")
    ```
    Same rc=0/1/2 handling as `/define`.
 
@@ -37,26 +37,26 @@ once and downstream steps pass values explicitly.
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
      exit 1
    }
-   bash skills/_shared/load-config.sh --project-root="$PWD" > /tmp/cfg.json
-   wf_platform=$(jq -r '.wireframes.platform // "none"' /tmp/cfg.json)
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   wf_platform=$(jq -r '.wireframes.platform // "none"' <<<"$CONFIG_JSON")
 
    # Resolve platform-specific nested values once — helpers no longer read config.
    case "$wf_platform" in
      frame0)
-       api_port=$(jq -r '.wireframes.frame0.api_port // 58320' /tmp/cfg.json)
-       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       api_port=$(jq -r '.wireframes.frame0.api_port // 58320' <<<"$CONFIG_JSON")
+       export_format=$(jq -r '.wireframes.export_format // "png"' <<<"$CONFIG_JSON")
        ;;
      penpot)
-       penpot_file_id=$(jq -r '.wireframes.penpot.file_id // ""' /tmp/cfg.json)
-       penpot_file_name=$(jq -r '.wireframes.penpot.file_name // ""' /tmp/cfg.json)
-       penpot_export_dir=$(jq -r '.wireframes.penpot.export_dir // ""' /tmp/cfg.json)
-       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       penpot_file_id=$(jq -r '.wireframes.penpot.file_id // ""' <<<"$CONFIG_JSON")
+       penpot_file_name=$(jq -r '.wireframes.penpot.file_name // ""' <<<"$CONFIG_JSON")
+       penpot_export_dir=$(jq -r '.wireframes.penpot.export_dir // ""' <<<"$CONFIG_JSON")
+       export_format=$(jq -r '.wireframes.export_format // "png"' <<<"$CONFIG_JSON")
        ;;
      figma)
-       figma_file_key=$(jq -r '.wireframes.figma.file_key // ""' /tmp/cfg.json)
-       figma_file_name=$(jq -r '.wireframes.figma.file_name // ""' /tmp/cfg.json)
-       figma_token_env=$(jq -r '.wireframes.figma.token_env // "FIGMA_ACCESS_TOKEN"' /tmp/cfg.json)
-       export_format=$(jq -r '.wireframes.export_format // "png"' /tmp/cfg.json)
+       figma_file_key=$(jq -r '.wireframes.figma.file_key // ""' <<<"$CONFIG_JSON")
+       figma_file_name=$(jq -r '.wireframes.figma.file_name // ""' <<<"$CONFIG_JSON")
+       figma_token_env=$(jq -r '.wireframes.figma.token_env // "FIGMA_ACCESS_TOKEN"' <<<"$CONFIG_JSON")
+       export_format=$(jq -r '.wireframes.export_format // "png"' <<<"$CONFIG_JSON")
        ;;
    esac
    ```
@@ -174,25 +174,25 @@ export "$figma_token_env=$figma_token"
    context-agnostic helpers.
 
 7. **Validate inputs**:
-   - `tickets.json` exists for the feature (run `/ticket` first if not).
-   - `prd-feature.md` mentions ≥ 1 wireframe screen ID (otherwise skip —
-     feature is non-UI).
+   - `.snap/tickets/${feature_id}.json` exists (run `/ticket` first if not).
+   - PRD (`.snap/PRDs/${feature_id}.md` or rehydrated from `manifest.refs.prd`)
+     mentions ≥ 1 wireframe screen ID (otherwise skip — feature is non-UI).
 
 8. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=wireframe \
      --feature-id="$feature_id" \
      --step-num=00 \
      --step-name=init \
-     --status=ok \
-     --skill=wireframe
+     --status=ok
    ```
 
 ## Acceptance check
 
 - `feature_id` resolved.
-- `tickets.json` exists.
+- `.snap/tickets/${feature_id}.json` exists.
 - `wf_platform` resolved (or `none` → skip).
 - MCP for resolved platform reachable.
 - Platform-specific binding verified:

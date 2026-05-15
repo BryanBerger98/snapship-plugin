@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# telemetry.sh — append NDJSON event to skills/_shared/telemetry.log
-# Auto-rotation: > 10MB → telemetry.log.1 (max 2 files retained: .log + .log.1).
+# telemetry.sh — append NDJSON event to .snap/telemetry.ndjson (per-project).
+# Auto-rotation: > 10MB → telemetry.ndjson.1 (max 2 files retained).
 #
 # Usage:
 #   telemetry.sh --skill=develop --step=03a-execute --status=ok --duration-ms=4521
+#   telemetry.sh log --skill=upgrade --step-num=01 --step-name=confirm --status=ok
 #   telemetry.sh --skill=qa --step=01-collect --status=fail --severity=major --ticket=AUTH-3
+#
+# Both invocation forms accepted (the bare "log" subcommand is a no-op shim).
+# When --step-num + --step-name are passed, --step is derived as "NN-name".
 #
 # Output: written event JSON on stdout (for piping).
 # Exit codes: 0=ok, 1=invalid arg.
 
 set -euo pipefail
 
+# Optional "log" subcommand shim (silently consumed)
+if [ "${1:-}" = "log" ]; then shift; fi
+
 SKILL=""
 STEP=""
+STEP_NUM=""
+STEP_NAME=""
 STATUS=""
 DURATION_MS=""
 TICKET=""
@@ -22,6 +31,7 @@ FEATURE=""
 NOTE=""
 EXTRA=""
 LOG_PATH=""
+PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 
 usage() {
   cat <<EOF
@@ -51,25 +61,35 @@ EOF
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --skill=*)       SKILL="${1#--skill=}" ;;
-    --step=*)        STEP="${1#--step=}" ;;
-    --status=*)      STATUS="${1#--status=}" ;;
-    --duration-ms=*) DURATION_MS="${1#--duration-ms=}" ;;
-    --ticket=*)      TICKET="${1#--ticket=}" ;;
-    --feature=*)     FEATURE="${1#--feature=}" ;;
-    --cycle=*)       CYCLE="${1#--cycle=}" ;;
-    --severity=*)    SEVERITY="${1#--severity=}" ;;
-    --note=*)        NOTE="${1#--note=}" ;;
-    --extra=*)       EXTRA="${1#--extra=}" ;;
-    --log-path=*)    LOG_PATH="${1#--log-path=}" ;;
-    -h|--help)       usage; exit 0 ;;
+    --skill=*)        SKILL="${1#--skill=}" ;;
+    --step=*)         STEP="${1#--step=}" ;;
+    --step-num=*)     STEP_NUM="${1#--step-num=}" ;;
+    --step-name=*)    STEP_NAME="${1#--step-name=}" ;;
+    --status=*)       STATUS="${1#--status=}" ;;
+    --duration-ms=*)  DURATION_MS="${1#--duration-ms=}" ;;
+    --ticket=*)       TICKET="${1#--ticket=}" ;;
+    --feature=*|--feature-id=*) FEATURE="${1#*=}" ;;
+    --cycle=*)        CYCLE="${1#--cycle=}" ;;
+    --severity=*)     SEVERITY="${1#--severity=}" ;;
+    --note=*)         NOTE="${1#--note=}" ;;
+    --extra=*)        EXTRA="${1#--extra=}" ;;
+    --log-path=*)     LOG_PATH="${1#--log-path=}" ;;
+    --project-root=*) PROJECT_ROOT="${1#--project-root=}" ;;
+    -h|--help)        usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
   esac
   shift
 done
 
+# Compose --step from --step-num/--step-name if --step not given
+if [ -z "$STEP" ] && [ -n "$STEP_NUM" ] && [ -n "$STEP_NAME" ]; then
+  STEP="${STEP_NUM}-${STEP_NAME}"
+elif [ -z "$STEP" ] && [ -n "$STEP_NAME" ]; then
+  STEP="$STEP_NAME"
+fi
+
 [ -z "$SKILL" ]  && { echo "ERROR: --skill required" >&2; exit 1; }
-[ -z "$STEP" ]   && { echo "ERROR: --step required" >&2; exit 1; }
+[ -z "$STEP" ]   && { echo "ERROR: --step or --step-num+--step-name required" >&2; exit 1; }
 [ -z "$STATUS" ] && { echo "ERROR: --status required" >&2; exit 1; }
 
 case "$STATUS" in
@@ -96,13 +116,12 @@ fi
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
 
-# Resolve log path
+# Resolve log path: --log-path > $SNAP_TELEMETRY_LOG > $PROJECT_ROOT/.snap/telemetry.ndjson
 if [ -z "$LOG_PATH" ]; then
   if [ -n "${SNAP_TELEMETRY_LOG:-}" ]; then
     LOG_PATH="$SNAP_TELEMETRY_LOG"
   else
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    LOG_PATH="${SCRIPT_DIR}/telemetry.log"
+    LOG_PATH="${PROJECT_ROOT}/.snap/telemetry.ndjson"
   fi
 fi
 

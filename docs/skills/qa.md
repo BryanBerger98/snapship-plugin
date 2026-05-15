@@ -44,7 +44,7 @@ sécurité / fonctionnelles introduites après la phase de dev.
 | ----------------------- | ------------------------------------------------------------------------------------ |
 | `<ticket-id>`           | Valide un seul ticket.                                                               |
 | `<feature-id>`          | Valide chaque ticket `in_review` de la feature.                                      |
-| `--resume` / `-r`       | Reprend via `resume-state.sh next --skill=qa`.                                       |
+| `--resume` / `-r`       | Reprend via `progress.sh resume next --skill=qa`.                                       |
 | `--dry-run`             | Collecte uniquement : pas de boucle de fix, pas d'amend.                             |
 | `--no-wireframe-check`  | Saute le diff wireframe même si la config l'active.                                  |
 | `--retrigger`           | Force le step-04 même si `config.qa.retrigger_review=false`.                         |
@@ -94,7 +94,7 @@ sécurité / fonctionnelles introduites après la phase de dev.
 
 - Chaque ticket validé : `status="qa-validated"`, `qa_validated_at` renseigné.
 - Body du ticket plateforme amendé avec le verdict QA (template par plateforme).
-- Entrées de step dans `progress.md`.
+- Entrées de step dans `progress.json`.
 - Optionnel : résumé de re-review ajouté (si le retrigger a tourné).
 
 ## Étape suivante

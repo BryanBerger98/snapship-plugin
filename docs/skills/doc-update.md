@@ -25,10 +25,10 @@ Garder la doc fonctionnelle **vivante** à jour après livraison.
 - `/snap:init` lancé (`snapship.config.json` existe).
 - `documentation.platform ∈ {affine, notion}` (ignoré si `none`).
 - MCP de cette plateforme joignable.
-- La feature a un `meta.json` avec `state == "qa-validated"` et `prd.page_id`
+- La feature a un `manifest.json` avec `state == "qa-validated"` et `prd.page_id`
   renseigné.
 - Chaque entrée `impacted_journeys[]` a une entrée correspondante dans
-  `domains.json`.
+  `_taxonomy.json`.
 
 ## Syntaxe
 
@@ -61,7 +61,7 @@ le même diff (modulo non-déterminisme IA — relire avant push).
 ## Outputs
 
 - Page(s) parcours mises à jour sur AFFiNE / Notion (la page PRD reste intacte).
-- Entrée `progress.md` : `doc-update step-04 finish — ok` (ou `dry-run` / `skip`).
+- Entrée `progress.json` : `doc-update step-04 finish — ok` (ou `dry-run` / `skip`).
 - Événement de télémétrie `doc-update`.
 
 ## Étape suivante

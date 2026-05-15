@@ -12,7 +12,7 @@ Branch is shared (the feature branch, set in step-02).
 ## Tasks
 
 ```
-queue=$(jq -r '.queue[]' .develop-queue.json)
+queue=$(jq -r '.queue[]' .snap/queues/${feature_id}.develop.json)
 
 for local_id in $queue; do
   # 1. Hydrate one ticket from cache.
@@ -24,10 +24,11 @@ for local_id in $queue; do
     case "$fail_strategy" in
       next-ticket)
         # Mark blocked, advance.
+        tmp=$(mktemp)
         jq --arg lid "$local_id" \
           '(.tickets[] | select(.local_id == $lid)).status = "blocked"' \
-          "$tickets_file" > "$tickets_file.tmp" \
-          && mv "$tickets_file.tmp" "$tickets_file"
+          "$tickets_file" > "$tmp" \
+          && mv "$tmp" "$tickets_file"
         ;;
       stop)
         echo "ERROR: ticket $local_id failed under fail_strategy=stop" >&2
@@ -44,17 +45,18 @@ for local_id in $queue; do
   fi
 
   # 3. Update queue state.
+  queue_file=".snap/queues/${feature_id}.develop.json"
+  tmp=$(mktemp)
   jq --arg lid "$local_id" \
     '.processed += [$lid] | .queue |= map(select(. != $lid))' \
-    .develop-queue.json > .develop-queue.json.tmp \
-    && mv .develop-queue.json.tmp .develop-queue.json
+    "$queue_file" > "$tmp" && mv "$tmp" "$queue_file"
 done
 ```
 
 ## Resume
 
 If interrupted, `/develop --resume`:
-1. Reads `.develop-queue.json` — `processed[]` is the catch-up state.
+1. Reads `.snap/queues/${feature_id}.develop.json` — `processed[]` is the catch-up state.
 2. Resumes at the first ticket in `queue[]` not in `processed[]`.
 3. If the last `processed` ticket has no `commit_sha` in tickets.json, treat it
    as half-done — re-run step-03a for it (Phase 1 + 2 are idempotent under amend).
@@ -71,15 +73,18 @@ Per-ticket progress entries are appended by step-03a. step-03b adds a final
 summary:
 
 ```bash
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" --feature-id="$feature_id" \
-  --skill=develop --step-num=03b --step-name=loop-session --status=ok \
-  --note="processed=$(jq '.processed | length' .develop-queue.json) blocked=$blocked_count"
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=develop \
+  --feature-id="$feature_id" \
+  --step-num=03b \
+  --step-name=loop-session \
+  --status=ok
 ```
 
 ## Acceptance check
 
-- `.develop-queue.json` `queue` is empty (or only contains items skipped under
+- `.snap/queues/${feature_id}.develop.json` `queue` is empty (or only contains items skipped under
   `next-ticket`).
 - Each processed ticket has a `commit_sha`.
 

@@ -22,6 +22,7 @@ post-QA diff.
 ### A. Compute post-QA diff
 
 ```bash
+tickets_file=".snap/tickets/${feature_id}.json"
 sha=$(jq -r --arg lid "$lid" \
   '.tickets[] | select(.local_id == $lid).commit_sha' \
   "$tickets_file")
@@ -65,16 +66,16 @@ Runs when `qa.design_check.enabled=true` AND the ticket carries
 asset must exist on disk; richer visual diff is a follow-up.
 
 ```bash
-dc_enabled=$(jq -r '.qa.design_check.enabled // false' /tmp/cfg.json)
-dc_mode=$(jq -r '.qa.design_check.mode // "asset-presence"' /tmp/cfg.json)
-dc_sev=$(jq -r '.qa.design_check.severity_on_mismatch // "minor"' /tmp/cfg.json)
+dc_enabled=$(jq -r '.qa.design_check.enabled // false' <<<"$CONFIG_JSON")
+dc_mode=$(jq -r '.qa.design_check.mode // "asset-presence"' <<<"$CONFIG_JSON")
+dc_sev=$(jq -r '.qa.design_check.severity_on_mismatch // "minor"' <<<"$CONFIG_JSON")
 
 if [ "$dc_enabled" = "true" ]; then
   asset=$(jq -r --arg lid "$lid" \
     '.tickets[] | select(.local_id==$lid)
      | (.design_screen // "")' "$tickets_file")
   if [ -n "$asset" ]; then
-    design_dir=".claude/product/features/${feature_id}/design"
+    design_dir=".snap/designs/${feature_id}"
     case "$dc_mode" in
       asset-presence)
         if ! find "$design_dir" -maxdepth 1 -name "${asset}*" -print -quit 2>/dev/null | grep -q .; then
@@ -99,12 +100,14 @@ If `design_check_fail` set, surface it in the ticket's blocked feedback.
 ### E. Persist
 
 ```bash
+tickets_file=".snap/tickets/${feature_id}.json"
+tmp=$(mktemp)
 jq --arg lid "$lid" --arg sev "$overall" --argjson v "$verdicts_json" \
   '(.tickets[] | select(.local_id == $lid))
      |= (.qa_retriggered = true
          | .qa_retrigger_severity = $sev
          | .qa_retrigger_verdicts = $v)' \
-  "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+  "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
 `verdicts_json`:
@@ -117,10 +120,14 @@ jq --arg lid "$lid" --arg sev "$overall" --argjson v "$verdicts_json" \
 }
 ```
 
-## Append progress
+## Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=qa \
+  --step-num=04 --step-name=retrigger --status=$status
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" --feature-id="$feature_id" \
   --skill=qa --step-num=04 --step-name=retrigger --status=$status \
   --note="$lid overall=$overall"

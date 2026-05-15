@@ -43,7 +43,7 @@ As a **{{user_persona}}**, I want **{{user_goal}}** so that **{{user_outcome}}**
 
 ## References
 
-- Feature PRD: `.claude/product/features/{{feature_id}}/prd-feature.md`
+- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
 - Parent epic: {{epic_ref}}
 - Related: {{related_refs}}
 

@@ -211,7 +211,7 @@ rc=$?
 echo ""
 echo "[27] save-export decodes base64 → PNG (via --base64-data)"
 TMP=$(mktemp -d)
-TARGET="$TMP/.claude/product/features/01-auth/wireframes/01-auth-signup-empty.png"
+TARGET="$TMP/.snap/wireframes/01-auth/01-auth-signup-empty.png"
 out=$(bash "$SCRIPT" --action=save-export --output-path="$TARGET" \
         --base64-data="$PNG_B64")
 rc=$?

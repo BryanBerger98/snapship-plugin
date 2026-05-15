@@ -14,7 +14,7 @@
 | Workspace AFFiNE      | 1 par projet code, mappé via `snapship.config.json` (`documentation.workspace`)                                                      |
 | Source vérité PRD     | AFFiNE (primaire) — local minimal                                                                                                   |
 | Source vérité tickets | Plateforme primary, cache local                                                                                                     |
-| Stockage local        | `.claude/product/` minimal (cache + progress + meta)                                                                                |
+| Stockage local        | `.snap/` minimal (cache + progress + meta)                                                                                |
 | PRD                   | Global + mini-PRD par feature (sur AFFiNE)                                                                                          |
 | Wireframes            | Par feature, multi-écrans (Frame0 + gallery AFFiNE)                                                                                 |
 | Tickets format        | Adaptatif par plateforme                                                                                                            |
@@ -174,7 +174,7 @@ Mode update configurable: `diff` (default — patch sections impactées) ou `rew
 
 ### Slug vs titre
 
-**Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `domains.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).
+**Choix:** page AFFiNE = titre humain ("Login Flow"). Cache interne `_taxonomy.json` = slug kebab (`login-flow`) pour mapping. User saisit titre, slug auto-généré (override possible).
 
 ### CC optimizations appliquées
 
@@ -207,7 +207,7 @@ Workflow autonome. Patterns natifs:
 **Progressive workflow:**
 
 - Step loading via frontmatter `next_step` (1 step = 1 fichier MD)
-- State variables persistés entre steps (`progress.md` + `meta.json`)
+- State variables persistés entre steps (`progress.json` + `manifest.json`)
 - Save mode + templates + scripts `_shared/`
 - Resume `-r {task-id}` avec partial match
 - Self-validation typecheck/lint/test post-execution

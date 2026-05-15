@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # define-state.sh — Read/write/validate the /define working state file.
 #
-# Working file: .claude/product/.define-state.json
+# Working file: .snap/.define-state.json
 # Purpose: cumulative state collected by step-01..03 of /define, consumed by
 # step-04 to render templates. Cleaned up by step-05 on success.
 #
@@ -37,7 +37,7 @@ set -euo pipefail
 
 PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 
-state_file() { echo "${PROJECT_ROOT}/.claude/product/.define-state.json"; }
+state_file() { echo "${PROJECT_ROOT}/.snap/.define-state.json"; }
 
 usage() {
   cat <<'EOF'
@@ -98,6 +98,7 @@ cmd_init() {
   done
   local f
   f=$(state_file)
+  mkdir -p "$(dirname "$f")"
   jq -n \
     --arg lang "$lang" \
     --arg mode "$mode" \

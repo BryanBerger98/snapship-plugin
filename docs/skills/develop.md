@@ -40,7 +40,7 @@ et livrer un commit atomique par ticket.
 | `<feature-id>`                             | Mode loop : itère sur les tickets de la feature (demande le mode si non précisé).      |
 | `--loop=session`                           | Itère sur les tickets dans la même session Claude.                                     |
 | `--loop=daemon`                            | Génère `daemon.sh` (jamais lancé automatiquement — l'utilisateur fait `bash daemon.sh -n N`). |
-| `--resume` / `-r`                          | Reprend via `resume-state.sh next --skill=develop`.                                    |
+| `--resume` / `-r`                          | Reprend via `progress.sh resume next --skill=develop`.                                    |
 | `--dry-run`                                | Aucune écriture : pas de commit ni de push, les reviewers tournent sur le diff stagé.  |
 | `--allow-dirty`                            | Tolère des changements non committés avant le run.                                     |
 | `--retry-fallback=next-ticket\|stop`       | Comportement de repli, uniquement avec `fail_strategy=retry`.                          |
@@ -94,7 +94,7 @@ et livrer un commit atomique par ticket.
 - Branche poussée ; PR ouverte (idempotent — un re-run met à jour le body, ne
   duplique pas).
 - `tickets.json` mis à jour : `commit_sha`, `developed_at`, `status="in_review"`.
-- Entrées de step dans `progress.md` pour chaque ticket.
+- Entrées de step dans `progress.json` pour chaque ticket.
 
 ## Étape suivante
 

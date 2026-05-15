@@ -23,25 +23,24 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 # Wrapper pour batch operations (créer page + shapes en chaîne)
 ```
 
-## setup-product-dir.sh
+## setup-snap-dir.sh
 
 ```bash
-# Init .claude/product/ idempotent
-# Crée index.md, copie templates si absents
+# Init .snap/ idempotent (manifests/, PRDs/, designs/, wireframes/, tickets/,
+# queues/, .doc-import/cache/). Bootstrap _taxonomy.json + progress.json.
+# --feature-id + --feature-name → init aussi manifests/{id}.manifest.json
 ```
 
-## update-index.sh
+## progress.sh
 
 ```bash
-# args: feature_id, state (defined|ticketed|wireframed|developed|qa-validated)
-# Update tableau dans index.md
-```
-
-## update-progress.sh
-
-```bash
-# args: feature_id, step_num, step_name, status
-# Append progress.md de la feature
+# Subcommands (subcommand first, then --flags):
+#   start  --skill=X --feature-id=Y
+#   step   --skill=X --feature-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=...]
+#   finish --skill=X --feature-id=Y --status=ok|fail
+#   resume --skill=X --feature-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
+#   list                              # stdout: in_flight[] JSON
+# Écrit .snap/progress.json (gitignored).
 ```
 
 ## load-config.sh
@@ -56,7 +55,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #   - testing.*_command absent → auto-detect (package.json scripts, Makefile, pyproject)
 #   - naming.ticket_id_regex absent → pattern par platform
 # Validation JSON Schema:
-#   - Lit `_shared/schemas/config.schema.json` (ou `.claude/product/schemas/` si copié)
+#   - Lit `_shared/schemas/config.schema.json` (ou `.snap/schemas/` si copié)
 #   - Valide via `jq` + check basique OU `ajv-cli` si dispo
 #   - Erreurs schema → exit 1 + chemin champ + raison
 #   - Check `version` champ — incompatibilité majeure → instruction migration
@@ -64,7 +63,7 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 #   - tickets.platform != "jira" + tickets.jira.* set
 #     → "Section tickets.jira ignorée sur platform Y"
 #   - lifecycle_scripts.<name> set vers script inexistant → "script X path invalide"
-# Cache résolution dans .claude/product/.config-resolved.json (invalidé si mtime change)
+# Cache résolution dans .snap/.config-resolved.json (invalidé si mtime change)
 ```
 
 ## Setup trigger pattern (chaque skill step-00)
@@ -200,10 +199,10 @@ Tous scripts dans `skills/_shared/`. Réutilisables transverses.
 # Mode: les write actions sortent un MCP descriptor (exit 10) + court-circuitent en --dry-run.
 ```
 
-## domains-state.sh (v0.2 — cache domain/journey ↔ page IDs)
+## taxonomy-state.sh (v0.2 — cache domain/journey ↔ page IDs)
 
 ```bash
-# CRUD .claude/product/domains.json (persistant, schema: domains.schema.json)
+# CRUD .snap/manifests/_taxonomy.json (persistant, schema: domains.schema.json)
 # Source vérité ID pour idempotent lookup-or-create dans /snap:define publish + /snap:doc-update.
 # Subcommands:
 #   - init                                              → écrit {} si absent

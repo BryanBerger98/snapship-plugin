@@ -162,10 +162,17 @@ detected_repo_platform=$(infer_repo_platform "$raw_remote_url")
 detected_repo_http=""
 [ -n "$raw_remote_url" ] && detected_repo_http=$(ssh_to_https "$raw_remote_url")
 
-# Tickets default = repo platform (github/gitlab) when known
-detected_tickets_platform="$detected_repo_platform"
+# Tickets default: prefer linear / jira if MCP detected, else repo platform
+detected_tickets_platform=""
+if [ "$(mcp_present linear)" = "true" ]; then
+  detected_tickets_platform="linear"
+elif [ "$(mcp_present jira atlassian)" = "true" ]; then
+  detected_tickets_platform="jira"
+else
+  detected_tickets_platform="$detected_repo_platform"
+fi
 
-# Docs: prefer affine if MCP present, else notion if present, else "" (must ask)
+# Docs: prefer affine (open-source default), else notion, else "" (must ask)
 detected_docs_platform=""
 if [ "$(mcp_present affine)" = "true" ]; then
   detected_docs_platform="affine"
@@ -173,8 +180,23 @@ elif [ "$(mcp_present notion)" = "true" ]; then
   detected_docs_platform="notion"
 fi
 
-# Wireframes: frame0 (only supported value)
-detected_wire_platform="frame0"
+# Design: prefer figma, then penpot
+detected_design_platform=""
+if [ "$(mcp_present figma)" = "true" ]; then
+  detected_design_platform="figma"
+elif [ "$(mcp_present penpot)" = "true" ]; then
+  detected_design_platform="penpot"
+fi
+
+# Wireframes: frame0 if MCP detected, else figma, else penpot, else "none"
+detected_wire_platform=""
+if [ "$(mcp_present frame0)" = "true" ]; then
+  detected_wire_platform="frame0"
+elif [ "$(mcp_present figma)" = "true" ]; then
+  detected_wire_platform="figma"
+elif [ "$(mcp_present penpot)" = "true" ]; then
+  detected_wire_platform="penpot"
+fi
 
 DETECTED=$(jq -nc \
   --arg repo_platform "$detected_repo_platform" \
@@ -182,6 +204,7 @@ DETECTED=$(jq -nc \
   --arg repo_ssh      "$raw_remote_url" \
   --arg tickets       "$detected_tickets_platform" \
   --arg docs          "$detected_docs_platform" \
+  --arg design        "$detected_design_platform" \
   --arg wire          "$detected_wire_platform" \
   --arg lang          "fr" '
   {
@@ -193,7 +216,8 @@ DETECTED=$(jq -nc \
     ),
     tickets:       (if $tickets != "" then {platform: $tickets} else {} end),
     documentation: (if $docs    != "" then {platform: $docs}    else {} end),
-    wireframes:    {platform: $wire},
+    design:        (if $design  != "" then {platform: $design}  else {} end),
+    wireframes:    (if $wire    != "" then {platform: $wire}    else {} end),
     defaults:      {lang: $lang}
   }
 ')

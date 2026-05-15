@@ -28,7 +28,7 @@ Build a flat index of candidate pages to analyze in step-02.
    absent, scope = entire workspace.
 
 2. **Build page index** as NDJSON (one page per line) — write to
-   `.claude/product/.doc-import-index.ndjson`:
+   `.snap/.doc-import-index.ndjson`:
    ```json
    {"page_id":"abc","title":"Login screen","parent_id":"root","tags":[],"updated_at":"...","char_count":4231,"path":"Engineering/Auth/Login screen"}
    ```
@@ -44,7 +44,7 @@ Build a flat index of candidate pages to analyze in step-02.
 
 4. **Backup** (if `$BACKUP == true`):
    ```bash
-   BACKUP_DIR=".claude/product/.backup/$(date -u +%Y%m%dT%H%M%SZ)"
+   BACKUP_DIR=".snap/.backup/$(date -u +%Y%m%dT%H%M%SZ)"
    mkdir -p "$BACKUP_DIR"
    ```
    For each indexed page, fetch full content via `docs-adapter --action=get` and
@@ -53,7 +53,7 @@ Build a flat index of candidate pages to analyze in step-02.
 
 5. **Empty-index guard**:
    ```bash
-   COUNT=$(wc -l < .claude/product/.doc-import-index.ndjson | tr -d ' ')
+   COUNT=$(wc -l < .snap/.doc-import-index.ndjson | tr -d ' ')
    if [ "$COUNT" -eq 0 ]; then
      echo "ERROR: source scope contains 0 pages — nothing to import." >&2
      echo "Check --source-page or AFFiNE workspace permissions." >&2
@@ -63,7 +63,7 @@ Build a flat index of candidate pages to analyze in step-02.
 
 ## Acceptance check
 
-- `.claude/product/.doc-import-index.ndjson` exists, non-empty.
+- `.snap/.doc-import-index.ndjson` exists, non-empty.
 - Each line is valid JSON with required keys.
 - If `--backup`, every page in index has a corresponding `.md` in `$BACKUP_DIR`.
 

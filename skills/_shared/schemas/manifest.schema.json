@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/manifest.schema.json",
+  "title": "feature manifest.json",
+  "description": "Manifeste feature — .snap/manifests/{slug}.manifest.json. v1.0 — pointeurs vers ressources distantes (PRD, design gallery, wireframes gallery, tickets, design file) + sync state. Remplace meta.json.",
+  "type": "object",
+  "required": ["schema_version", "feature_id", "feature_name", "state", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version schéma manifest. Suivre semver. /snap:upgrade migre quand MAJOR mismatch."
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$",
+      "description": "Format NN-kebab (ex: 01-auth)"
+    },
+    "feature_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "string",
+      "enum": ["defined", "ticketed", "wireframed", "designed", "developed", "qa-validated", "shipped"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["must", "should", "could", "wont"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lang": {
+      "type": "string",
+      "enum": ["fr", "en"]
+    },
+    "green_field": {
+      "type": "boolean",
+      "description": "True si feature créée projet vide (pas de codebase existant)"
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "uniqueItems": true,
+      "description": "Slugs domaines impactés. Référence _taxonomy.json.domains."
+    },
+    "impacted_journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "journey_slug"],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "journey_slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        }
+      },
+      "uniqueItems": true,
+      "description": "User journeys impactés (cible doc fonctionnelle vivante /snap:doc-update post-ship)."
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pointeurs vers ressources distantes — source de vérité. Local = staging pré-push.",
+      "properties": {
+        "prd":                { "$ref": "#/$defs/remote_ref" },
+        "design_gallery":     { "$ref": "#/$defs/remote_ref" },
+        "wireframes_gallery": { "$ref": "#/$defs/remote_ref" },
+        "tickets":            { "$ref": "#/$defs/remote_ref" },
+        "design_file":        { "$ref": "#/$defs/remote_ref" }
+      }
+    },
+    "branch_name": {
+      "type": "string",
+      "description": "Branche git créée par /develop step-02 (idempotent)"
+    },
+    "preview_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL preview pour /qa wireframe_check Playwright"
+    },
+    "epic_link": {
+      "type": "string",
+      "description": "Optionnel — lien parent epic (JIRA epic key, GH milestone, etc.)"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Compteur retries fail_strategy=retry sur cette feature"
+    }
+  },
+  "$defs": {
+    "remote_ref": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Pointeur ressource distante. Champs spécifiques plateforme libres (page_id, file_key, project_id, issue_number...).",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["notion", "affine", "github", "gitlab", "linear", "jira", "figma", "penpot", "frame0"],
+          "description": "Plateforme hébergeant la ressource"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "synced_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Dernier push réussi local→remote (ou pull pour fetch)"
+        },
+        "sync_status": {
+          "type": "string",
+          "enum": ["local-only", "pending", "synced", "dirty", "error"],
+          "description": "local-only=pas encore push, pending=push en cours, synced=ack OK, dirty=remote plus récent que synced_at, error=dernier push KO"
+        }
+      }
+    }
+  }
+}

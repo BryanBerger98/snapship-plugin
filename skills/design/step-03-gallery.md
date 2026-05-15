@@ -18,7 +18,7 @@ low-fi structural artifacts.
 ### A. Skip on documentation.platform=none
 
 ```bash
-PLATFORM=$(jq -r '.documentation.platform // "none"' .claude/product/.config-resolved.json)
+PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
 if [ "$PLATFORM" = "none" ]; then
   # Local render only.
   :
@@ -30,17 +30,24 @@ If `$PLATFORM ∈ {affine, notion}`, push the page. Else render local
 
 ### B. Render gallery markdown
 
+Resolve staging path via `sync-push.sh`, render with `render-template.sh`:
+
 ```bash
+STAGING=$(bash skills/_shared/sync-push.sh staging-path \
+  --project-root="$PWD" \
+  --feature-id="$feature_id" \
+  --kind=design-gallery)
+
 ctx=$(jq -n \
   --arg fid "$feature_id" \
   --arg ftitle "$feature_title" \
-  --argjson screens "$(jq '.screens' .claude/product/features/${feature_id}/.design-draft.json)" \
+  --argjson screens "$(jq '.screens' .snap/designs/${feature_id}.draft.json)" \
   '{feature_id:$fid, feature_title:$ftitle, screens:$screens}')
 
 bash skills/_shared/render-template.sh \
   --template=skills/_shared/templates/docs-defaults/design-gallery.md \
   --vars="$ctx" \
-  > .claude/product/design-gallery.md
+  > "$STAGING"
 ```
 
 ### C. Upload assets as blobs
@@ -60,49 +67,66 @@ Replace each local `asset_path` in the rendered markdown with the remote
 
 ### D. Push gallery page
 
+Parent page = the feature PRD page recorded in
+`.snap/manifests/${feature_id}.manifest.json` at `.refs.prd.page_id`:
+
 ```bash
-bash skills/_shared/docs-adapter.sh \
+PRD_PAGE_ID=$(jq -r '.refs.prd.page_id // ""' \
+  ".snap/manifests/${feature_id}.manifest.json")
+
+create_out=$(bash skills/_shared/docs-adapter.sh \
   --action=create \
   --project-root="$PWD" \
-  --parent-id="$(jq -r .prd_global.page_id .claude/product/.docs-cache.json)" \
+  --parent-id="$PRD_PAGE_ID" \
   --title="Design — $feature_title" \
-  --content-file=.claude/product/design-gallery.md
+  --content-file="$STAGING")
+GALLERY_PAGE_ID=$(jq -r '.page_id' <<<"$create_out")
+GALLERY_URL=$(jq -r '.url' <<<"$create_out")
 ```
 
-Cache result under `design_gallery.${feature_id}` in `.docs-cache.json`:
-
-```json
-{
-  "design_gallery": {
-    "01-signup": {"page_id": "...", "url": "https://..."}
-  }
-}
-```
-
-### E. Telemetry + progress
+### E. Ack into manifest.refs.design_gallery
 
 ```bash
-bash skills/_shared/telemetry.sh emit \
-  --project-root="$PWD" --skill=design --status=ok \
+bash skills/_shared/sync-push.sh ack \
+  --project-root="$PWD" \
+  --feature-id="$feature_id" \
+  --kind=design-gallery \
+  --platform="$PLATFORM" \
+  --url="$GALLERY_URL" \
+  --page-id="$GALLERY_PAGE_ID"
+```
+
+### F. Telemetry + progress
+
+```bash
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=design \
+  --step-num=03 --step-name=gallery --status=ok \
   --extra='{"screens_count":'"$count"'}'
 
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" --feature-id="$feature_id" \
-  --step-num=03 --step-name=gallery --status=ok --skill=design
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=design \
+  --feature-id="$feature_id" \
+  --step-num=03 \
+  --step-name=gallery \
+  --status=ok
 ```
 
 ## Failure handling
 
 - Blob too large for AFFiNE / Notion → auto-downscale via `sips` (macOS) or
   `ffmpeg`. Second failure → mark progress `fail`.
-- Page already exists (idempotent re-run): update via `--action=update`,
-  detected via `.docs-cache.json` lookup.
+- Page already exists (idempotent re-run): if
+  `manifest.refs.design_gallery.page_id` already set, call `--action=update`
+  against that page_id.
 
 ## Acceptance check
 
-- Local `design-gallery.md` exists with one section per screen and a row
+- Staging `design-gallery.md` rendered with one section per screen and a row
   per state.
-- If platform ≠ "none": gallery URL cached.
+- If platform ≠ "none": `manifest.refs.design_gallery.sync_status = "synced"`
+  with `url` + `page_id` populated; staging trashed.
 
 ## Next step
 

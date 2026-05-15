@@ -23,12 +23,12 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph LOCAL[".claude/product/ (cache local)"]
+    subgraph LOCAL[".snap/ (cache local)"]
         IDX[index.md]
         FEAT[features/NN-slug/]
-        FEAT --> META[meta.json]
+        FEAT --> META[manifest.json]
         FEAT --> TIX[tickets.json]
-        FEAT --> PROG[progress.md]
+        FEAT --> PROG[progress.json]
         FEAT --> WIRES[wireframes/]
     end
 
@@ -212,7 +212,7 @@ flowchart LR
 flowchart TB
     MAX[review_cycles_max atteint] --> STRAT{fail_strategy}
     STRAT --> NT[next-ticket<br/>skip + log severities<br/>continue loop]
-    STRAT --> ST[stop<br/>dump feedback<br/>progress.md]
+    STRAT --> ST[stop<br/>dump feedback<br/>progress.json]
     STRAT --> RT[retry max 1<br/>re-run Phase 1<br/>+ retry_strategy_hint]
     RT --> RTOK{retry OK?}
     RTOK -->|oui| DONE([Commit + sync])

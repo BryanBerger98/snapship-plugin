@@ -13,86 +13,94 @@ Probe the environment and resolve answers for every required config field.
 1. **Parse args** from `/snap:init`. Recognize `--auto`/`-a`, `--lang=fr|en`,
    `--force`. Default `lang=fr`, `auto=false`, `force=false`.
 
-2. **Project root sanity**: confirm `$PWD` looks like a project root (presence of
+2. **Project root sanity** : confirm `$PWD` looks like a project root (presence of
    `.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, or
    `composer.json`). If none found, ask the user to confirm before proceeding.
 
-3. **Existing config guard**: if `$PWD/snapship.config.json` exists and `--force`
-   is not passed, abort with:
+3. **Existing config guard** : if `$PWD/snapship.config.json` exists and `--force`
+   is not passed, abort with :
    ```
    ERROR: snapship.config.json already exists. Re-run with --force to overwrite,
    or run /snap:define to start a feature.
    ```
    Do **not** write progress; just exit.
 
-4. **MCP availability**: detect which MCP servers are reachable in the current
-   Claude Code session. The orchestrator should look at the active session's
-   MCP servers (typically `affine`, `frame0`, `playwright`, `code-review-graph`)
-   and pass them as a comma-separated list into setup-config.sh:
+4. **MCP availability** : detect which MCP servers are reachable in the current
+   Claude Code session. Pass the comma-separated list into setup-config.sh :
    ```bash
-   # Example — replace with actual session MCP list
+   # Tipical platforms across categories:
+   #   docs       : notion, affine
+   #   design     : figma, penpot, frame0
+   #   tickets    : linear, jira, github, gitlab (via repo platform CLI)
+   #   repo       : github, gitlab
    AVAILABLE="${SNAP_MCP_AVAILABLE:-affine,frame0}"
    detected=$(bash skills/_shared/setup-config.sh --detect \
      --project-root="$PWD" \
      --available="$AVAILABLE")
    ```
-   `detected` is JSON: `{repository:{platform,url}, tickets:{platform},
-   documentation:{platform}, wireframes:{platform}, defaults:{lang}}`.
+   `detected` is JSON :
+   `{repository:{platform,url}, tickets:{platform}, documentation:{platform},
+   design:{platform}, wireframes:{platform}, defaults:{lang}}`.
 
-5. **Resolve answers**:
+5. **Resolve answers** :
 
-   - **Autonomous (`--auto`)**: use `detected` as-is. Pass `--auto-mode=true` in
+   - **Autonomous (`--auto`)** : use `detected` as-is. Pass `--auto-mode=true` in
      step-01 so setup-config.sh fails loud if any required field is empty
      (e.g. no MCP detected for docs).
 
-   - **Interactive (default)**: drive `AskUserQuestion` for each field, using
+   - **Interactive (default)** : drive `AskUserQuestion` for each field, using
      the detected value as the recommended option. Show the source signal
-     (e.g. ".git/config remote → github") so the user can override knowingly.
+     (e.g. `.git/config remote → github`) so the user can override knowingly.
 
      Required questions (skip the question when the detected value is
-     unambiguous and the user is in `-a` mode):
+     unambiguous and the user is in `-a` mode) :
 
      | Field | Header | Options |
      |-------|--------|---------|
-     | `repository.platform` | Repo platform | github, gitlab |
-     | `tickets.platform` | Tickets | github, gitlab, jira |
-     | `documentation.platform` | Docs | affine, notion, none |
-     | `wireframes.platform` | Wireframes | frame0 |
-     | `defaults.lang` | Lang | fr, en |
+     | `repository.platform`     | Repo platform | github, gitlab |
+     | `tickets.platform`        | Tickets       | linear, jira, github, gitlab, none |
+     | `documentation.platform`  | Docs          | notion, affine, none |
+     | `design.platform`         | Design        | figma, penpot, none |
+     | `wireframes.platform`     | Wireframes    | frame0, figma, penpot, none |
+     | `defaults.lang`           | Lang          | fr, en |
 
-     **Doc paths (v0.2)** — only ask if `documentation.platform != "none"`:
+     **Doc paths** — only ask if `documentation.platform != "none"` :
 
      | Field | Header | Default |
      |-------|--------|---------|
      | `documentation.paths.functional_root` | Functional root | `Product Docs` |
-     | `documentation.paths.prd_root` | PRD archive root | `Change Requests` |
+     | `documentation.paths.prd_root`        | PRD archive root | `Change Requests` |
 
      Both are root page titles on the doc platform. `functional_root` holds the
      living domain → user journey hierarchy. `prd_root` archives PRD pages by
      date (`{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}`).
 
      Build a single JSON object with every answered field, scoped under the
-     correct config section:
+     correct config section :
      ```json
      {
-       "repository": { "platform": "github", "url": "https://github.com/..." },
-       "tickets":    { "platform": "github" },
+       "repository":    { "platform": "github", "url": "https://github.com/..." },
+       "tickets":       { "platform": "linear" },
        "documentation": {
-         "platform": "affine",
+         "platform": "notion",
          "paths": {
            "functional_root": "Product Docs",
            "prd_root": "Change Requests"
          }
        },
-       "wireframes": { "platform": "frame0" },
-       "defaults":   { "lang": "fr" }
+       "design":        { "platform": "figma" },
+       "wireframes":    { "platform": "frame0" },
+       "defaults":      { "lang": "fr" }
      }
      ```
      Save it to a transient `$ANSWERS_JSON` shell variable for step-01.
 
      Skip the `paths` block entirely when `documentation.platform == "none"`.
+     Skip `tickets.platform` enforcement — `none` is valid but `/snap:ticket`
+     will BLOCK with a clear message until the user re-runs `/snap:init --force`
+     to set a tracker (per refactor v1.0 decision).
 
-6. **Hand off** to step-01-write with:
+6. **Hand off** to step-01-write with :
    - `$ANSWERS_JSON` (or empty if `--auto`)
    - `$AUTO` (true/false)
    - `$FORCE` (true/false)
@@ -102,9 +110,9 @@ Probe the environment and resolve answers for every required config field.
 
 | Var | Source | Used by |
 |-----|--------|---------|
-| `auto` | `--auto`/`-a` | step-01 (`--auto-mode`) |
-| `force` | `--force` | step-01 (`--force`) |
-| `lang` | `--lang` or detected or asked | step-01 (`--lang`) |
+| `auto`         | `--auto`/`-a` | step-01 (`--auto-mode`) |
+| `force`        | `--force` | step-01 (`--force`) |
+| `lang`         | `--lang` or detected or asked | step-01 (`--lang`) |
 | `answers_json` | merged AskUserQuestion answers | step-01 (`--from-answers`) |
 
 ## Acceptance check

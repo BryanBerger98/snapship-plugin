@@ -15,7 +15,7 @@ the existing `/wireframe` draft for the same feature.
 ### 1. Reuse vs. fresh decision
 
 ```bash
-wf_draft=".claude/product/features/${feature_id}/.wireframes-draft.json"
+wf_draft=".snap/wireframes/${feature_id}.draft.json"
 if [ "$no_wireframe_reuse" = "true" ]; then
   reuse_source="tickets-only"
 elif [ -f "$wf_draft" ] && [ "$wireframes_platform" = "$ds_platform" ]; then
@@ -43,14 +43,17 @@ Scope is the `target_tickets[]` resolved at step-00 — **not** the whole
 feature. A ticket-id run mocks up only that ticket's screen(s); a feature-id
 run mocks up every UI ticket of the feature.
 
-- **Reuse mode** → take `screens[]` from `.wireframes-draft.json`, then
+- **Reuse mode** → take `screens[]` from
+  `.snap/wireframes/${feature_id}.draft.json` (or the rendered
+  `wireframes-gallery` referenced in `manifest.refs.wireframes_gallery` if
+  the draft was trashed post-publish), then
   **intersect** with the screens referenced by `target_tickets[]`. Tag each
   ticket later with `design_mode: "reused"` if it already has a
   `wireframe_screen`.
 - **Fresh mode** → run the UI filter on the targeted tickets only:
   ```bash
   ui_tickets=$(bash skills/_shared/filter-ui-tickets.sh \
-    --tickets-file=".claude/product/features/${feature_id}/tickets.json" \
+    --tickets-file=".snap/tickets/${feature_id}.json" \
     --only="$target_tickets_csv")
   ```
   Aggregate `screen_hint` into a screen×state list. Default states for
@@ -63,7 +66,7 @@ composing screens.
 
 ### 3. Stash draft
 
-`.claude/product/features/${feature_id}/.design-draft.json`:
+`.snap/designs/${feature_id}.draft.json`:
 
 ```json
 {
@@ -88,19 +91,18 @@ composing screens.
 ### 5. Append progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=design \
   --feature-id="$feature_id" \
   --step-num=01 \
   --step-name=source-resolve \
-  --status=ok \
-  --skill=design \
-  --extra="{\"source\":\"$reuse_source\"}"
+  --status=ok
 ```
 
 ## Acceptance check
 
-- `.design-draft.json` exists with non-empty `screens[]`.
+- `.snap/designs/${feature_id}.draft.json` exists with non-empty `screens[]`.
 - Each screen has at least one state.
 
 ## Next step

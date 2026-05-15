@@ -11,13 +11,15 @@ Collect the product's vision and its single tracked metric.
 ## Inputs
 
 - `mode` from step-00 (`greenfield` | `extension`).
-- Optional: existing `prd-global.md` (extension mode) — read it first for context.
+- Optional: existing `.snap/manifests/*.manifest.json` + workspace metadata in
+  `_taxonomy.json` (extension mode) — read first for context.
 
 ## Tasks
 
-1. **Skip condition**: if `mode = extension` AND existing `prd-global.md` already has a
-   non-empty Vision section AND a North Star Metric, skip to step-02 with the existing
-   values cached. Note the skip in `progress.md`.
+1. **Skip condition**: if `mode = extension` AND the workspace already has cached
+   vision + north star metric in `.snap/.define-state.json` (or in the taxonomy
+   workspace metadata), skip to step-02 with the existing values reused. Note
+   the skip via `progress.sh step --status=skip`.
 
 2. **Ask vision** via `AskUserQuestion` (single open prompt — let the user free-write,
    do not constrain to options):
@@ -55,18 +57,18 @@ Collect the product's vision and its single tracked metric.
    bash skills/_shared/define-state.sh set north_star_target "$nst" --project-root="$PWD"
    bash skills/_shared/define-state.sh set target_horizon "$horizon" --project-root="$PWD"
    ```
-   The state file `.claude/product/.define-state.json` was created by `define-state.sh init`
+   The state file `.snap/.define-state.json` was created by `define-state.sh init`
    in step-00.
 
 7. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=define \
      --feature-id=_global \
      --step-num=01 \
      --step-name=vision \
-     --status=ok \
-     --skill=define
+     --status=ok
    ```
 
 ## Acceptance check

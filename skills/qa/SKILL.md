@@ -34,7 +34,7 @@ the dev phase.
 /qa                            # AskUserQuestion: which ticket / feature?
 /qa <ticket-id>                # validate one ticket
 /qa <feature-id>               # validate every in_review ticket in feature
-/qa --resume | -r              # resume via resume-state.sh
+/qa --resume | -r              # resume via progress.sh resume
 /qa --dry-run                  # collect-only; no fix loop, no amend
 /qa --no-wireframe-check       # skip wireframe diff even if config enables it
 /qa --retrigger                # force step-04 even if config.retrigger_review=false
@@ -72,20 +72,23 @@ the dev phase.
 
 ## Outputs
 
-- Each validated ticket: `status="qa-validated"`, `qa_validated_at` set.
+- Each validated ticket: `status="qa-validated"`, `qa_validated_at` set in
+  `.snap/tickets/${feature_id}.json`.
+- Feature manifest state advanced to `qa-validated` when all targeted tickets
+  pass.
 - Ticket platform body amended with QA verdict (per-platform template).
-- `progress.md` step entries.
+- `progress.json` step entries.
 - Optional: re-review summary appended (when retrigger ran).
 
 ## Resume protocol
 
-`/qa --resume` → `resume-state.sh next --skill=qa`. Same partial-match contract
+`/qa --resume` → `progress.sh resume --skill=qa`. Same partial-match contract
 as the other skills.
 
 ## Acceptance check
 
 - Each targeted ticket either reaches `qa-validated` or is left as `blocked`
-  with a finding-summary in progress.md.
+  with a finding-summary in progress.json.
 - Regression command exit 0 (or every flaky retry settled).
 - Wireframe diff (if enabled) below threshold.
 

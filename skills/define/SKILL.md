@@ -1,12 +1,13 @@
 ---
 name: define
-description: Build PRDs (global + per-feature) for a product from vision, personas, and features. Drives a guided AskUserQuestion flow and pushes the result to AFFiNE/Notion via docs-adapter.
+description: Build per-feature PRDs (change-request format) for a product from vision, personas, and features. Drives a guided AskUserQuestion flow and pushes the result to AFFiNE/Notion via docs-adapter. Materializes .snap/manifests/{slug}.manifest.json per feature.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
-# /define — product definition skill
+# /snap:define — product definition skill
 
-Run this skill to **bootstrap or extend a product's PRD** before any ticket exists.
+Run this skill to **bootstrap or extend a product's PRDs** before any ticket
+exists.
 
 ## Prerequisite
 
@@ -15,56 +16,76 @@ Run `/snap:init` once per project first. This skill exits early if
 
 ## When to use
 
-- Greenfield project after init: no `prd-global.md` yet → full PRD walkthrough.
-- Existing project: `.claude/product/prd-global.md` exists → extend with new feature(s).
-- Resume: `--resume` (`-r`) restarts from the last successful step recorded in `progress.md`.
+- Greenfield project after init: no manifests yet → full PRD walkthrough.
+- Existing project: extend with new feature(s) — keeps prior manifests intact.
+- Resume: `--resume` (`-r`) restarts from the last in-flight step recorded in
+  `.snap/progress.json`.
 
 ## Pipeline
 
-The skill runs 6 ordered steps. Each step is an isolated markdown file with frontmatter
-`next_step` pointing to its successor. The orchestrator (this file) reads the steps in
-order; when blocked the model reads only the active step's body.
+The skill runs 6 ordered steps. Each step is an isolated markdown file with
+frontmatter `next_step` pointing to its successor. The orchestrator (this file)
+reads steps in order; the model reads only the active step's body.
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md` | Parse args, require `snapship.config.json`, detect codebase, branch greenfield vs extension |
-| 01 | `step-01-vision.md` | Ask vision + north star metric |
+| 00 | `step-00-init.md`     | Parse args, require `snapship.config.json`, detect codebase, branch greenfield vs extension |
+| 01 | `step-01-vision.md`   | Ask vision + north star metric |
 | 02 | `step-02-personas.md` | Ask 1-N personas |
-| 03 | `step-03-features.md` | Ask features list with priorities |
-| 04 | `step-04-render.md` | Render per-feature PRDs (change-request format) from templates |
-| 05 | `step-05-publish.md` | Archive PRD pages by date, ensure domain + journey pages exist (v0.2) |
+| 03 | `step-03-features.md` | Ask features list with priorities, domains, impacted journeys |
+| 04 | `step-04-render.md`   | Render `.snap/PRDs/{slug}.md` + materialize `manifests/{slug}.manifest.json` |
+| 05 | `step-05-publish.md`  | Push PRD page, ensure domain + journey pages exist, ack refs into manifest (trash staging) |
 
 ## Args
 
 ```
-/define [--resume|-r] [--lang=fr|en] [--feature=NN-slug]
+/snap:define [--resume|-r] [--lang=fr|en] [--feature=NN-slug]
 ```
 
-- `--resume` / `-r`: resume from last successful step in `progress.md`. Partial-match the
-  feature_id (e.g. `01` matches `01-auth`). If no in-flight run, falls through to step-00.
-- `--lang`: force PRD language (default: detect from existing PRD or ask).
-- `--feature`: skip greenfield path, jump to per-feature PRD for an existing `feature_id`.
+- `--resume` / `-r` : resume from last in-flight step in `.snap/progress.json`.
+  Partial-match the feature_id (e.g. `01` matches `01-auth`). If no in-flight
+  run, falls through to step-00.
+- `--lang` : force PRD language (default: detect from existing or ask).
+- `--feature` : skip greenfield path, jump to per-feature PRD for an existing
+  `feature_id`.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/prd-feature.md` (one per feature)
-- `.claude/product/features/{feature_id}/meta.json` (state=`defined`,
-  `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` after publish)
-- `.claude/product/domains.json` (domain + journey page IDs cached, idempotent)
-- `.claude/product/progress.md` (append-only run log)
-- AFFiNE / Notion:
-  - PRD page at `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable archive)
-  - Domain + journey pages under `{functional_root}/{domain}/{journey}` (living
-    spec, body populated later by `/snap:doc-update`)
+Local (staging — trashed after successful push to remote in step-05) :
 
-v0.1's `prd-global.md` is dropped — see `docs/decisions.md` "PRD archive vs
-doc fonctionnelle vivante (v0.2)".
+- `.snap/PRDs/{feature_id}.md` — PRD markdown source.
+
+Local (persistent — references to remote) :
+
+- `.snap/manifests/{feature_id}.manifest.json` — schema_version, feature_id,
+  feature_name, state, priority, domains[], impacted_journeys[], refs.{prd,
+  …} after publish.
+- `.snap/manifests/_taxonomy.json` — domain + journey page IDs cached
+  (idempotent across re-runs and across features).
+
+Local (runtime — gitignored) :
+
+- `.snap/progress.json` — in-flight skill state, purged on terminal-step ok.
+- `.snap/telemetry.ndjson` — append-only event log.
+
+Remote (single source of truth — per `/snap:init` `documentation.platform`) :
+
+- PRD page at `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immutable archive,
+  tagged with impacted domains).
+- Domain + journey pages under `{functional_root}/{domain}/{journey}` (living
+  spec, body populated later by `/snap:doc-update`).
+
+v0.1's `prd-global.md` and v0.2's `meta.json` are dropped — see
+`docs/decisions.md` "PRD archive vs doc fonctionnelle vivante" + "Manifest unifié
+v1.0".
 
 ## How to run a step
 
-Read the active step file (start with `step-00-init.md` unless `--resume` says otherwise),
-follow its instructions exactly, then move to the file referenced in its `next_step`
-frontmatter field. Stop when a step has no `next_step` (terminal) or when the user aborts.
+Read the active step file (start with `step-00-init.md` unless `--resume` says
+otherwise), follow its instructions exactly, then move to the file referenced in
+its `next_step` frontmatter. Stop when a step has no `next_step` (terminal) or
+when the user aborts.
 
-Steps are **idempotent** — re-running step-NN with the same inputs produces the same
-output. Re-runs are safe.
+Steps are **idempotent** — re-running step-NN with the same inputs produces the
+same output. Re-runs are safe (step-05 in particular skips already-synced
+features).

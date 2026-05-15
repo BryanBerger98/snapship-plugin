@@ -2,7 +2,7 @@
 
 Initialise SnapShip dans le projet courant : détecte les plateformes, demande
 confirmation, écrit `snapship.config.json` et crée l'arborescence
-`.claude/product/`.
+`.snap/`.
 
 ## À quoi ça sert
 
@@ -17,7 +17,7 @@ confirmation, écrit `snapship.config.json` et crée l'arborescence
 - **Adoption sur projet existant** : détecte `.git/config`, les serveurs MCP
   actifs et la structure du projet pour pré-remplir les valeurs par défaut.
 - **Ré-init** : `--force` réécrit un `snapship.config.json` existant sans
-  toucher au contenu de `.claude/product/`.
+  toucher au contenu de `.snap/`.
 
 À lancer **une seule fois par projet**.
 
@@ -33,14 +33,14 @@ confirmation, écrit `snapship.config.json` et crée l'arborescence
 | ---------------- | ------------------------------------------------------------------------------------------------------- |
 | `--auto` / `-a`  | Mode autonome : ignore les questions, utilise chaque valeur détectée. Échoue si un champ requis reste non résolu (ex. aucun MCP docs détecté). |
 | `--lang=fr\|en`  | Force `defaults.lang` dans la config (défaut : `fr`).                                                   |
-| `--force`        | Réécrit un `snapship.config.json` existant. Sans danger : ne touche pas à `.claude/product/`.            |
+| `--force`        | Réécrit un `snapship.config.json` existant. Sans danger : ne touche pas à `.snap/`.            |
 
 ## Pipeline
 
 | #  | Step                | Rôle                                                                          |
 | -- | ------------------- | ----------------------------------------------------------------------------- |
 | 00 | `step-00-detect.md` | Sonde l'environnement, propose les réponses via `AskUserQuestion` (ou auto).   |
-| 01 | `step-01-write.md`  | Écrit `snapship.config.json`, crée `.claude/product/`, valide contre le schéma.|
+| 01 | `step-01-write.md`  | Écrit `snapship.config.json`, crée `.snap/`, valide contre le schéma.|
 
 Les steps sont **idempotents** : relancer `step-01-write` avec `--force` sur
 des entrées identiques produit une config identique.
@@ -48,11 +48,11 @@ des entrées identiques produit une config identique.
 ## Outputs
 
 - `<projet>/snapship.config.json` — validé contre `config.schema.json`.
-- `<projet>/.claude/product/` :
+- `<projet>/.snap/` :
   ```
-  .claude/product/
+  .snap/
     features/
-    progress.md            # journal de run (header seul à l'init)
+    progress.json            # journal de run (header seul à l'init)
     telemetry.ndjson       # prêt pour append via skills/_shared/telemetry.sh
     .config-resolved.json  # produit par load-config.sh
   ```

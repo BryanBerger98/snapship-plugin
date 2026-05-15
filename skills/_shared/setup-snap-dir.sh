@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# setup-product-dir.sh — idempotent init of .claude/product/
-# Creates: index.md, features/, optionally features/{id}/{meta.json, progress.md, wireframes/}.
+# setup-snap-dir.sh — idempotent init of .snap/ workspace.
+# Creates the catalog dirs (manifests, PRDs, designs, wireframes, tickets, queues,
+# .doc-import) and bootstrap files (manifest, _taxonomy.json, progress.json).
 # All operations idempotent: existing files left intact.
 #
 # Usage:
-#   setup-product-dir.sh                                              # init root only
-#   setup-product-dir.sh --feature-id=01-auth --feature-name="Auth"   # also init feature
+#   setup-snap-dir.sh                                              # init root only
+#   setup-snap-dir.sh --feature-id=01-auth --feature-name="Auth"   # also init manifest
 #
 # Exit codes:
 #   0 = success
@@ -18,19 +19,20 @@ FEATURE_ID=""
 FEATURE_NAME=""
 LANG_DEFAULT=""
 GREEN_FIELD=""
+SCHEMA_VERSION="1.0.0"
 
 usage() {
   cat <<EOF
-Usage: setup-product-dir.sh [OPTIONS]
+Usage: setup-snap-dir.sh [OPTIONS]
 
-Idempotently creates .claude/product/ scaffolding.
+Idempotently creates .snap/ scaffolding (v1.0).
 
 Options:
   --project-root=PATH       Project root (default: \$PWD)
-  --feature-id=NN-kebab     Also init features/{id}/ subdir
-  --feature-name=TEXT       Required with --feature-id (used in meta.json)
-  --lang=fr|en              Optional, written to meta.json
-  --green-field=true|false  Optional, written to meta.json
+  --feature-id=NN-kebab     Also init manifests/{id}.manifest.json
+  --feature-name=TEXT       Required with --feature-id
+  --lang=fr|en              Optional, written to manifest
+  --green-field=true|false  Optional, written to manifest
   -h, --help                Show this help
 EOF
 }
@@ -50,36 +52,35 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
 
-PRODUCT_DIR="${PROJECT_ROOT}/.claude/product"
-INDEX_FILE="${PRODUCT_DIR}/index.md"
-FEATURES_DIR="${PRODUCT_DIR}/features"
+SNAP_DIR="${PROJECT_ROOT}/.snap"
+MANIFESTS_DIR="${SNAP_DIR}/manifests"
+TAXONOMY="${MANIFESTS_DIR}/_taxonomy.json"
+PROGRESS_FILE="${SNAP_DIR}/progress.json"
 
-mkdir -p "$FEATURES_DIR"
+mkdir -p "$MANIFESTS_DIR"
+mkdir -p "${SNAP_DIR}/PRDs"
+mkdir -p "${SNAP_DIR}/designs"
+mkdir -p "${SNAP_DIR}/wireframes"
+mkdir -p "${SNAP_DIR}/tickets"
+mkdir -p "${SNAP_DIR}/queues"
+mkdir -p "${SNAP_DIR}/.doc-import/cache"
 
-# --- Index scaffold ---
-if [ ! -f "$INDEX_FILE" ]; then
-  cat > "$INDEX_FILE" <<'EOF'
-# Product Index
-
-## Features
-
-| feature_id | Nom | État | AFFiNE | Tickets | Wireframes | Dev |
-| ---------- | --- | ---- | ------ | ------- | ---------- | --- |
-
-## Plateforme tickets
-
-- Type: -
-- Last sync: -
-
-## Documentation
-
-- Platform: -
-- Workspace: -
-- Root page: -
-EOF
+# --- _taxonomy.json scaffold ---
+if [ ! -f "$TAXONOMY" ]; then
+  jq -n --arg v "$SCHEMA_VERSION" '{
+    schema_version: $v,
+    workspace: {},
+    domains: {},
+    journeys: {}
+  }' > "$TAXONOMY"
 fi
 
-# --- Feature scaffold (optional) ---
+# --- progress.json scaffold (gitignored) ---
+if [ ! -f "$PROGRESS_FILE" ]; then
+  jq -n --arg v "$SCHEMA_VERSION" '{schema_version: $v, in_flight: []}' > "$PROGRESS_FILE"
+fi
+
+# --- Per-feature manifest (optional) ---
 if [ -n "$FEATURE_ID" ]; then
   if ! [[ "$FEATURE_ID" =~ ^[0-9]{2}-[a-z0-9][a-z0-9-]*$ ]]; then
     echo "ERROR: feature_id must match NN-kebab (e.g., 01-auth), got: ${FEATURE_ID}" >&2
@@ -91,40 +92,30 @@ if [ -n "$FEATURE_ID" ]; then
     exit 1
   fi
 
-  FEATURE_DIR="${FEATURES_DIR}/${FEATURE_ID}"
-  mkdir -p "${FEATURE_DIR}/wireframes"
-
-  META="${FEATURE_DIR}/meta.json"
-  if [ ! -f "$META" ]; then
+  MANIFEST="${MANIFESTS_DIR}/${FEATURE_ID}.manifest.json"
+  if [ ! -f "$MANIFEST" ]; then
     NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     jq -n \
+      --arg v "$SCHEMA_VERSION" \
       --arg fid "$FEATURE_ID" \
       --arg fname "$FEATURE_NAME" \
       --arg now "$NOW" \
       --arg lang "$LANG_DEFAULT" \
       --arg gf "$GREEN_FIELD" '
       {
+        schema_version: $v,
         feature_id: $fid,
         feature_name: $fname,
         state: "defined",
-        created_at: $now
+        created_at: $now,
+        refs: {}
       }
       | if $lang != "" then .lang = $lang else . end
       | if $gf == "true" then .green_field = true
         elif $gf == "false" then .green_field = false
         else . end
-    ' > "$META"
-  fi
-
-  PROGRESS="${FEATURE_DIR}/progress.md"
-  if [ ! -f "$PROGRESS" ]; then
-    cat > "$PROGRESS" <<EOF
-# Progress — ${FEATURE_ID} (${FEATURE_NAME})
-
-## Decisions & learnings
-
-EOF
+    ' > "$MANIFEST"
   fi
 fi
 
-echo "$PRODUCT_DIR"
+echo "$SNAP_DIR"

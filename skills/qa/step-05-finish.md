@@ -1,6 +1,6 @@
 ---
 step: 05-finish
-description: Terminal — set ticket status (qa-validated | blocked), update platform body with QA verdict, telemetry, summary.
+description: Terminal — set ticket status (qa-validated | blocked), update platform body with QA verdict, advance feature manifest, telemetry, summary.
 ---
 
 # step-05 — finish
@@ -29,15 +29,17 @@ else
 fi
 ```
 
-### B. Update tickets.json
+### B. Update tickets cache
 
 ```bash
+tickets_file=".snap/tickets/${feature_id}.json"
+tmp=$(mktemp)
 jq --arg lid "$lid" --arg s "$new_status" \
    --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
   (.tickets[] | select(.local_id == $lid))
     |= (.status = $s
         | .qa_validated_at = (if $s == "qa-validated" then $now else null end))
-' "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+' "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
 ### C. Amend ticket platform body
@@ -45,13 +47,13 @@ jq --arg lid "$lid" --arg s "$new_status" \
 Per-platform template (github/linear/jira) — append a QA verdict block:
 
 ```bash
-bash skills/_shared/render-template.sh \
+qa_verdict_md=$(bash skills/_shared/render-template.sh \
   --tpl=skills/_shared/templates/qa-verdict-${platform}.md.tpl \
-  --json="$ctx_json" > /tmp/qa-verdict.md
+  --json="$ctx_json")
 
 bash skills/_shared/tickets-adapter.sh update-body \
   --platform="$platform" --ticket-id="$ticket_id" \
-  --append-file=/tmp/qa-verdict.md
+  --append-body=<(printf '%s' "$qa_verdict_md")
 ```
 
 `ctx_json` carries: `severity`, `flaky_verdict`, `qa_cycles_used`,
@@ -59,44 +61,38 @@ bash skills/_shared/tickets-adapter.sh update-body \
 exit code, wireframe diff %.
 
 Adapter `update-body` is a no-op for missing platforms (CLI-direct degraded
-mode logs warning but does not fail the run — the local `tickets.json` is
-authoritative).
+mode logs warning but does not fail the run — the local cache is authoritative).
 
 ### D. Cleanup transient files
 
 ```bash
-trash .qa-collect-*.json 2>/dev/null || true
-trash .qa-verdict-*.json 2>/dev/null || true
-trash .tmp/regression-*.log 2>/dev/null || true
+trash .snap/queues/${feature_id}.qa-collect-*.json 2>/dev/null || true
+trash .snap/queues/${feature_id}.qa-verdict-*.json 2>/dev/null || true
+trash .snap/queues/${feature_id}.qa-regression-*.log 2>/dev/null || true
 ```
 
-### E. Update feature index
-
-```bash
-bash skills/_shared/update-index.sh --project-root="$PWD"
-```
-
-### E2. Roll up feature state (v0.2)
+### E. Roll up feature state
 
 If **all** tickets for `$feature_id` now have `status == qa-validated`,
-transition the feature itself to `qa-validated` in `meta.json`:
+transition the feature itself to `qa-validated` in the manifest:
 
 ```bash
 total=$(jq '.tickets | length' "$tickets_file")
 validated=$(jq '[.tickets[] | select(.status == "qa-validated")] | length' "$tickets_file")
-META=".claude/product/features/${feature_id}/meta.json"
+manifest=".snap/manifests/${feature_id}.manifest.json"
 
+feature_qa_validated=false
 if [ "$total" -gt 0 ] && [ "$total" -eq "$validated" ]; then
   tmp=$(mktemp)
   jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
      '.state = "qa-validated" | .updated_at = $ts' \
-     "$META" > "$tmp" && mv "$tmp" "$META"
+     "$manifest" > "$tmp" && mv "$tmp" "$manifest"
 
   # Validate post-mutation
   ajv validate \
-    -s skills/_shared/schemas/meta.schema.json \
-    -d "$META" --spec=draft2020 --strict=false \
-    || { echo "ERROR: meta.json invalid after qa-validated rollup" >&2; exit 1; }
+    -s skills/_shared/schemas/manifest.schema.json \
+    -d "$manifest" --spec=draft2020 --strict=false \
+    || { echo "ERROR: manifest invalid after qa-validated rollup" >&2; exit 1; }
 
   feature_qa_validated=true
 fi
@@ -105,15 +101,13 @@ fi
 Skip rollup if any ticket is still `blocked` / `developed` / etc — feature
 state stays whatever it was (typically `developed`).
 
-### E3. Auto-trigger `/snap:doc-update` (v0.2)
+### F. Auto-trigger `/snap:doc-update`
 
 If feature transitioned to `qa-validated` AND config opts in, fire `doc-update`:
 
 ```bash
-AUTO_DOC=$(jq -r '.documentation.auto_update_on_qa_success // false' \
-  .claude/product/.config-resolved.json 2>/dev/null)
-PLATFORM=$(jq -r '.documentation.platform // "none"' \
-  .claude/product/.config-resolved.json 2>/dev/null)
+AUTO_DOC=$(jq -r '.documentation.auto_update_on_qa_success // false' <<<"$CONFIG_JSON")
+PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
 
 if [ "$feature_qa_validated" = "true" ] \
    && [ "$AUTO_DOC" = "true" ] \
@@ -121,8 +115,7 @@ if [ "$feature_qa_validated" = "true" ] \
    && [ "$NO_DOC_UPDATE" != "true" ]; then
   echo "→ feature ${feature_id} qa-validated, triggering /snap:doc-update --auto"
   # Hand off to the doc-update skill in -a (autonomous) mode.
-  # Skill is invoked via Skill tool by the orchestrator; the QA model emits the
-  # following directive on stdout for the orchestrator to pick up:
+  # The orchestrator picks up this directive after step-05 returns:
   echo "SNAP_NEXT_SKILL=doc-update --feature=${feature_id} -a"
 fi
 ```
@@ -133,22 +126,27 @@ fi
 > doc-update skill is **non-fatal** to the QA run — QA verdict stands.
 
 If the user wants to opt out per-run, they pass `--no-doc-update` to `/snap:qa`
-(parsed in step-00, surfaced as `$NO_DOC_UPDATE`); skip section E3 when set.
+(parsed in step-00, surfaced as `$NO_DOC_UPDATE`); skip section F when set.
 
-### F. Telemetry + progress
+### G. Telemetry + progress
 
 ```bash
-bash skills/_shared/telemetry.sh emit \
-  --project-root="$PWD" --skill=qa --status=ok \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=qa \
+  --step-num=05 --step-name=finish --status=ok \
   --extra='{"validated":'"$validated_count"',"blocked":'"$blocked_count"'}'
 
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" --feature-id="$feature_id" \
   --skill=qa --step-num=05 --step-name=finish --status=ok \
   --note="validated=$validated_count blocked=$blocked_count"
+
+bash skills/_shared/progress.sh finish \
+  --project-root="$PWD" --feature-id="$feature_id" \
+  --skill=qa --status=ok
 ```
 
-### G. Summary to stdout
+### H. Summary to stdout
 
 ```
 /qa done — feature ${feature_id}:
@@ -164,15 +162,16 @@ Next:
 ## Idempotence
 
 Re-running step-05 over an already-finished ticket rewrites the same status
-+ timestamp (no churn). `update-body --append-file` checks for an existing
-verdict block keyed by run_id and replaces in place.
++ timestamp (no churn). `update-body` checks for an existing verdict block
+keyed by run_id and replaces in place.
 
 ## Acceptance check
 
 - Each targeted ticket: `status` is `qa-validated` or `blocked`.
 - `qa_validated_at` set on validated tickets, null on blocked.
 - Platform body updated (or warning logged on adapter failure).
-- `progress.md` ends with `qa step-05 finish — ok`.
+- Manifest state advanced to `qa-validated` when all tickets pass.
+- `progress.json.in_flight` no longer contains a `qa` entry for the feature.
 
 ## Next step
 

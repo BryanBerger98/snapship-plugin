@@ -1,12 +1,14 @@
 ---
 step: 06-index
-description: Persist tickets.json, update meta.json (tickets_count + URLs), validate schemas, cleanup. Terminal step.
+description: Promote draft → .snap/tickets/{fid}.json, ack manifest.refs.tickets via sync-push, validate schemas, drop draft. Terminal step.
 ---
 
 # step-06 — index
 
-Final step. Promote `.tickets-draft.json` to `tickets.json`, update the feature's
-`meta.json`, validate against schemas, drop the draft.
+Final step. Promote the draft to the canonical
+`.snap/tickets/${feature_id}.json` (cache pointing at remote tickets), ack the
+batch into `manifest.refs.tickets` via `sync-push.sh ack`, validate, drop the
+draft.
 
 This step has no `next_step` — it is terminal.
 
@@ -15,51 +17,98 @@ This step has no `next_step` — it is terminal.
 ### A. Promote draft → tickets.json
 
 ```bash
-src=".claude/product/features/${feature_id}/.tickets-draft.json"
-dst=".claude/product/features/${feature_id}/tickets.json"
-jq '[.[] | {ticket_id, title, ac_id, ac_text, labels, depends_on,
-            platform_id, platform_url, pushed_at, status: "todo"}]' \
-  "$src" > "$dst"
+src=".snap/tickets/${feature_id}.draft.json"
+dst=".snap/tickets/${feature_id}.json"
+NOW=$(date -u +%FT%TZ)
+
+jq --arg fid "$feature_id" \
+   --arg plat "$platform" \
+   --arg ts "$NOW" '
+  {
+    feature_id: $fid,
+    platform: $plat,
+    synced_at: $ts,
+    tickets: [
+      .[] | {
+        local_id,
+        platform_id,
+        url,
+        title,
+        description,
+        type,
+        priority,
+        status: (.status // "todo"),
+        labels,
+        assignees,
+        milestone,
+        acceptance_criteria,
+        tech_notes,
+        files,
+        edge_cases,
+        wireframe_screen,
+        wireframe_url,
+        depends_on,
+        estimated_size,
+        updated_at: $ts
+      } | with_entries(select(.value != null))
+    ]
+  }' "$src" > "$dst"
 ```
 
 ### B. Validate against schema
 
 ```bash
 ajv validate -s skills/_shared/schemas/tickets.schema.json \
-  -d ".claude/product/features/${feature_id}/tickets.json" \
+  -d ".snap/tickets/${feature_id}.json" \
   --spec=draft2020 --strict=false
 ```
 
-If validation fails, restore the draft (keep both files) and mark progress `fail`.
-Surface the ajv error verbatim.
+If validation fails, restore the draft (keep both files) and mark progress
+`fail`. Surface the ajv error verbatim. Do **not** ack.
 
-### C. Update meta.json
+### C. Ack into manifest.refs.tickets
 
 ```bash
-jq --arg n "$count" --arg ts "$(date -u +%FT%TZ)" \
-  '.tickets_count = ($n|tonumber) | .updated_at = $ts | .state = "tickets-pushed"' \
-  ".claude/product/features/${feature_id}/meta.json" \
-  > "${feature_id}-meta.tmp" \
-  && mv "${feature_id}-meta.tmp" ".claude/product/features/${feature_id}/meta.json"
+# Pick the first ticket URL as the "anchor" reference for the batch — the
+# canonical pointer is the tracker query; per-ticket URLs live in tickets.json.
+ANCHOR_URL=$(jq -r '.tickets[0].url // ""' "$dst")
+
+bash skills/_shared/sync-push.sh ack \
+  --project-root="$PWD" \
+  --feature-id="$feature_id" \
+  --kind=tickets \
+  --platform="$platform" \
+  --url="$ANCHOR_URL" \
+  --no-trash    # tickets.json stays — it IS the cache (not staging)
 ```
 
-Re-validate `meta.json`:
+`sync-push.sh ack` updates `manifest.refs.tickets = { platform, url, synced_at,
+sync_status: "synced" }`. The `--no-trash` flag keeps `.snap/tickets/{fid}.json`
+in place (it is the persistent reference cache, not transient staging — unlike
+`.snap/PRDs/{fid}.md`).
+
+Re-validate manifest :
 ```bash
-ajv validate -s skills/_shared/schemas/meta.schema.json \
-  -d ".claude/product/features/${feature_id}/meta.json" \
+ajv validate -s skills/_shared/schemas/manifest.schema.json \
+  -d ".snap/manifests/${feature_id}.manifest.json" \
   --spec=draft2020 --strict=false
 ```
 
-### D. Update top-level index
+### D. State transition
+
+Update manifest `state` from `defined` → `ticketed` :
 
 ```bash
-bash skills/_shared/update-index.sh --project-root="$PWD"
+tmp=$(mktemp)
+jq --arg ts "$NOW" '.state = "ticketed" | .updated_at = $ts' \
+  ".snap/manifests/${feature_id}.manifest.json" > "$tmp" \
+  && mv "$tmp" ".snap/manifests/${feature_id}.manifest.json"
 ```
 
 ### E. Cleanup
 
 ```bash
-trash ".claude/product/features/${feature_id}/.tickets-draft.json"
+trash ".snap/tickets/${feature_id}.draft.json"
 ```
 
 (Use `trash` per global rule, not `rm`.)
@@ -67,28 +116,37 @@ trash ".claude/product/features/${feature_id}/.tickets-draft.json"
 ### F. Telemetry + progress
 
 ```bash
-bash skills/_shared/telemetry.sh emit \
+bash skills/_shared/telemetry.sh log \
   --project-root="$PWD" \
   --skill=ticket \
-  --status=ok \
-  --duration-ms="$elapsed_ms" \
-  --extra='{"tickets_count":'"$count"'}'
-
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" \
-  --feature-id="$feature_id" \
   --step-num=06 \
   --step-name=index \
   --status=ok \
-  --skill=ticket
+  --extra='{"tickets_count":'"$count"'}'
+
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=ticket \
+  --feature-id="$feature_id" \
+  --step-num=06 \
+  --step-name=index \
+  --status=ok
+
+bash skills/_shared/progress.sh finish \
+  --project-root="$PWD" \
+  --skill=ticket \
+  --feature-id="$feature_id" \
+  --status=ok
 ```
 
 ## Acceptance check
 
-- `tickets.json` exists, validates, has ≥ 1 entry.
-- `meta.json` `tickets_count` matches the array length.
-- `.tickets-draft.json` removed.
-- `progress.md` ends with `ticket step-06 index — ok`.
+- `.snap/tickets/${feature_id}.json` exists, validates, has ≥ 1 entry.
+- `manifest.refs.tickets.sync_status = "synced"`.
+- Manifest `state = "ticketed"`.
+- `.snap/tickets/${feature_id}.draft.json` removed.
+- `progress.json.in_flight` no longer contains a `ticket` entry for the
+  feature.
 
 ## Next step
 

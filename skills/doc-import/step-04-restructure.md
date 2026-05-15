@@ -12,7 +12,7 @@ Apply the proposal. All write-side work happens here.
 
 1. **Load proposal**:
    ```bash
-   PROPOSAL=$(cat .claude/product/.doc-import-proposal.json)
+   PROPOSAL=$(cat .snap/.doc-import-proposal.json)
    ```
 
 2. **Ensure functional root exists** (idempotent):
@@ -40,9 +40,10 @@ Apply the proposal. All write-side work happens here.
        ${DRY_RUN:+--dry-run}
      # → $DOMAIN_PAGE_ID
 
-     # 3b. Cache to domains.json
-     bash skills/_shared/domains-state.sh add-domain \
-       "$d" "$DOMAIN_TITLE" "$DOMAIN_PAGE_ID" "$DOMAIN_PAGE_URL"
+     # 3b. Cache to _taxonomy.json
+     bash skills/_shared/taxonomy-state.sh add-domain \
+       "$d" "$DOMAIN_TITLE" "$DOMAIN_PAGE_ID" "$DOMAIN_PAGE_URL" \
+       --project-root="$PWD"
    done
    ```
 
@@ -57,7 +58,7 @@ Apply the proposal. All write-side work happens here.
      - Create journey page under domain page (lookup-or-create by title)
      - Write body via update-page-content
      - Tag each source page [snap-imported] (set-page-tags --tags='["snap-imported"]')
-     - Cache journey page_id to domains.json (add-journey)
+     - Cache journey page_id to _taxonomy.json (taxonomy-state.sh add-journey)
    ```
 
    ### Strategy: copy
@@ -72,7 +73,7 @@ Apply the proposal. All write-side work happens here.
      - Move source pages to "Archive/imported-{YYYY-MM-DD}" via parent_id update
        (single archive folder per import run, created lazily)
      - Cache journey page_id (use the index page when multi-source, else the
-       single new page) to domains.json
+       single new page) to _taxonomy.json
    ```
 
    ### Strategy: move
@@ -81,7 +82,7 @@ Apply the proposal. All write-side work happens here.
      - If single source page → rename it to journey.title, reparent under domain
      - If multiple source pages → fail loud with message asking user to switch
        to synthesize/copy (move = 1:1, can't 1:N rename without losing pages)
-     - Cache journey page_id to domains.json
+     - Cache journey page_id to _taxonomy.json
    ```
 
 5. **Per-page failure handling**:
@@ -95,13 +96,13 @@ Apply the proposal. All write-side work happens here.
 6. **Dry run**:
    When `$DRY_RUN == true`, all docs-adapter calls receive `--dry-run`. No
    AFFiNE writes occur, but the strategy logic still runs (logs intended
-   actions). `domains.json` is **not** written in dry-run mode.
+   actions). `_taxonomy.json` is **not** written in dry-run mode.
 
 7. **Telemetry per-domain**:
    ```bash
-   bash skills/_shared/telemetry.sh append \
-     --skill=doc-import \
-     --status=ok \
+   bash skills/_shared/telemetry.sh log \
+     --project-root="$PWD" --skill=doc-import \
+     --step-num=04 --step-name=restructure --status=ok \
      --extra="{\"domain\":\"$d\",\"journeys\":$JCOUNT,\"strategy\":\"$STRATEGY\"}"
    ```
 
@@ -110,7 +111,7 @@ Apply the proposal. All write-side work happens here.
 - All domains in proposal have a page on the platform (or dry-run logged).
 - All journeys created (or skipped via `[snap-imported]` tag).
 - `.doc-import-failures.ndjson` empty OR was acted on by user.
-- `domains.json` updated for non-dry runs.
+- `_taxonomy.json` updated for non-dry runs.
 
 ## Next step
 

@@ -17,7 +17,7 @@ queue (loop) or the single ticket (standalone):
 
 ```bash
 branch=$(bash skills/_shared/apply-naming.sh \
-  --pattern="$(jq -r '.naming.branch_pattern // "feature/{feature_id}-{slug}"' /tmp/cfg.json)" \
+  --pattern="$(jq -r '.naming.branch_pattern // "feature/{feature_id}-{slug}"' <<<"$CONFIG_JSON")" \
   --feature-id="$feature_id" \
   --slug="$slug")
 
@@ -54,14 +54,15 @@ bash skills/_shared/check-mcp-required.sh --skill=develop --project-root="$PWD" 
   --mcp=code-review-graph || true   # graph optional, not fatal
 ```
 
-Cache result under `.develop-impact-${local_id}.json` — read by step-03a Phase 1.
+Cache result under `.snap/queues/${feature_id}.impact-${local_id}.json` — read
+by step-03a Phase 1.
 
 ### D. Test commands
 
 ```bash
-test_cmd=$(jq -r '.testing.test_command // empty' /tmp/cfg.json)
-lint_cmd=$(jq -r '.testing.lint_command // empty' /tmp/cfg.json)
-type_cmd=$(jq -r '.testing.typecheck_command // empty' /tmp/cfg.json)
+test_cmd=$(jq -r '.testing.test_command // empty' <<<"$CONFIG_JSON")
+lint_cmd=$(jq -r '.testing.lint_command // empty' <<<"$CONFIG_JSON")
+type_cmd=$(jq -r '.testing.typecheck_command // empty' <<<"$CONFIG_JSON")
 ```
 
 If absent, fall through to `detect-test-commands.sh` and persist in config.
@@ -69,10 +70,13 @@ If absent, fall through to `detect-test-commands.sh` and persist in config.
 ### E. Append progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" --feature-id="$feature_id" \
-  --skill=develop --step-num=02 --step-name=prepare --status=ok \
-  --note="branch=$branch"
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=develop \
+  --feature-id="$feature_id" \
+  --step-num=02 \
+  --step-name=prepare \
+  --status=ok
 ```
 
 ## Branch routing
@@ -80,10 +84,8 @@ bash skills/_shared/update-progress.sh \
 After step-02:
 
 - `target_kind=ticket` → step-03a.
-- `target_kind=feature` + `loop_mode=session` → step-03b (which delegates to
-  step-03a per ticket).
-- `target_kind=feature` + `loop_mode=daemon` → step-03c (generates `daemon.sh`
-  and exits — user runs script).
+- `target_kind=feature` → step-03b (session loop — delegates to step-03a per
+  ticket).
 
 ## Acceptance check
 
@@ -93,4 +95,4 @@ After step-02:
 
 ## Next step
 
-→ `step-03a-standalone.md` (or `03b` / `03c` per branch routing).
+→ `step-03a-standalone.md` (or `03b` per branch routing).

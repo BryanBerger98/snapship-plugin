@@ -54,10 +54,12 @@ git add -A
 git commit --amend --no-edit
 new_sha=$(git rev-parse HEAD)
 
+tickets_file=".snap/tickets/${feature_id}.json"
+tmp=$(mktemp)
 jq --arg lid "$lid" --arg sha "$new_sha" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '(.tickets[] | select(.local_id == $lid))
      |= (.commit_sha = $sha | .updated_at = $now)' \
-  "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+  "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
 If the working tree is dirty after amend (agent left untracked junk), abort
@@ -88,19 +90,24 @@ expressed as "go back to step-01 with cycle++".)
 ### E. Persist cycle state
 
 ```bash
+tmp=$(mktemp)
 jq --arg lid "$lid" --argjson c "$cycles_used" \
    --arg sev "$severity" --arg verdict "$flaky_verdict" \
   '(.tickets[] | select(.local_id == $lid))
      |= (.qa_cycles_used = $c
          | .qa_last_severity = $sev
          | .qa_last_flaky_verdict = $verdict)' \
-  "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+  "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
-## Append progress
+## Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=qa \
+  --step-num=03 --step-name=fix --status=$status
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" --feature-id="$feature_id" \
   --skill=qa --step-num=03 --step-name=fix --status=$status \
   --note="$lid cycles=$cycles_used sev=$severity"

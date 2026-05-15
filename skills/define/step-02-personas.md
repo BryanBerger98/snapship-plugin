@@ -10,7 +10,8 @@ Build the persona list that anchors every feature decision.
 
 ## Tasks
 
-1. **Skip condition**: extension mode + existing personas in `prd-global.md` → ask
+1. **Skip condition**: extension mode + personas already cached (in
+   `.snap/.define-state.json` from a prior `/snap:fetch` or earlier run) → ask
    "Add another persona?" (yes/no). If no, skip to step-03 with cached personas.
 
 2. **Loop** until the user is done (max 5 personas — push back if more):
@@ -46,13 +47,13 @@ Build the persona list that anchors every feature decision.
 
 6. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=define \
      --feature-id=_global \
      --step-num=02 \
      --step-name=personas \
-     --status=ok \
-     --skill=define
+     --status=ok
    ```
 
 ## Acceptance check

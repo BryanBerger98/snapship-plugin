@@ -17,7 +17,7 @@
 {{#features}}
 ### {{feature_id}} · {{feature_title}}
 
-PRD: [`features/{{feature_id}}/prd-feature.md`](./features/{{feature_id}}/prd-feature.md)
+PRD: [`PRDs/{{feature_id}}.md`](./PRDs/{{feature_id}}.md)
 Wireframes (if any): [`wireframes-gallery.md#{{feature_id}}`](./wireframes-gallery.md#{{feature_id}})
 
 {{#screens}}

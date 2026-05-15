@@ -45,7 +45,7 @@ la variable `$helper`.
 
 | Flag                | Effet                                                                            |
 | ------------------- | -------------------------------------------------------------------------------- |
-| `--resume` / `-r`   | Reprend via `resume-state.sh next --skill=wireframe`.                            |
+| `--resume` / `-r`   | Reprend via `progress.sh resume next --skill=wireframe`.                            |
 | `--feature=NN-slug` | Cible le `feature_id` (requis si plusieurs features ; partial-match).            |
 | `--dry-run`         | Les helpers retournent des descripteurs mock : aucun appel MCP, aucun PNG ni écriture doc. |
 
@@ -61,12 +61,14 @@ la variable `$helper`.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/wireframes/{screen-id}-{state}.png`
-  (cache local).
-- Page Gallery dans la doc (URL cachée dans `.docs-cache.json` sous
-  `wireframes_gallery.url`).
-- `.claude/product/wireframes-gallery.md` — une section par écran.
-- Chaque ticket UI dans `tickets.json` gagne `wireframe_screen` + `wireframe_url`.
+- `.snap/wireframes/{feature_id}/{screen-id}-{state}.png` (cache local
+  pré-push).
+- Page Gallery dans la doc — ref persistée dans
+  `manifests/{feature_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
+- `.snap/wireframes/{feature_id}/gallery.md` — une section par écran
+  (source rendue avant push doc).
+- Chaque ticket UI dans `.snap/tickets/{feature_id}.json` gagne
+  `wireframe_screen` + `wireframe_url`.
 
 ## Étape suivante
 

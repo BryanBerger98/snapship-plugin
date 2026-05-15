@@ -13,11 +13,12 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
 1. **Parse args**: `--resume`/`-r`, positional `<ticket-id|feature-id>`,
    `--dry-run`, `--no-wireframe-reuse`.
 
-2. **Resume short-circuit**: delegate to `resume-state.sh`:
+2. **Resume short-circuit**: delegate to `progress.sh resume`:
    ```bash
-   resume_json=$(bash skills/_shared/resume-state.sh next \
+   resume_line=$(bash skills/_shared/progress.sh resume \
+     --project-root="$PWD" \
      --skill=design \
-     --project-root="$PWD")
+     --feature-id="${feature_id:-_global}")
    ```
    Same rc=0/1/2 handling as `/wireframe`.
 
@@ -37,30 +38,30 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
      exit 1
    }
-   bash skills/_shared/load-config.sh --project-root="$PWD" > /tmp/cfg.json
-   ds_platform=$(jq -r '.design.platform // "none"' /tmp/cfg.json)
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   ds_platform=$(jq -r '.design.platform // "none"' <<<"$CONFIG_JSON")
 
    case "$ds_platform" in
      penpot)
-       ds_file_id=$(jq -r '.design.penpot.file_id // ""' /tmp/cfg.json)
-       ds_file_name=$(jq -r '.design.penpot.file_name // ""' /tmp/cfg.json)
-       ds_export_dir=$(jq -r '.design.penpot.export_dir // ""' /tmp/cfg.json)
-       ds_components_page=$(jq -r '.design.penpot.design_system_page // "Components"' /tmp/cfg.json)
-       export_format=$(jq -r '.design.export_format // "png"' /tmp/cfg.json)
-       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' /tmp/cfg.json)
+       ds_file_id=$(jq -r '.design.penpot.file_id // ""' <<<"$CONFIG_JSON")
+       ds_file_name=$(jq -r '.design.penpot.file_name // ""' <<<"$CONFIG_JSON")
+       ds_export_dir=$(jq -r '.design.penpot.export_dir // ""' <<<"$CONFIG_JSON")
+       ds_components_page=$(jq -r '.design.penpot.design_system_page // "Components"' <<<"$CONFIG_JSON")
+       export_format=$(jq -r '.design.export_format // "png"' <<<"$CONFIG_JSON")
+       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' <<<"$CONFIG_JSON")
        ;;
      figma)
-       ds_file_key=$(jq -r '.design.figma.file_key // ""' /tmp/cfg.json)
-       ds_file_name=$(jq -r '.design.figma.file_name // ""' /tmp/cfg.json)
-       ds_token_env=$(jq -r '.design.figma.token_env // "FIGMA_ACCESS_TOKEN"' /tmp/cfg.json)
-       export_format=$(jq -r '.design.export_format // "png"' /tmp/cfg.json)
-       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' /tmp/cfg.json)
+       ds_file_key=$(jq -r '.design.figma.file_key // ""' <<<"$CONFIG_JSON")
+       ds_file_name=$(jq -r '.design.figma.file_name // ""' <<<"$CONFIG_JSON")
+       ds_token_env=$(jq -r '.design.figma.token_env // "FIGMA_ACCESS_TOKEN"' <<<"$CONFIG_JSON")
+       export_format=$(jq -r '.design.export_format // "png"' <<<"$CONFIG_JSON")
+       ds_source=$(jq -r '.design.mode_defaults.design_system_source // "auto"' <<<"$CONFIG_JSON")
        ;;
      none)
        echo "design.platform = none → skipping /design"
-       bash skills/_shared/update-progress.sh --project-root="$PWD" \
-         --feature-id="${feature_id:-_global}" --step-num=00 --step-name=init \
-         --status=skip --skill=design
+       bash skills/_shared/progress.sh step --project-root="$PWD" \
+         --skill=design --feature-id="${feature_id:-_global}" \
+         --step-num=00 --step-name=init --status=skip
        exit 0
        ;;
      *)
@@ -152,23 +153,23 @@ file. Later steps read from state — they do NOT re-resolve config.
 
 ## 8. Validate inputs
 
-- `tickets.json` exists for the resolved feature (run `/ticket` first if not).
+- `.snap/tickets/${feature_id}.json` exists (run `/ticket` first if not).
 - At least one targeted ticket is a UI ticket (per
   `filter-ui-tickets.sh`) — otherwise mark progress `skip` with note
   `no UI tickets`.
-- Optional: `.wireframes-draft.json` exists (signals reusable wireframes
-  screens — see step-01).
+- Optional: manifest `.refs.wireframes_gallery.sync_status = "synced"`
+  (signals reusable wireframes screens — see step-01).
 
 ## 9. Append progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=design \
   --feature-id="$feature_id" \
   --step-num=00 \
   --step-name=init \
-  --status=ok \
-  --skill=design
+  --status=ok
 ```
 
 ## Acceptance check

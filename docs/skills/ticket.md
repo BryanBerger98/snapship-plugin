@@ -12,7 +12,7 @@ fichiers.
 
 ## Quand l'utiliser
 
-- Un `prd-feature.md` existe dans `.claude/product/features/{feature_id}/`.
+- Un `prd-feature.md` existe dans `.snap/manifests/{feature_id}/`.
 - Tu veux des stories dev-ready sur la plateforme de tickets configurée.
 - En reprise après interruption (`--resume`).
 
@@ -32,7 +32,7 @@ fichiers.
 
 | Flag                          | Effet                                                                                  |
 | ----------------------------- | -------------------------------------------------------------------------------------- |
-| `--resume` / `-r`             | Reprend au dernier step réussi du `progress.md` de la feature (partial-match `feature_id`). |
+| `--resume` / `-r`             | Reprend au dernier step réussi du `progress.json` de la feature (partial-match `feature_id`). |
 | `--feature=NN-slug`           | Cible le `feature_id` (requis si plusieurs features définies).                         |
 | `--platform=github\|gitlab\|jira` | Force la plateforme, surcharge `config.tickets.platform`.                          |
 | `--max-stories=N`             | Plafonne la décomposition automatique (défaut : 12).                                   |
@@ -48,16 +48,16 @@ fichiers.
 | 03 | `step-03-enrich.md`    | Agents parallèles : codebase / docs / recherche web par story.    |
 | 04 | `step-04-format.md`    | Rend chaque story via le template résolu (override config > repo-native `.github`/`.gitlab` > bundlé). |
 | 05 | `step-05-push.md`      | Pousse via `tickets-adapter.sh` (MCP > CLI).                      |
-| 06 | `step-06-index.md`     | Met en cache `tickets.json` + met à jour le `meta.json` de la feature. |
+| 06 | `step-06-index.md`     | Met en cache `tickets.json` + met à jour le `manifest.json` de la feature. |
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/tickets.json` — tableau de tickets en
+- `.snap/manifests/{feature_id}/tickets.json` — tableau de tickets en
   cache (id, titre, body, labels, status, platform_url). Validé contre
   `_shared/schemas/tickets.schema.json`.
-- `.claude/product/features/{feature_id}/meta.json` — `tickets_count` mis à jour.
+- `.snap/manifests/{feature_id}.manifest.json` — `tickets_count` mis à jour.
 - Tickets créés sur GitHub / GitLab / JIRA (URLs cachées ci-dessus).
-- `.claude/product/features/{feature_id}/progress.md` — journal de run.
+- `.snap/manifests/{feature_id}/progress.json` — journal de run.
 
 ## Étape suivante
 

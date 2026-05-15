@@ -9,35 +9,40 @@ Close out the run.
 
 ## Tasks
 
-1. **Append progress entry**:
+1. **Telemetry summary**:
    ```bash
    STATUS=ok
    [ "$DRY_RUN" = "true" ] && STATUS=dry-run
 
-   bash skills/_shared/update-progress.sh \
+   N_JOURNEYS=$(echo "$JOURNEYS_RESOLVED" | jq 'length')
+
+   bash skills/_shared/telemetry.sh log \
+     --project-root="$PWD" --skill=doc-update \
+     --step-num=04 --step-name=finish --status="$STATUS" \
+     --extra="{\"feature\":\"$FEATURE_ID\",\"journeys\":$N_JOURNEYS,\"mode\":\"$AUTO_UPDATE_MODE\",\"dry_run\":$DRY_RUN}"
+   ```
+
+2. **Append progress entry + close run**:
+   ```bash
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=doc-update \
      --feature-id="$FEATURE_ID" \
      --step-num=04 \
      --step-name=finish \
-     --status="$STATUS" \
-     --skill=doc-update
-   ```
+     --status="$STATUS"
 
-2. **Telemetry summary**:
-   ```bash
-   N_JOURNEYS=$(echo "$JOURNEYS_RESOLVED" | jq 'length')
-
-   bash skills/_shared/telemetry.sh append \
+   bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=doc-update \
-     --status="$STATUS" \
-     --extra="{\"feature\":\"$FEATURE_ID\",\"journeys\":$N_JOURNEYS,\"mode\":\"$AUTO_UPDATE_MODE\",\"dry_run\":$DRY_RUN}"
+     --feature-id="$FEATURE_ID" \
+     --status="$STATUS"
    ```
 
 3. **Clean ephemeral cache** (keep on dry-run for inspection):
    ```bash
    if [ "$DRY_RUN" != "true" ]; then
-     trash ".claude/product/.doc-update-cache/${FEATURE_ID}" 2>/dev/null
+     trash ".snap/.doc-update-cache/${FEATURE_ID}" 2>/dev/null
    fi
    ```
 
@@ -53,7 +58,7 @@ Close out the run.
 
 ## Acceptance check
 
-- `progress.md` has `doc-update step-04 finish — {ok|dry-run|skip}`.
+- `progress.json` in_flight entry removed.
 - Telemetry NDJSON appended.
 - Cache wiped (unless dry-run).
 

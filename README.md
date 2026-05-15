@@ -8,7 +8,7 @@ Plugin Claude Code — workflow produit autonome, 6 skills enchaînables (`defin
 
 | Slash             | Rôle                                                                | Stockage primaire                        |
 | ----------------- | ------------------------------------------------------------------- | ---------------------------------------- |
-| `/snap:init`      | Bootstrap workspace (config + `.claude/product/`). À lancer 1× par projet. | `snapship.config.json` racine projet |
+| `/snap:init`      | Bootstrap workspace (config + `.snap/`). À lancer 1× par projet. | `snapship.config.json` racine projet |
 | `/snap:define`    | Définit produit + features. Brainstorm PRD interactif.              | AFFiNE/Notion (PRD + pages parcours)     |
 | `/snap:ticket`    | Décompose un PRD feature en tickets adaptés à la plateforme.         | Plateforme tickets + `tickets.json`      |
 | `/snap:wireframe` | Wireframes low-fi multi-écrans (Frame0/Penpot/Figma) liés aux tickets. | Plateforme wireframe + gallery doc     |
@@ -20,7 +20,7 @@ Plugin Claude Code — workflow produit autonome, 6 skills enchaînables (`defin
 
 | Slash               | Rôle                                                              | Stockage primaire        |
 | ------------------- | ----------------------------------------------------------------- | ------------------------ |
-| `/snap:doc-import`  | Importe des docs legacy dans la hiérarchie SnapShip. One-shot/projet. | AFFiNE/Notion + `domains.json` |
+| `/snap:doc-import`  | Importe des docs legacy dans la hiérarchie SnapShip. One-shot/projet. | AFFiNE/Notion + `.snap/manifests/_taxonomy.json` |
 | `/snap:doc-update`  | Rafraîchit la doc fonctionnelle vivante après le ship d'une feature. | AFFiNE/Notion (pages parcours) |
 
 Chaque skill a sa doc d'usage détaillée (flags, pipeline, outputs) dans [`docs/skills/`](docs/skills/).
@@ -44,7 +44,7 @@ claude
 /snap:define "feature description"
 ```
 
-`/snap:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `snapship.config.json` racine projet + scaffold `.claude/product/`. Toutes les autres commandes refusent de s'exécuter sans config et pointent vers `/snap:init`.
+`/snap:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `snapship.config.json` racine projet + scaffold `.snap/`. Toutes les autres commandes refusent de s'exécuter sans config et pointent vers `/snap:init`.
 
 ## Prérequis
 

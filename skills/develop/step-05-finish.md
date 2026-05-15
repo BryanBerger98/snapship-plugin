@@ -1,6 +1,6 @@
 ---
 step: 05-finish
-description: Close the run — meta.json state advance, summary, propose `/qa`. Terminal step.
+description: Close the run — manifest state advance, summary, propose `/qa`. Terminal step.
 ---
 
 # step-05 — finish
@@ -14,49 +14,58 @@ This step has no `next_step` — it is terminal.
 ### A. Advance feature state
 
 ```bash
-processed=$(jq '.processed | length' .develop-queue.json 2>/dev/null || echo 0)
+tickets_file=".snap/tickets/${feature_id}.json"
+queue_file=".snap/queues/${feature_id}.develop.json"
+processed=$(jq '.processed | length' "$queue_file" 2>/dev/null || echo 0)
 total=$(jq '.tickets | length' "$tickets_file")
 all_done=$( [ "$processed" -eq "$total" ] && echo true || echo false )
 
-new_state="in_progress"
+manifest=".snap/manifests/${feature_id}.manifest.json"
+current_state=$(jq -r '.state' "$manifest")
+new_state="$current_state"
 [ "$all_done" = "true" ] && new_state="developed"
 
-jq --arg s "$new_state" '.state = $s | .updated_at = (now | todate)' \
-  ".claude/product/features/${feature_id}/meta.json" \
-  > /tmp/meta.tmp && mv /tmp/meta.tmp \
-  ".claude/product/features/${feature_id}/meta.json"
+NOW=$(date -u +%FT%TZ)
+tmp=$(mktemp)
+jq --arg s "$new_state" --arg ts "$NOW" \
+  '.state = $s | .updated_at = $ts' \
+  "$manifest" > "$tmp" && mv "$tmp" "$manifest"
 ```
 
 ### B. Cleanup
 
 ```bash
-trash .claude/product/features/${feature_id}/.develop-queue.json 2>/dev/null || true
-trash .claude/product/features/${feature_id}/.develop-impact-*.json 2>/dev/null || true
-trash .claude/product/features/${feature_id}/.develop-sync-*.json 2>/dev/null || true
+trash "$queue_file" 2>/dev/null || true
+trash .snap/queues/${feature_id}.impact-*.json 2>/dev/null || true
+trash .snap/queues/${feature_id}.sync.json 2>/dev/null || true
+trash .snap/queues/${feature_id}.pr-context.json 2>/dev/null || true
+trash .snap/queues/${feature_id}.review-context.json 2>/dev/null || true
 ```
 
-### C. Update feature index
+### C. Telemetry + progress
 
 ```bash
-bash skills/_shared/update-index.sh --project-root="$PWD"
-```
-
-Refreshes `.claude/product/index.md` with the new state + commit count.
-
-### D. Telemetry + progress
-
-```bash
-bash skills/_shared/telemetry.sh emit \
-  --project-root="$PWD" --skill=develop --status=ok \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=develop \
+  --step-num=05 --step-name=finish --status=ok \
   --extra='{"feature_state":"'"$new_state"'","tickets_processed":'"$processed"'}'
 
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" --feature-id="$feature_id" \
-  --skill=develop --step-num=05 --step-name=finish --status=ok \
-  --note="state=$new_state"
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=develop \
+  --feature-id="$feature_id" \
+  --step-num=05 \
+  --step-name=finish \
+  --status=ok
+
+bash skills/_shared/progress.sh finish \
+  --project-root="$PWD" \
+  --skill=develop \
+  --feature-id="$feature_id" \
+  --status=ok
 ```
 
-### E. Surface summary + hand-off
+### D. Surface summary + hand-off
 
 Print to stdout:
 
@@ -73,20 +82,21 @@ If `all_done = false` (loop interrupted, `next-ticket` skips):
 
 ```
 Some tickets remain (todo: t-007, blocked: t-009).
-Re-run: `/develop --resume` (session) or re-launch `daemon.sh` (daemon).
+Re-run: `/develop --resume`.
 ```
 
 ## Idempotence
 
 Re-running step-05 over an already-finished run rewrites the same fields
-(meta.json state already `developed`, queue file already absent — `trash` is
+(manifest state already `developed`, queue file already absent — `trash` is
 no-op). Safe under `/develop --resume`.
 
 ## Acceptance check
 
-- `meta.json` `state` advanced (`developed` or remains `in_progress`).
+- Manifest `state` advanced (`developed` or remains at current).
 - Queue + transient files cleaned.
-- `progress.md` ends with `develop step-05 finish — ok`.
+- `progress.json.in_flight` no longer contains a `develop` entry for the
+  feature.
 
 ## Next step
 

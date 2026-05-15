@@ -7,8 +7,8 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADAPTER="${ROOT}/skills/_shared/tickets-adapter.sh"
 RENDER="${ROOT}/skills/_shared/render-template.sh"
-PROGRESS="${ROOT}/skills/_shared/update-progress.sh"
-RESUME="${ROOT}/skills/_shared/resume-state.sh"
+PROGRESS="${ROOT}/skills/_shared/progress.sh"
+SETUP="${ROOT}/skills/_shared/setup-snap-dir.sh"
 LOAD_CFG="${ROOT}/skills/_shared/load-config.sh"
 
 PASS=0
@@ -31,12 +31,11 @@ write_config() {
 JSON
 }
 
-# Pre-stage a feature dir as if /define had been run.
+# Pre-stage a feature workspace as if /define had been run.
 seed_feature() {
   local d="$1" fid="$2"
-  local fdir="${d}/.claude/product/features/${fid}"
-  mkdir -p "$fdir"
-  cat > "${fdir}/prd-feature.md" <<'MD'
+  bash "$SETUP" --project-root="$d" --feature-id="$fid" --feature-name="Auth" --lang=en >/dev/null
+  cat > "${d}/.snap/PRDs/${fid}.md" <<'MD'
 # PRD — Auth
 
 ## Problem
@@ -58,17 +57,6 @@ OAuth, SSO
 ## Wireframes
 - signup-screen
 MD
-  cat > "${fdir}/meta.json" <<JSON
-{
-  "feature_id": "${fid}",
-  "feature_name": "Auth",
-  "lang": "en",
-  "state": "defined",
-  "tickets_count": 0,
-  "created_at": "2026-05-09T00:00:00Z",
-  "updated_at": "2026-05-09T00:00:00Z"
-}
-JSON
 }
 
 run_platform() {
@@ -78,27 +66,31 @@ run_platform() {
   local DIR
   DIR=$(setup_dir)
   write_config "$DIR" "$platform"
-  mkdir -p "$DIR/.claude/product/features"
   seed_feature "$DIR" "01-auth"
+
+  local MANIFEST="${DIR}/.snap/manifests/01-auth.manifest.json"
+  local PRD="${DIR}/.snap/PRDs/01-auth.md"
+  local DRAFT="${DIR}/.snap/queues/01-auth.tickets-draft.json"
+  local TICKETS="${DIR}/.snap/tickets/01-auth.json"
 
   # step-00: load config + record progress
   bash "$LOAD_CFG" --project-root="$DIR" >/dev/null 2>&1 \
     && ok "${platform}.00 load-config" \
     || ko "${platform}.00 load-config" "non-zero"
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=00 --step-name=init --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=00 --step-name=init --status=ok >/dev/null
 
-  # step-01: load PRD (simulate by checking sections present)
+  # step-01: load PRD (check sections present)
   for sec in "Problem" "Solution overview" "Acceptance criteria" "In scope" "Out of scope"; do
-    if ! grep -q "^## ${sec}" "$DIR/.claude/product/features/01-auth/prd-feature.md"; then
+    if ! grep -q "^## ${sec}" "$PRD"; then
       ko "${platform}.01 prd-feature missing section '$sec'" "missing"
       return
     fi
   done
   ok "${platform}.01 prd-feature has all required sections"
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=01 --step-name=load --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=01 --step-name=load --status=ok >/dev/null
 
   # step-02: decompose — synthesize 2 stories from 2 AC
-  cat > "$DIR/.claude/product/features/01-auth/.tickets-draft.json" <<'JSON'
+  cat > "$DRAFT" <<'JSON'
 [
   {
     "ticket_id": "01-auth-001",
@@ -120,20 +112,18 @@ run_platform() {
   }
 ]
 JSON
-  draft_count=$(jq 'length' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
+  draft_count=$(jq 'length' "$DRAFT")
   [ "$draft_count" = "2" ] && ok "${platform}.02 decompose drafted 2 stories" || ko "${platform}.02" "got $draft_count"
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=02 --step-name=decompose --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=02 --step-name=decompose --status=ok >/dev/null
 
   # step-03: enrich — stub context block + ticket type on each story
   jq 'map(. + {context: {codebase: "auth/index.ts:42 has createUser", docs: "", web: []}, type: "user-story"})' \
-    "$DIR/.claude/product/features/01-auth/.tickets-draft.json" \
-    > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$DIR/.claude/product/features/01-auth/.tickets-draft.json"
-  enriched=$(jq '[.[] | select(.context != null and .type != null)] | length' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
+    "$DRAFT" > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$DRAFT"
+  enriched=$(jq '[.[] | select(.context != null and .type != null)] | length' "$DRAFT")
   [ "$enriched" = "2" ] && ok "${platform}.03 enrichment populated context" || ko "${platform}.03" "got $enriched"
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=03 --step-name=enrich --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=03 --step-name=enrich --status=ok >/dev/null
 
   # step-04: format — resolve template via resolve-template.sh (kind=ticket type=user-story)
-  # Resolver emits JSON {path, source, render_mode}; extract the path.
   local tpl tpl_json
   tpl_json=$(SNAP_PROJECT_ROOT="$DIR" bash "${ROOT}/skills/_shared/resolve-template.sh" \
     --kind=ticket --type=user-story --platform="${platform}" --project-root="$DIR" 2>/dev/null) || tpl_json=""
@@ -142,20 +132,16 @@ JSON
     ko "${platform}.04 template missing" "$tpl"
     return
   fi
-  # Render first story body
   local story_ctx
-  story_ctx=$(jq '.[0]' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
+  story_ctx=$(jq '.[0]' "$DRAFT")
   body=$(echo "$story_ctx" | bash "$RENDER" --template="$tpl" --vars="$story_ctx" 2>/dev/null || true)
-  # Body may have unresolved tokens since template expects fields we may not have.
-  # We only check that {{title}} was substituted.
   if echo "$body" | grep -q "Add email signup endpoint"; then
     ok "${platform}.04 template renders title"
   else
-    # Some templates may not include {{title}} verbatim; check render did not fail.
     [ -n "$body" ] && ok "${platform}.04 template rendered (no title placeholder)" \
       || ko "${platform}.04 template render failed" "empty"
   fi
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=04 --step-name=format --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=04 --step-name=format --status=ok >/dev/null
 
   # step-05: push (dry-run)
   pushed=0
@@ -172,17 +158,16 @@ JSON
       mode=$(echo "$out" | jq -r '.mode')
       [ "$mode" = "dry-run" ] && pushed=$((pushed + 1))
     elif [ "$rc" = "10" ] && [ "$platform" = "jira" ]; then
-      # JIRA emits MCP descriptor on dry-run? Check.
       pushed=$((pushed + 1))
     else
       ko "${platform}.05 adapter failed" "rc=$rc out=$out"
       return
     fi
-  done < <(jq -c '.[]' "$DIR/.claude/product/features/01-auth/.tickets-draft.json")
+  done < <(jq -c '.[]' "$DRAFT")
   [ "$pushed" = "2" ] && ok "${platform}.05 dry-run pushed 2 tickets" || ko "${platform}.05" "pushed=$pushed"
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=05 --step-name=push --status=skip --skill=ticket --note="dry-run" >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=05 --step-name=push --status=skip --note="dry-run" >/dev/null
 
-  # step-06: index — promote draft → tickets.json (using schema-shaped output)
+  # step-06: index — promote draft → tickets/{id}.json (schema-shaped)
   jq --arg fid "01-auth" --arg p "$platform" \
     '{
       feature_id: $fid,
@@ -197,13 +182,12 @@ JSON
         files: .expected_files,
         acceptance_criteria: [{text: .ac_text}]
       }]
-    }' "$DIR/.claude/product/features/01-auth/.tickets-draft.json" \
-    > "$DIR/.claude/product/features/01-auth/tickets.json"
+    }' "$DRAFT" > "$TICKETS"
 
   # ajv validate
   if command -v ajv >/dev/null 2>&1; then
     if ajv validate -s "${ROOT}/skills/_shared/schemas/tickets.schema.json" \
-      -d "$DIR/.claude/product/features/01-auth/tickets.json" \
+      -d "$TICKETS" \
       --spec=draft2020 --strict=false >/dev/null 2>&1; then
       ok "${platform}.06 tickets.json validates against schema"
     else
@@ -213,25 +197,28 @@ JSON
     ok "${platform}.06 ajv not installed — skip schema validation"
   fi
 
-  # meta.json update
-  jq --arg n "2" '.tickets_count = ($n|tonumber) | .state = "tickets-pushed"' \
-    "$DIR/.claude/product/features/01-auth/meta.json" \
-    > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$DIR/.claude/product/features/01-auth/meta.json"
-  tcount=$(jq -r '.tickets_count' "$DIR/.claude/product/features/01-auth/meta.json")
-  [ "$tcount" = "2" ] && ok "${platform}.06b meta.json tickets_count=2" || ko "${platform}.06b" "got $tcount"
+  # manifest update: tickets_count + state
+  jq --arg n "2" '.tickets_count = ($n|tonumber) | .state = "ticketed"' \
+    "$MANIFEST" > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$MANIFEST"
+  tcount=$(jq -r '.tickets_count' "$MANIFEST")
+  [ "$tcount" = "2" ] && ok "${platform}.06b manifest tickets_count=2" || ko "${platform}.06b" "got $tcount"
 
   # cleanup draft
-  trash "$DIR/.claude/product/features/01-auth/.tickets-draft.json" 2>/dev/null || true
-  [ ! -f "$DIR/.claude/product/features/01-auth/.tickets-draft.json" ] \
+  trash "$DRAFT" 2>/dev/null || true
+  [ ! -f "$DRAFT" ] \
     && ok "${platform}.06c draft removed" \
     || ko "${platform}.06c" "draft persists"
 
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=01-auth --step-num=06 --step-name=index --status=ok --skill=ticket >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=06 --step-name=index --status=ok >/dev/null
+  bash "$PROGRESS" finish --project-root="$DIR" --skill=ticket --feature-id=01-auth --status=ok >/dev/null
 
-  # resume past terminal
-  out=$(bash "$RESUME" next --skill=ticket --feature=01 --project-root="$DIR")
-  ns=$(echo "$out" | jq -r '.next_step')
-  [ "$ns" = "step-07" ] && ok "${platform}.07 resume past terminal points to step-07" || ko "${platform}.07" "got $ns"
+  # resume after terminal — skill purged from in_flight → empty stdout
+  out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=ticket --feature-id=01-auth)
+  if [ -z "$out" ]; then
+    ok "${platform}.07 resume after terminal returns empty (purged)"
+  else
+    ko "${platform}.07" "expected empty, got '$out'"
+  fi
 
   trash "$DIR" 2>/dev/null || true
 }

@@ -7,6 +7,47 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed — v1.0.0 refactor (BREAKING)
+
+Refonte majeure orientée **plateformes distantes = sources de vérité**. Le
+local sert uniquement à pré-générer, valider, stager avant push sur les
+plateformes (Notion/AFFiNE, Figma/Penpot/Frame0, Linear/Jira/GitHub/GitLab).
+Idéalement on ne stocke rien localement, sauf des références vers les
+ressources distantes.
+
+- **Layout `.snap/` réorganisé** — split par type, plus de `features/{slug}/`
+  monolithique :
+  - `.snap/manifests/{feature_id}.manifest.json` (remplace `features/{slug}/meta.json`)
+  - `.snap/manifests/_taxonomy.json` (remplace `.snap/domains.json`)
+  - `.snap/tickets/{feature_id}.json` (cache local, persisté car référencé par /develop & /qa)
+  - `.snap/wireframes/{feature_id}/` (staging avant push gallery)
+  - `.snap/designs/{feature_id}/` (staging avant push gallery)
+  - `.snap/queues/{feature_id}.{purpose}.json` (queues éphémères /develop & /qa)
+  - `.snap/progress.json` (remplace `progress.md`, gitignored, `in_flight[]` + `steps[]`)
+  - `.snap/.backup/{timestamp}/` (doc-import backups)
+- **Helpers `_shared/` refactorés** :
+  - `progress.sh` (remplace `update-progress.sh` + `resume-state.sh`) — sous-commandes
+    `start | step | finish | resume`.
+  - `sync-push.sh` / `sync-fetch.sh` (write-through outbox vers plateformes).
+  - `load-config.sh` retourne désormais le config résolu sur stdout (plus de
+    cache `.config-resolved.json`).
+  - `setup-product-dir.sh` → `setup-snap-dir.sh`.
+  - `domains-state.sh` → `taxonomy-state.sh`.
+  - `telemetry.sh emit` / `append` → `telemetry.sh log` (signature unifiée).
+- **Skill `/develop` — drop daemon mode.** Plus de `--loop=daemon`. Boucle
+  session-only.
+- **Skill `/snap:upgrade` (nouveau)** — migration framework v0.6.0 → v1.0.0
+  avec backup `.snap.bak-{timestamp}/`.
+- **Skill `/snap:fetch` (nouveau)** — refresh local caches depuis les
+  plateformes (replay des refs stockés dans le manifest).
+- **State machine manifest** — transitions par étape terminale :
+  `defined → ticketed → wireframed → designed → developed → qa-validated →
+  shipped`.
+- **`.gitignore`** — whitelist `.snap/manifests/` + `.snap/tickets/`, ignore
+  le reste (caches, queues, telemetry, progress, backups, staging).
+- **CI** — workflow `.github/workflows/validate.yml` mis à jour pour les
+  nouveaux noms de scripts/tests.
+
 ### Added — templates repo-native (`.github` / `.gitlab`)
 
 - **`/ticket` et `/develop` réutilisent les templates de l'hôte.** Avant le

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/taxonomy.schema.json",
+  "title": "_taxonomy.json",
+  "description": "Catalogue partagé .snap/manifests/_taxonomy.json — workspace remote root + domains + journeys. Remplace domains.json. v1.0.",
+  "type": "object",
+  "required": ["schema_version"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Racine documentation distante partagée par tous les manifests.",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["notion", "affine", "none"]
+        },
+        "workspace_id": { "type": "string" },
+        "root_page_id": { "type": "string" },
+        "root_url":     { "type": "string", "format": "uri" },
+        "synced_at":    { "type": "string", "format": "date-time" }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/domain" },
+      "description": "Domaines fonctionnels — slug kebab en clé."
+    },
+    "journeys": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/journey" },
+      "description": "User journeys top-level — slug kebab en clé. Pour journeys rattachés à un domain, voir domains[slug].journeys."
+    }
+  },
+  "$defs": {
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "title":     { "type": "string" },
+        "page_id":   { "type": "string" },
+        "url":       { "type": "string", "format": "uri" },
+        "synced_at": { "type": "string", "format": "date-time" },
+        "journeys": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/journey" }
+        }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "title":     { "type": "string" },
+        "page_id":   { "type": "string" },
+        "url":       { "type": "string", "format": "uri" },
+        "synced_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

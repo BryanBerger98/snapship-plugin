@@ -101,10 +101,12 @@ git add -A   # restricted to files Phase 1 touched (skill tracks file set)
 git commit -m "$(printf "%s(%s): %s (%s)\n" "$type" "$scope" "$title" "$local_id")"
 sha=$(git rev-parse HEAD)
 
+tickets_file=".snap/tickets/${feature_id}.json"
+tmp=$(mktemp)
 jq --arg lid "$local_id" --arg sha "$sha" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '(.tickets[] | select(.local_id == $lid))
      |= (.commit_sha = $sha | .developed_at = $now | .status = "in_review")' \
-  "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+  "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
 If a fix-cycle ran after the initial commit, **amend** instead of creating new
@@ -117,17 +119,20 @@ git add -A && git commit --amend --no-edit
 ## Append progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
-  --project-root="$PWD" --feature-id="$feature_id" \
-  --skill=develop --step-num=03a --step-name=standalone --status=ok \
-  --note="$local_id sha=$sha cycles=$cycles_used"
+bash skills/_shared/progress.sh step \
+  --project-root="$PWD" \
+  --skill=develop \
+  --feature-id="$feature_id" \
+  --step-num=03a \
+  --step-name=standalone \
+  --status=ok
 ```
 
 ## Acceptance check
 
 - Phase 1 validate green.
 - Phase 2 aggregated severity below thresholds (or fail_strategy resolved).
-- `commit_sha` set in tickets.json.
+- `commit_sha` set in `.snap/tickets/${feature_id}.json`.
 
 ## Next step
 

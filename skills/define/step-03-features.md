@@ -51,7 +51,7 @@ For each feature in priority order (`must` → `should` → `could`), ask:
 7. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
    - Read existing domains from cache:
      ```bash
-     bash skills/_shared/domains-state.sh list-domains --project-root="$PWD"
+     bash skills/_shared/taxonomy-state.sh list-domains --project-root="$PWD"
      ```
    - Present them as multi-select options. Allow user to add a new domain (free
      input → ask title humain, auto-slug kebab). Reject slug if it already
@@ -62,7 +62,7 @@ For each feature in priority order (`must` → `should` → `could`), ask:
    For each domain in `feature.domains`:
    - List existing journeys via:
      ```bash
-     bash skills/_shared/domains-state.sh list-journeys "$domain" --project-root="$PWD"
+     bash skills/_shared/taxonomy-state.sh list-journeys "$domain" --project-root="$PWD"
      ```
    - Multi-select existing + free input ("create new journey: title → slug auto").
    - Persist as `impacted_journeys: [{domain, journey_slug}, …]`.
@@ -113,13 +113,13 @@ feature(s) flagged. Do not advance to step-04 until validation passes.
 ### Phase D — progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=define \
   --feature-id=_global \
   --step-num=03 \
   --step-name=features \
-  --status=ok \
-  --skill=define
+  --status=ok
 ```
 
 ## Acceptance check

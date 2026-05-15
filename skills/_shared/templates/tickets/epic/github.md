@@ -51,7 +51,7 @@
 
 ## References
 
-- Feature PRD: `.claude/product/features/{{feature_id}}/prd-feature.md`
+- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
 - Domain pages: {{domain_pages}}
 - Related: {{related_refs}}
 

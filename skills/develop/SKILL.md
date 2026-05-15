@@ -7,12 +7,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Task
 # /develop — ticket → committed code skill
 
 Run after `/ticket` (and optionally `/wireframe`). Picks one ticket (standalone)
-or iterates a feature's tickets (session/daemon), implements them, runs three
+or iterates a feature's tickets in the same session, implements them, runs three
 parallel reviewers, applies aggregated feedback, and produces atomic commits.
 
 ## When to use
 
-- A feature has `tickets.json` with at least one `todo`/`in_progress` ticket.
+- A feature has `.snap/tickets/{fid}.json` with at least one `todo`/`in_progress`
+  ticket.
 - Working tree is clean (or `--allow-dirty`).
 - Repo is a git repository on a branch you can commit to (not directly on a
   protected branch — branch is created idempotently per ticket/feature).
@@ -26,8 +27,7 @@ parallel reviewers, applies aggregated feedback, and produces atomic commits.
 | 02 | `step-02-prepare.md`         | Branch idempotent, conventions load (CLAUDE.md, CONTRIBUTING.md), impact_radius |
 | 03a | `step-03a-standalone.md`    | One ticket: Phase 1 (analyze/plan/execute/validate) + Phase 2 (3 reviewers parallel + dev fix loop) |
 | 03b | `step-03b-loop-session.md`  | Many tickets, same session: foreach ticket → step-03a → atomic commit |
-| 03c | `step-03c-loop-daemon.md`   | Generate `daemon.sh` script (no auto-launch) — user runs `bash daemon.sh -n N` |
-| 04 | `step-04-sync.md`            | Push branch, open PR (or update existing), patch ticket platform_url + status |
+| 04 | `step-04-sync.md`            | Push branch, open PR (or update existing), patch ticket url + status |
 | 05 | `step-05-finish.md`          | Update tickets.json, propose `/qa`, telemetry, terminal |
 
 ## Args
@@ -35,14 +35,14 @@ parallel reviewers, applies aggregated feedback, and produces atomic commits.
 ```
 /develop                              # AskUserQuestion → choose ticket or feature
 /develop <ticket-id>                  # standalone (e.g. AUTH-12, #42, t-001)
-/develop <feature-id>                 # loop — prompts for --loop=session|daemon
-/develop <feature-id> --loop=session  # iterate in same Claude session
-/develop <feature-id> --loop=daemon   # generate daemon.sh (manual run)
-/develop --resume | -r                # resume via resume-state.sh
+/develop <feature-id>                 # loop session (iterate in same Claude session)
+/develop --resume | -r                # resume via progress.sh resume
 /develop --dry-run                    # skip writes (no commit/push, reviewers run on staged diff)
 /develop --allow-dirty                # tolerate uncommitted changes pre-run
 /develop --retry-fallback=next-ticket|stop  # only with fail_strategy=retry
 ```
+
+Daemon mode is removed in v1.0.0 — one-shot session loop only.
 
 ## Configuration (config.develop)
 
@@ -78,20 +78,24 @@ parallel reviewers, applies aggregated feedback, and produces atomic commits.
 - One git commit per ticket (`{type}({scope}): {title} ({local_id})`),
   amended on cycle-fix iterations.
 - Branch pushed; PR opened (idempotent — re-run updates body, not duplicate).
-- `tickets.json` updated: `commit_sha`, `developed_at`, `status="in_review"`.
-- `progress.md` step entries for every ticket.
+- `.snap/tickets/{feature_id}.json` updated: `commit_sha`, `developed_at`,
+  `status="in_review"`.
+- `progress.json` step entries for every ticket.
+- Manifest `state` advances `designed|wireframed|ticketed` → `developed` once
+  every ticket of the feature is in `in_review` (or terminal `done`).
 
 ## Resume protocol
 
-`/develop --resume` → `resume-state.sh next --skill=develop`. Resumes either a
-single in-progress ticket (Phase 1 or Phase 2) or the next unfinished ticket in
-a session loop. Daemon mode is a no-op resume — `daemon.sh` already iterates.
+`/develop --resume` → `progress.sh resume --skill=develop --feature-id=…`.
+Resumes either a single in-progress ticket (Phase 1 or Phase 2) or the next
+unfinished ticket in the session loop.
 
 ## Acceptance check
 
-- Each targeted ticket has `commit_sha` set + an entry in `progress.md`.
+- Each targeted ticket has `commit_sha` set + an entry in `progress.json`.
 - `git rev-parse --verify <branch>` succeeds.
-- For loops: `tickets.json` has `status` advanced for every processed ticket.
+- For loops: every processed ticket has `status` advanced in
+  `.snap/tickets/{feature_id}.json`.
 
 ## Failure handling
 

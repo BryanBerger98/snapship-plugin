@@ -58,7 +58,8 @@
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["github", "gitlab", "jira", "inherit"]
+          "enum": ["linear", "jira", "github", "gitlab", "inherit", "none"],
+          "description": "Tracker platform. 'none' = pas de tracker — /snap:ticket BLOCK avec message clair jusqu'à ce que l'user re-run /snap:init --force."
         },
         "url": { "type": "string", "format": "uri" },
         "default_labels": {
@@ -165,11 +166,11 @@
     "wireframes": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Configuration skill /wireframe. Blocs platform-specific (`frame0`, `penpot`, `figma`) consultés selon `platform`.",
+      "description": "Configuration skill /wireframe. Blocs platform-specific (`frame0`, `penpot`, `figma`) consultés selon `platform`. 'none' désactive le skill.",
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["frame0", "penpot", "figma"],
+          "enum": ["frame0", "penpot", "figma", "none"],
           "default": "frame0"
         },
         "export_format": {
@@ -211,7 +212,7 @@
           "properties": {
             "export_dir": {
               "type": "string",
-              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.claude/product/features/{feature_id}/wireframes/` résolu runtime."
+              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.snap/wireframes/{feature_id}/` résolu runtime."
             },
             "file_id": {
               "type": "string",
@@ -252,8 +253,8 @@
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["penpot", "figma"],
-          "description": "Plateforme cible pour maquettes haute-fidélité. Frame0 exclu (low-fi seulement)."
+          "enum": ["penpot", "figma", "none"],
+          "description": "Plateforme cible pour maquettes haute-fidélité. 'none' désactive le skill /snap:design. Frame0 exclu (low-fi seulement)."
         },
         "export_format": {
           "type": "string",

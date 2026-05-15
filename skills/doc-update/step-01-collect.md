@@ -14,7 +14,7 @@ state + actual code shipped.
 ### A. Cache directory
 
 ```bash
-CACHE=".claude/product/.doc-update-cache/${FEATURE_ID}"
+CACHE=".snap/.doc-update-cache/${FEATURE_ID}"
 trash "$CACHE" 2>/dev/null
 mkdir -p "$CACHE"
 ```
@@ -64,17 +64,19 @@ that's expected. The AI step generates the initial content from PRD + diff.
 
 ### D. Compute feature-scoped git diff
 
-The PRD lists tickets; collect their commits. If `meta.json` has a `tickets[]`
-array (populated by `/snap:ticket` + `/snap:develop`), use those:
+The PRD lists tickets; collect their commits. If
+`.snap/tickets/${FEATURE_ID}.json` has a `tickets[]` array (populated by
+`/snap:ticket` + `/snap:develop`), use those:
 
 ```bash
-TICKETS=$(jq -c '.tickets // []' "$META")
+TICKETS_FILE=".snap/tickets/${FEATURE_ID}.json"
+TICKETS=$(jq -c '.tickets // []' "$TICKETS_FILE" 2>/dev/null || echo '[]')
 if [ "$(echo "$TICKETS" | jq 'length')" -gt 0 ]; then
-  # Build commit range from ticket branch refs / commit SHAs stored in meta.json
-  # Format: each ticket has {ticket_id, branch, base_sha, head_sha}
-  RANGE_LIST=$(echo "$TICKETS" | jq -r '.[] | "\(.base_sha)..\(.head_sha)"')
-  for range in $RANGE_LIST; do
-    git diff "$range" -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.py' '*.go' '*.rs' '*.md' \
+  # Build commit range from ticket SHAs cached in tickets.json
+  # Each ticket has {local_id, commit_sha, ...}
+  SHAS=$(echo "$TICKETS" | jq -r '.[] | select(.commit_sha != null) | .commit_sha')
+  for sha in $SHAS; do
+    git show "$sha" -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.py' '*.go' '*.rs' '*.md' \
       >> "$CACHE/feature.diff"
   done
 else
@@ -93,8 +95,8 @@ Surface any visual artifacts attached to this feature so the AI patch
 step can cross-reference them in journey docs.
 
 ```bash
-WF_DIR=".claude/product/features/${FEATURE_ID}/wireframes"
-DS_DIR=".claude/product/features/${FEATURE_ID}/design"
+WF_DIR=".snap/wireframes/${FEATURE_ID}"
+DS_DIR=".snap/designs/${FEATURE_ID}"
 
 assets_json="$CACHE/assets.json"
 jq -n \
@@ -131,16 +133,20 @@ for entry in $(echo "$JOURNEYS_RESOLVED" | jq -c '.[]'); do
 done
 ```
 
-### G. Progress
+### G. Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=doc-update \
+  --step-num=01 --step-name=collect --status=ok
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --skill=doc-update \
   --feature-id="$FEATURE_ID" \
   --step-num=01 \
   --step-name=collect \
-  --status=ok \
-  --skill=doc-update
+  --status=ok
 ```
 
 ## Acceptance check

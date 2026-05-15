@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/progress.schema.json",
+  "title": "progress.json",
+  "description": "Machine state local .snap/progress.json — skills/steps in-flight. Purge runtime quand terminal step OK. Permet --resume. v1.0.",
+  "type": "object",
+  "required": ["schema_version", "in_flight"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "in_flight": {
+      "type": "array",
+      "description": "Skills en cours (non terminés OK). Steady state = []. Une entrée par skill+feature en-cours.",
+      "items": { "$ref": "#/$defs/skill_run" }
+    }
+  },
+  "$defs": {
+    "skill_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill", "feature_id", "started_at", "steps"],
+      "properties": {
+        "skill": {
+          "type": "string",
+          "description": "Slug skill (define, ticket, wireframe, design, develop, qa, init, fetch, upgrade...)"
+        },
+        "feature_id": {
+          "type": "string",
+          "description": "feature_id (NN-kebab) ou _global pour skills hors-feature (init, upgrade, fetch --all)"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "name", "status", "ts"],
+      "properties": {
+        "num":    { "type": "string", "description": "Numéro step (ex: 00, 01, 03c)" },
+        "name":   { "type": "string", "description": "Slug step (ex: vision, personas, render)" },
+        "status": {
+          "type": "string",
+          "enum": ["started", "ok", "fail", "skip", "retry"]
+        },
+        "ts":     { "type": "string", "format": "date-time" },
+        "note":   { "type": "string", "description": "Détail optionnel (raison fail, contexte retry, ...)" },
+        "extra":  {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Données structurées arbitraires (durations, counts, IDs ressources créées...)"
+        }
+      }
+    }
+  }
+}

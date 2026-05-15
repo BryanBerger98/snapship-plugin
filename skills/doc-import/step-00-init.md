@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-crawl
-description: Parse args, require /snap:init, validate documentation platform + MCP availability, guard against non-empty domains.json.
+description: Parse args, require /snap:init, validate documentation platform + MCP availability, guard against non-empty _taxonomy.json.
 ---
 
 # step-00 — init
@@ -24,16 +24,16 @@ Validate prerequisites and parse args. Fail loud, fail early.
    - `--dry-run` (default false)
    - `--backup` (default false)
    - `-a` / `--auto` (default false)
-   - `--force` (default false — required to overwrite non-empty `domains.json`)
+   - `--force` (default false — required to overwrite non-empty `_taxonomy.json`)
 
    Validate `--strategy` value; reject unknown.
 
 3. **Load resolved config**:
    ```bash
-   bash skills/_shared/load-config.sh --project-root="$PWD" >/dev/null
-   PLATFORM=$(jq -r '.documentation.platform // "none"' .claude/product/.config-resolved.json)
-   FUNCTIONAL_ROOT=$(jq -r '.documentation.paths.functional_root // ""' .claude/product/.config-resolved.json)
-   WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' .claude/product/.config-resolved.json)
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
+   FUNCTIONAL_ROOT=$(jq -r '.documentation.paths.functional_root // ""' <<<"$CONFIG_JSON")
+   WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' <<<"$CONFIG_JSON")
    ```
 
    Fail loud if:
@@ -49,11 +49,15 @@ Validate prerequisites and parse args. Fail loud, fail early.
    ```
    Exit 1 if MCP not loaded — user must enable the MCP server before retrying.
 
-5. **`domains.json` non-empty guard**:
+5. **`_taxonomy.json` non-empty guard**:
    ```bash
-   COUNT=$(bash skills/_shared/domains-state.sh list-domains --project-root="$PWD" | wc -l | tr -d ' ')
+   tax=".snap/manifests/_taxonomy.json"
+   COUNT=0
+   if [ -f "$tax" ]; then
+     COUNT=$(jq '(.domains // []) | length' "$tax")
+   fi
    if [ "$COUNT" -gt 0 ] && [ "$FORCE" != "true" ]; then
-     echo "ERROR: domains.json non-empty (${COUNT} domain(s) already imported)." >&2
+     echo "ERROR: _taxonomy.json non-empty (${COUNT} domain(s) already imported)." >&2
      echo "Re-run with --force to re-import (existing entries will be overwritten)." >&2
      exit 1
    fi
@@ -78,7 +82,7 @@ Validate prerequisites and parse args. Fail loud, fail early.
 ## Acceptance check
 
 - All required env vars set.
-- `domains.json` either empty or `--force` confirmed.
+- `_taxonomy.json` either empty or `--force` confirmed.
 - MCP for `$PLATFORM` confirmed reachable.
 
 ## Next step

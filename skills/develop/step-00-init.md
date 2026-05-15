@@ -7,19 +7,20 @@ description: Parse args, resolve target (ticket-id or feature_id), load config, 
 # step-00 — init
 
 Bootstrap a `/develop` run. The target may be a single ticket (standalone) or a
-feature (session/daemon loop).
+feature (session loop).
 
 ## Tasks
 
-1. **Parse args**: `--resume`/`-r`, positional `<id>`, `--loop=session|daemon`,
+1. **Parse args**: `--resume`/`-r`, positional `<id>`,
    `--dry-run`, `--allow-dirty`, `--retry-fallback=next-ticket|stop`.
 
 2. **Resume short-circuit**:
 
    ```bash
-   resume_json=$(bash skills/_shared/resume-state.sh next \
+   resume_line=$(bash skills/_shared/progress.sh resume \
+     --project-root="$PWD" \
      --skill=develop \
-     --project-root="$PWD")
+     --feature-id="${feature_id:-_global}")
    ```
 
    Same rc=0/1/2 contract as the other skills.
@@ -28,9 +29,9 @@ feature (session/daemon loop).
    - **Empty** → AskUserQuestion: "Which ticket / feature?" enumerating tickets
      with `status in (todo, in_progress)`.
    - **Ticket-shaped** (regex: `^[A-Z]+-[0-9]+$|^#[0-9]+$|^t-[0-9]+$`) → standalone
-     mode. Cross-reference `tickets.json` files to locate the parent feature_id.
-   - **Feature-shaped** (`^[0-9]{2}-[a-z0-9-]+$`) → loop mode (ask `--loop=`
-     when missing).
+     mode. Cross-reference `.snap/tickets/*.json` files to locate the parent
+     feature_id.
+   - **Feature-shaped** (`^[0-9]{2}-[a-z0-9-]+$`) → session loop.
 
 4. **Require config + load**:
 
@@ -39,9 +40,9 @@ feature (session/daemon loop).
      echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
      exit 1
    }
-   cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
-   review_cycles_max=$(echo "$cfg" | jq '.develop.review_cycles_max // 3')
-   fail_strategy=$(echo "$cfg" | jq -r '.develop.fail_strategy // "next-ticket"')
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   review_cycles_max=$(jq '.develop.review_cycles_max // 3' <<<"$CONFIG_JSON")
+   fail_strategy=$(jq -r '.develop.fail_strategy // "next-ticket"' <<<"$CONFIG_JSON")
    ```
 
 5. **Pre-flight**:
@@ -59,10 +60,11 @@ feature (session/daemon loop).
      in step-03a; here we only confirm the files are present).
 
 6. **Design handoff hint**. After feature is resolved, scan
-   `tickets.json` for any ticket carrying `design_url` (or
-   `wireframe_url`). If at least one is present, surface a one-liner:
+   `.snap/tickets/${feature_id}.json` for any ticket carrying `design_url`
+   (or `wireframe_url`). If at least one is present, surface a one-liner:
 
    ```bash
+   tickets_file=".snap/tickets/${feature_id}.json"
    handoff=$(jq -r '
      [.tickets[] | select((.design_url // "") != "" or (.wireframe_url // "") != "")
                  | {id:(.platform_id // .local_id),
@@ -82,9 +84,13 @@ feature (session/daemon loop).
 7. **Append progress**:
 
    ```bash
-   bash skills/_shared/update-progress.sh \
-     --project-root="$PWD" --feature-id="$feature_id" \
-     --skill=develop --step-num=00 --step-name=init --status=ok
+   bash skills/_shared/progress.sh step \
+     --project-root="$PWD" \
+     --skill=develop \
+     --feature-id="$feature_id" \
+     --step-num=00 \
+     --step-name=init \
+     --status=ok
    ```
 
 ## Acceptance check

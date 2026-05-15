@@ -7,8 +7,8 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DETECT="${ROOT}/skills/_shared/detect-codebase.sh"
 STATE="${ROOT}/skills/_shared/define-state.sh"
-PROGRESS="${ROOT}/skills/_shared/update-progress.sh"
-RESUME="${ROOT}/skills/_shared/resume-state.sh"
+PROGRESS="${ROOT}/skills/_shared/progress.sh"
+SETUP="${ROOT}/skills/_shared/setup-snap-dir.sh"
 LOAD_CONFIG="${ROOT}/skills/_shared/load-config.sh"
 
 PASS=0
@@ -43,9 +43,12 @@ verdict=$(bash "$DETECT" --project-root="$DIR")
 hc=$(echo "$verdict" | jq -r '.has_codebase')
 [ "$hc" = "false" ] && ok "1.1 has_codebase=false on empty dir" || ko "1.1 got $hc"
 
-# config + scaffold
+# config + scaffold via setup-snap-dir.sh (v1.0.0 layout)
 write_config_none "$DIR"
-mkdir -p "$DIR/.claude/product/features"
+bash "$SETUP" --project-root="$DIR" >/dev/null
+[ -d "$DIR/.snap/manifests" ] && [ -d "$DIR/.snap/queues" ] \
+  && ok "1.1b setup-snap-dir scaffolded v1.0 layout" \
+  || ko "1.1b layout missing"
 
 # load-config materializes resolved config
 out=$(bash "$LOAD_CONFIG" --project-root="$DIR" 2>/dev/null)
@@ -57,8 +60,9 @@ fi
 
 # step-00: init state, log progress
 bash "$STATE" init --lang=en --mode=greenfield --project-root="$DIR" >/dev/null
-[ -f "$DIR/.claude/product/.define-state.json" ] && ok "1.3 state file created" || ko "1.3"
-bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=00 --step-name=init --status=ok --skill=define >/dev/null
+[ -f "$DIR/.snap/.define-state.json" ] && ok "1.3 state file created" || ko "1.3"
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=00 --step-name=init --status=ok >/dev/null
 
 # step-01: vision + north star
 bash "$STATE" set vision "Build a tool that helps designers ship wireframes faster by automating handoff." --project-root="$DIR"
@@ -66,7 +70,8 @@ bash "$STATE" set north_star_metric "weekly_active_designers" --project-root="$D
 bash "$STATE" set north_star_current "0" --project-root="$DIR"
 bash "$STATE" set north_star_target "100" --project-root="$DIR"
 bash "$STATE" set target_horizon "Q3 2026" --project-root="$DIR"
-bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=01 --step-name=vision --status=ok --skill=define >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=01 --step-name=vision --status=ok >/dev/null
 
 # step-02: persona
 bash "$STATE" add-persona '{
@@ -76,7 +81,8 @@ bash "$STATE" add-persona '{
   "persona_pains": "Manual ticket-by-ticket wireframe descriptions",
   "persona_tools": "Figma, Notion"
 }' --project-root="$DIR"
-bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=02 --step-name=personas --status=ok --skill=define >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=02 --step-name=personas --status=ok >/dev/null
 
 # step-03: feature
 bash "$STATE" add-feature '{
@@ -91,7 +97,8 @@ bash "$STATE" add-feature '{
   "out_of_scope": "OAuth, SSO, MFA",
   "wireframes": []
 }' --project-root="$DIR"
-bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=03 --step-name=features --status=ok --skill=define >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=03 --step-name=features --status=ok >/dev/null
 
 # step-03 validate
 if bash "$STATE" validate --project-root="$DIR" 2>/tmp/define-e2e-validate.err; then
@@ -109,25 +116,42 @@ fcount=$(bash "$STATE" list-features --project-root="$DIR" | wc -l | tr -d ' ')
 # step-05 publish: platform=none → skip
 platform=$(jq -r '.documentation.platform' "$DIR/snapship.config.json")
 if [ "$platform" = "none" ]; then
-  bash "$PROGRESS" --project-root="$DIR" --feature-id=_global --step-num=05 --step-name=publish --status=skip --skill=define --note="documentation.platform=none" >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+    --step-num=05 --step-name=publish --status=skip --note="documentation.platform=none" >/dev/null
   ok "1.7 step-05 skipped on platform=none"
 else
   ko "1.7 platform should be none"
 fi
 
-# resume after terminal: should compute step-06 (past terminal)
-out=$(bash "$RESUME" next --skill=define --project-root="$DIR")
-ns=$(echo "$out" | jq -r '.next_step')
-[ "$ns" = "step-06" ] && ok "1.8 resume past skip points to step-06 (caller stops)" || ko "1.8 got $ns"
+# Finish run → entry purged from in_flight.
+bash "$PROGRESS" finish --project-root="$DIR" --skill=define --feature-id=_global --status=ok >/dev/null
 
-# progress.md contains the full happy-path
-if grep -q "define step-00 init — ok" "$DIR/.claude/product/progress.md" \
-  && grep -q "define step-03 features — ok" "$DIR/.claude/product/progress.md" \
-  && grep -q "define step-05 publish — skip" "$DIR/.claude/product/progress.md"; then
-  ok "1.9 progress.md captures full pipeline"
+# resume after terminal: skill purged from in_flight → empty stdout
+out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --feature-id=_global)
+if [ -z "$out" ]; then
+  ok "1.8 resume after terminal returns empty (purged)"
 else
-  ko "1.9 progress.md missing entries"
+  ko "1.8 expected empty, got '$out'"
 fi
+
+# progress.json captures the full happy-path (steps inspected before finish purge: list returns []
+# after finish ok; assert steps were appended during run via a second probe scenario).
+# Cross-check: list a fresh skill run after init to confirm steps land in the JSON.
+bash "$PROGRESS" start --project-root="$DIR" --skill=define --feature-id=_global >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=00 --step-name=init --status=ok >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  --step-num=03 --step-name=features --status=ok >/dev/null
+steps_json=$(bash "$PROGRESS" list --project-root="$DIR" \
+  | jq '.[] | select(.skill == "define" and .feature_id == "_global") | .steps')
+init_ok=$(echo "$steps_json" | jq '[.[] | select(.name == "init" and .status == "ok")] | length')
+feat_ok=$(echo "$steps_json" | jq '[.[] | select(.name == "features" and .status == "ok")] | length')
+if [ "$init_ok" -ge 1 ] && [ "$feat_ok" -ge 1 ]; then
+  ok "1.9 progress.json captures full pipeline"
+else
+  ko "1.9 progress.json missing entries (init=$init_ok features=$feat_ok)"
+fi
+bash "$PROGRESS" finish --project-root="$DIR" --skill=define --feature-id=_global --status=ok >/dev/null
 
 trash "$DIR" 2>/dev/null || true
 
@@ -156,9 +180,12 @@ verdict=$(bash "$DETECT" --project-root="$DIR")
 hc=$(echo "$verdict" | jq -r '.has_codebase')
 [ "$hc" = "true" ] && ok "2.1 has_codebase=true on existing project" || ko "2.1 got $hc"
 
-# Pre-existing PRD + state from prior run
-mkdir -p "$DIR/.claude/product/features/01-auth"
-echo "# PRD — TestProduct" > "$DIR/.claude/product/prd-global.md"
+# Scaffold v1.0 workspace + per-feature manifest (extension uses --feature)
+bash "$SETUP" --project-root="$DIR" --feature-id=02-billing --feature-name="Billing" --lang=en >/dev/null
+[ -f "$DIR/.snap/manifests/02-billing.manifest.json" ] \
+  && ok "2.1b extension manifest created" \
+  || ko "2.1b manifest missing"
+
 bash "$STATE" init --lang=en --mode=extension --feature=02-billing --project-root="$DIR" >/dev/null
 bash "$STATE" set vision "Existing product description that is long enough and contains a verb." --project-root="$DIR"
 bash "$STATE" set north_star_metric "wad" --project-root="$DIR"
@@ -174,20 +201,28 @@ bash "$STATE" add-feature '{
   "in_scope":"Stripe","out_of_scope":"Other gateways","wireframes":[]
 }' --project-root="$DIR"
 
-# Per-feature progress (extension scenario advances per-feature)
-bash "$PROGRESS" --project-root="$DIR" --feature-id=02-billing --step-num=03 --step-name=features --status=ok --skill=define >/dev/null
+# Per-feature progress: log step-03 fail (so resume has something to surface)
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=02-billing \
+  --step-num=03 --step-name=features --status=fail --note="simulated mid-run interrupt" >/dev/null
 
-# Resume with partial-match feature
-out=$(bash "$RESUME" next --skill=define --feature=02 --project-root="$DIR")
-fid=$(echo "$out" | jq -r '.feature_id')
-ns=$(echo "$out" | jq -r '.next_step')
-[ "$fid" = "02-billing" ] && ok "2.2 partial '02' resolves to 02-billing" || ko "2.2 got $fid"
-[ "$ns" = "step-04" ] && ok "2.3 next_step=step-04 from per-feature progress" || ko "2.3 got $ns"
+# Resume with exact feature_id → tab-separated NUM\tNAME\tSTATUS (progress.sh contract)
+out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --feature-id=02-billing)
+if [ -n "$out" ]; then
+  num=$(echo "$out" | awk -F'\t' '{print $1}')
+  name=$(echo "$out" | awk -F'\t' '{print $2}')
+  status=$(echo "$out" | awk -F'\t' '{print $3}')
+  [ "$num" = "03" ] && ok "2.2 resume returns step-num=03" || ko "2.2 got num=$num"
+  [ "$name" = "features" ] && ok "2.3 resume returns step-name=features" || ko "2.3 got $name"
+  [ "$status" = "fail" ] && ok "2.4 resume returns status=fail" || ko "2.4 got $status"
+else
+  ko "2.2/2.3/2.4 resume returned empty" "expected resumable step"
+fi
 
-# Resume slug partial
-out=$(bash "$RESUME" next --skill=define --feature=bill --project-root="$DIR")
-fid=$(echo "$out" | jq -r '.feature_id')
-[ "$fid" = "02-billing" ] && ok "2.4 'bill' resolves to 02-billing" || ko "2.4 got $fid"
+# Manifest exists for the feature → skill layer can match partial '02' against
+# .snap/manifests/02-billing.manifest.json (partial-match lives in step-00, not helper)
+matches=$(ls "$DIR/.snap/manifests"/02-*.manifest.json 2>/dev/null | wc -l | tr -d ' ')
+[ "$matches" = "1" ] && ok "2.5a partial-match candidate set has 1 manifest for '02'" \
+  || ko "2.5a got $matches manifests"
 
 # Validate full state
 if bash "$STATE" validate --project-root="$DIR" 2>/tmp/define-e2e-validate.err; then
@@ -196,12 +231,15 @@ else
   ko "2.5 validation failed: $(cat /tmp/define-e2e-validate.err)"
 fi
 
-# Wipe (step-05 cleanup) preserves docs cache + per-feature progress, removes state
-echo '{"prd_global":{"page_id":"abc","url":"u"}}' > "$DIR/.claude/product/.docs-cache.json"
+# Wipe (step-05 cleanup) deletes define-state but leaves manifests + progress.json intact
 bash "$STATE" wipe --project-root="$DIR" >/dev/null
-[ ! -f "$DIR/.claude/product/.define-state.json" ] && ok "2.6 wipe removed state file" || ko "2.6"
-[ -f "$DIR/.claude/product/.docs-cache.json" ] && ok "2.7 wipe preserved docs-cache" || ko "2.7"
-[ -f "$DIR/.claude/product/features/02-billing/progress.md" ] && ok "2.8 wipe preserved per-feature progress.md" || ko "2.8"
+[ ! -f "$DIR/.snap/.define-state.json" ] && ok "2.6 wipe removed define-state" || ko "2.6"
+[ -f "$DIR/.snap/manifests/02-billing.manifest.json" ] \
+  && ok "2.7 wipe preserved per-feature manifest" \
+  || ko "2.7 manifest gone"
+[ -f "$DIR/.snap/progress.json" ] \
+  && ok "2.8 wipe preserved progress.json" \
+  || ko "2.8 progress.json gone"
 
 trash "$DIR" 2>/dev/null || true
 

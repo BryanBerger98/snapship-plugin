@@ -23,7 +23,7 @@ echo ""
 echo "[1] init"
 DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR" --lang=en --mode=greenfield
-F="${DIR}/.claude/product/.define-state.json"
+F="${DIR}/.snap/.define-state.json"
 [ -f "$F" ] && ok "1.1 file created" || ko "1.1 missing"
 jq empty "$F" 2>/dev/null && ok "1.2 valid JSON" || ko "1.2 invalid JSON"
 [ "$(jq -r '.lang' "$F")" = "en" ] && ok "1.3 lang stored" || ko "1.3"
@@ -59,7 +59,7 @@ DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR"
 P='{"persona_name":"Sarah","persona_role":"freelance designer","persona_goals":"ship work","persona_pains":"context switching","persona_tools":"Figma"}'
 bash "$SCRIPT" add-persona "$P" --project-root="$DIR"
-F="${DIR}/.claude/product/.define-state.json"
+F="${DIR}/.snap/.define-state.json"
 n=$(jq '.personas | length' "$F")
 [ "$n" = "1" ] && ok "4.1 persona appended" || ko "4.1 n=$n"
 [ "$(jq -r '.personas[0].persona_name' "$F")" = "Sarah" ] && ok "4.2 name preserved" || ko "4.2"
@@ -72,7 +72,7 @@ DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR"
 FT='{"feature_id":"01-auth","feature_title":"Sign-up","feature_status":"refined","priority":"must","problem_statement":"Users cannot create accounts and they are blocked from using the product.","solution_overview":"Add email signup.","acceptance_criteria":[{"ac_id":"1","ac_text":"User can sign up with email"}],"in_scope":"email","out_of_scope":"OAuth"}'
 bash "$SCRIPT" add-feature "$FT" --project-root="$DIR"
-F="${DIR}/.claude/product/.define-state.json"
+F="${DIR}/.snap/.define-state.json"
 n=$(jq '.features | length' "$F")
 [ "$n" = "1" ] && ok "5.1 feature appended" || ko "5.1 n=$n"
 trash "$DIR" 2>/dev/null || true
@@ -170,7 +170,7 @@ echo ""
 echo "[12] wipe"
 DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR"
-F="${DIR}/.claude/product/.define-state.json"
+F="${DIR}/.snap/.define-state.json"
 [ -f "$F" ] && ok "12.1 created" || ko "12.1"
 bash "$SCRIPT" wipe --project-root="$DIR"
 [ ! -f "$F" ] && ok "12.2 wiped" || ko "12.2"
@@ -181,7 +181,7 @@ echo ""
 echo "[13] path"
 DIR=$(setup_dir)
 out=$(bash "$SCRIPT" path --project-root="$DIR")
-[ "$out" = "${DIR}/.claude/product/.define-state.json" ] && ok "13.1 path printed" || ko "13.1 got $out"
+[ "$out" = "${DIR}/.snap/.define-state.json" ] && ok "13.1 path printed" || ko "13.1 got $out"
 trash "$DIR" 2>/dev/null || true
 
 # 14. usage

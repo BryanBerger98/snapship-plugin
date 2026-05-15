@@ -17,7 +17,7 @@ Send **one message with N Agent tool calls** so the runs execute in parallel
 | Agent | Subagent | When |
 |-------|----------|------|
 | Codebase exploration | `explore-codebase` | Always (find existing modules to extend, tests, related types) |
-| Library docs | `explore-docs` | Story's `expected_files` references a third-party lib (detected via package manifest) |
+| Library docs | `explore-docs` | Story's `files` references a third-party lib (detected via package manifest) |
 | Web search | `websearch` | Story body mentions an external service / API / pattern not in repo |
 
 For a feature with N stories, you may issue up to `config.ai.max_parallel_agents`
@@ -82,24 +82,24 @@ Return: <≤ 200 words, the specific format>
      like "should no longer …" / "stops failing when …"; story restores prior
      behavior rather than adding capability.
    - **epic** — story aggregates ≥ 3 child stories explicitly listed; spans ≥ 2
-     domains; `expected_files` empty or extremely broad ("multiple modules").
+     domains; `files` empty or extremely broad ("multiple modules").
    - **user-story** — anything else (default).
 
    Persist `type` on each story before format step. step-04 reads it to pick the
    right template.
 
 5. **Update draft file** in-place:
-   `.claude/product/features/${feature_id}/.tickets-draft.json`.
+   `.snap/tickets/${feature_id}.draft.json`.
 
 6. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=ticket \
      --feature-id="$feature_id" \
      --step-num=03 \
      --step-name=enrich \
-     --status=ok \
-     --skill=ticket
+     --status=ok
    ```
 
 ## Failure handling

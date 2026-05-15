@@ -54,7 +54,7 @@ The agent returns a single JSON fence:
 ```
 
 Parse via `skills/_shared/parse-agent-output.sh`. Persist as
-`.qa-verdict-${run_id}-${local_id}.json`.
+`.snap/queues/${feature_id}.qa-verdict-${run_id}-${local_id}.json`.
 
 ### D. Decision routing
 
@@ -66,10 +66,13 @@ Parse via `skills/_shared/parse-agent-output.sh`. Persist as
 
 ### E. AC status echo
 
-Update `acceptance_criteria` in tickets.json with `checked: true` for `pass`
-items (the reviewer's JSON drives the truth — do not mutate text):
+Update `acceptance_criteria` in `.snap/tickets/${feature_id}.json` with
+`checked: true` for `pass` items (the reviewer's JSON drives the truth — do not
+mutate text):
 
 ```bash
+tickets_file=".snap/tickets/${feature_id}.json"
+tmp=$(mktemp)
 jq --arg lid "$lid" --argjson ac "$ac_status" '
   (.tickets[] | select(.local_id == $lid)).acceptance_criteria as $current
   | (.tickets[] | select(.local_id == $lid)).acceptance_criteria
@@ -77,13 +80,17 @@ jq --arg lid "$lid" --argjson ac "$ac_status" '
       range(0; ($current | length)) as $i
       | $current[$i] + {checked: ($ac[$i].status == "pass")}
     ]
-' "$tickets_file" > "$tickets_file.tmp" && mv "$tickets_file.tmp" "$tickets_file"
+' "$tickets_file" > "$tmp" && mv "$tmp" "$tickets_file"
 ```
 
-## Append progress
+## Telemetry + progress
 
 ```bash
-bash skills/_shared/update-progress.sh \
+bash skills/_shared/telemetry.sh log \
+  --project-root="$PWD" --skill=qa \
+  --step-num=02 --step-name=interpret --status=ok
+
+bash skills/_shared/progress.sh step \
   --project-root="$PWD" --feature-id="$feature_id" \
   --skill=qa --step-num=02 --step-name=interpret --status=ok \
   --note="severity=$severity flaky=$flaky_verdict"

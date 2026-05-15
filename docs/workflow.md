@@ -60,12 +60,12 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
   ├─ step-04: render per-feature PRD localement (drop prd-global)
   ├─ step-05: push PRD page archive `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}` (immuable, taggé domains)
   │           + lookup-or-create domain + journey pages sous `{functional_root}/`
-  └─ meta.json: { prd: {page_id, url, path}, domains[], impacted_journeys[] }
-     domains.json: { <domain>: {domain_page_id, journeys: { <slug>: {page_id, url} }} }
+  └─ manifest.json: { prd: {page_id, url, path}, domains[], impacted_journeys[] }
+     _taxonomy.json: { <domain>: {domain_page_id, journeys: { <slug>: {page_id, url} }} }
 
 /snap:doc-import (v0.2 — bootstrap legacy)
   └─ AI cluster pages doc legacy → restructure (synthesize|copy|move)
-     → populate domains.json one-shot
+     → populate _taxonomy.json one-shot
 
 /snap:doc-update (v0.2 — auto post-QA si auto_update_on_qa_success)
   ├─ step-01: fetch PRD + journey pages courantes + git diff feature
@@ -73,7 +73,7 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
   └─ step-03: push update-page-content (PRD jamais touché)
 
 /ticket
-  ├─ step-00: lit PRD feature depuis docs platform (MCP fetch via meta.json.prd.page_id)
+  ├─ step-00: lit PRD feature depuis docs platform (MCP fetch via manifest.json.prd.page_id)
   ├─ step-05 (push): lien PRD ajouté en description ticket
   └─ Optionnel: ajoute liens tickets dans page docs feature (section "Tickets")
 
@@ -100,7 +100,7 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
               + post review-thread (commentaire PR rendu via `templates.review_thread`)
 
 /qa  (skill séparée — validation runtime)
-  ├─ step-00: charge meta.json + tickets.json + détermine diff scope (commits ticket/feature)
+  ├─ step-00: charge manifest.json + tickets.json + détermine diff scope (commits ticket/feature)
   ├─ step-01-collect: raw outputs (régression scope=impacted via code-review-graph + wireframe via Playwright)
   ├─ step-02-interpret: spawn `code-reviewer-qa` subagent → severity + feedback_md
   ├─ step-03-fix: cycle dev↔qa (max `qa.qa_cycles_max`)
@@ -117,7 +117,7 @@ Idempotent: si config existe partielle, propose update sections incomplètes uni
 ```
 Tout appel MCP/CLI échoué (timeout, auth, API error):
   1. Skill catch erreur, capture stack trace + step name
-  2. Update progress.md avec:
+  2. Update progress.json avec:
      - timestamp, step échoué, erreur exacte
      - état partiel (variables clés, IDs créés avant fail)
   3. Affiche message clair:
@@ -129,7 +129,7 @@ Tout appel MCP/CLI échoué (timeout, auth, API error):
 
 **Idempotence:** chaque step doit être ré-exécutable sans dupliquer:
 
-- `/snap:define`: avant create page PRD, check `meta.json.prd.page_id` existe (v0.2)
+- `/snap:define`: avant create page PRD, check `manifest.json.prd.page_id` existe (v0.2)
 - `/ticket`: avant create ticket, check si déjà push (cache `tickets.json`)
 - `/wireframe`: blob upload checksum-based dedup
 - `/develop`: branch checkout idempotent, commit message diff-based

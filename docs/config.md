@@ -8,9 +8,9 @@
 
 ```jsonc
 {
-  "$schema": "./.claude/product/schemas/config.schema.json",
+  "$schema": "./.snap/schemas/config.schema.json",
   "version": "1.0",
-  // setup-config.sh copie schemas bundlés `_shared/schemas/*.schema.json` → `.claude/product/schemas/` au premier run
+  // setup-config.sh copie schemas bundlés `_shared/schemas/*.schema.json` → `.snap/schemas/` au premier run
   // load-config.sh valide config contre schema (Ajv ou jsonschema CLI). Fail explicite si invalide.
   "repository": {
     "platform": "github",                  // github | gitlab
@@ -356,4 +356,4 @@ Skill passe contexte JSON via stdin (feature_id, ticket_ids, etc.).
   - `tickets.platform != "jira"` + `tickets.jira.*` set → "Section tickets.jira ignorée sur platform Y"
   - `lifecycle_scripts.<name>` set vers script inexistant → "script X path invalide"
 
-Cache résolution dans `.claude/product/.config-resolved.json` (invalidé si mtime change).
+Cache résolution dans `.snap/.config-resolved.json` (invalidé si mtime change).

@@ -25,30 +25,32 @@ Reject any candidate story that:
 
 ## Tasks
 
-1. **Map AC → stories**: for each `acceptance_criteria` entry from step-01, draft a
-   story:
+1. **Map AC → stories**: for each `acceptance_criteria` entry from step-01,
+   draft a story (shape aligned with `tickets.schema.json` `local_id` field) :
    ```json
    {
-     "ticket_id": "01-auth-001",
+     "local_id": "t-001",
      "title": "<imperative verb + object>, ≤ 70 chars",
      "ac_id": "1",
      "ac_text": "...",
      "estimated_min": 15,
-     "expected_files": ["src/auth/signup.ts", "src/auth/__tests__/signup.test.ts"],
+     "files": ["src/auth/signup.ts", "src/auth/__tests__/signup.test.ts"],
      "depends_on": [],
-     "labels": ["feature:01-auth", "type:feature"]
+     "labels": ["feature:01-auth", "type:feature"],
+     "status": "draft"
    }
    ```
 
-2. **Apply naming**: derive `ticket_id` via `apply-naming.sh`:
+2. **Apply naming**: derive `local_id` via `apply-naming.sh`:
    ```bash
    bash skills/_shared/apply-naming.sh ticket \
      --feature-id="$feature_id" \
      --sequence="$n"
+   # → t-001, t-002, …
    ```
 
 3. **Detect dependencies**: scan story bodies for cross-story references; populate
-   `depends_on` with prior `ticket_id`s. The order in `tickets.json` determines
+   `depends_on` with prior `local_id`s. The order in `tickets.json` determines
    dev order — sort topologically (must come before should before could; respect
    `depends_on`).
 
@@ -61,18 +63,19 @@ Reject any candidate story that:
    - "Looks right — proceed to enrichment"
    - "Edit the list" (loop back to A.1, with the current draft as starting point)
 
-6. **Stash** the draft tickets in `.claude/product/features/${feature_id}/.tickets-draft.json`
-   (cleared by step-06 on success). Do **not** call the platform yet.
+6. **Stash** the draft tickets in
+   `.snap/tickets/${feature_id}.draft.json` (cleared by step-06 on success).
+   Do **not** call the platform yet.
 
 7. **Append progress**:
    ```bash
-   bash skills/_shared/update-progress.sh \
+   bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
+     --skill=ticket \
      --feature-id="$feature_id" \
      --step-num=02 \
      --step-name=decompose \
-     --status=ok \
-     --skill=ticket
+     --status=ok
    ```
 
 ## Failure handling
@@ -83,7 +86,7 @@ Reject any candidate story that:
 ## Acceptance check
 
 - ≥ 1 story per AC.
-- Every story has `ticket_id`, `title`, `ac_id`, `expected_files`.
+- Every story has `local_id`, `title`, `ac_id`, `files`.
 
 ## Next step
 

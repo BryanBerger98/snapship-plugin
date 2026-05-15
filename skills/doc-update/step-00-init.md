@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-collect
-description: Parse args, require /snap:init, validate feature state, load PRD + journey refs from meta.json + domains.json.
+description: Parse args, require /snap:init, validate feature state, load PRD + journey refs from manifest + _taxonomy.json.
 ---
 
 # step-00 — init
@@ -28,7 +28,7 @@ Validate prerequisites. Fail loud, fail early.
 
 3. **Resolve feature**:
    ```bash
-   matches=$(ls -d .claude/product/features/${FEATURE}* 2>/dev/null)
+   matches=$(ls .snap/manifests/${FEATURE}*.manifest.json 2>/dev/null)
    N=$(echo "$matches" | grep -c .)
    if [ "$N" -eq 0 ]; then
      echo "ERROR: no feature matches '${FEATURE}'." >&2; exit 1
@@ -36,32 +36,39 @@ Validate prerequisites. Fail loud, fail early.
      echo "ERROR: ambiguous feature '${FEATURE}' — matches:" >&2
      echo "$matches" >&2; exit 1
    fi
-   FEATURE_DIR="$matches"
-   FEATURE_ID=$(basename "$FEATURE_DIR")
-   META="$FEATURE_DIR/meta.json"
+   MANIFEST="$matches"
+   FEATURE_ID=$(basename "$MANIFEST" .manifest.json)
    ```
 
-4. **Validate feature state**:
+4. **Resume / start progress run**:
    ```bash
-   STATE=$(jq -r '.state' "$META")
+   bash skills/_shared/progress.sh resume \
+     --project-root="$PWD" \
+     --skill=doc-update \
+     --feature-id="$FEATURE_ID"
+   ```
+
+5. **Validate feature state**:
+   ```bash
+   STATE=$(jq -r '.state' "$MANIFEST")
    if [ "$STATE" != "qa-validated" ]; then
      echo "ERROR: feature ${FEATURE_ID} state=${STATE}, expected qa-validated." >&2
      echo "Run /snap:qa first." >&2; exit 1
    fi
 
-   PRD_PAGE_ID=$(jq -r '.prd.page_id // ""' "$META")
+   PRD_PAGE_ID=$(jq -r '.refs.prd.page_id // ""' "$MANIFEST")
    if [ -z "$PRD_PAGE_ID" ]; then
-     echo "ERROR: feature ${FEATURE_ID} has no prd.page_id — was /snap:define publish step run?" >&2
+     echo "ERROR: feature ${FEATURE_ID} has no refs.prd.page_id — was /snap:define publish step run?" >&2
      exit 1
    fi
    ```
 
-5. **Load resolved config**:
+6. **Load resolved config**:
    ```bash
-   bash skills/_shared/load-config.sh --project-root="$PWD" >/dev/null
-   PLATFORM=$(jq -r '.documentation.platform // "none"' .claude/product/.config-resolved.json)
-   AUTO_UPDATE_MODE=$(jq -r '.documentation.auto_update_mode // "diff"' .claude/product/.config-resolved.json)
-   WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' .claude/product/.config-resolved.json)
+   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
+   AUTO_UPDATE_MODE=$(jq -r '.documentation.auto_update_mode // "diff"' <<<"$CONFIG_JSON")
+   WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' <<<"$CONFIG_JSON")
 
    # CLI override
    [ -n "$MODE_OVERRIDE" ] && AUTO_UPDATE_MODE="$MODE_OVERRIDE"
@@ -72,7 +79,7 @@ Validate prerequisites. Fail loud, fail early.
    - `PLATFORM ∉ {affine, notion}` → "ERROR: unsupported platform — re-run /snap:init"
    - `AUTO_UPDATE_MODE ∉ {diff, rewrite}` → reject
 
-6. **MCP availability**:
+7. **MCP availability**:
    ```bash
    bash skills/_shared/check-mcp-required.sh \
      --required="$PLATFORM" \
@@ -80,9 +87,9 @@ Validate prerequisites. Fail loud, fail early.
    ```
    Exit 1 if MCP not loaded.
 
-7. **Resolve impacted journey page IDs from `domains.json`**:
+8. **Resolve impacted journey page IDs from `_taxonomy.json`**:
    ```bash
-   IMPACTED=$(jq -c '.impacted_journeys // []' "$META")
+   IMPACTED=$(jq -c '.impacted_journeys // []' "$MANIFEST")
    if [ "$(echo "$IMPACTED" | jq 'length')" -eq 0 ]; then
      echo "ERROR: feature ${FEATURE_ID} has no impacted_journeys — nothing to update." >&2
      exit 1
@@ -93,9 +100,10 @@ Validate prerequisites. Fail loud, fail early.
    for entry in $(echo "$IMPACTED" | jq -c '.[]'); do
      domain=$(echo "$entry" | jq -r '.domain')
      jslug=$(echo "$entry" | jq -r '.journey_slug')
-     j=$(bash skills/_shared/domains-state.sh get-journey "$domain" "$jslug" --project-root="$PWD")
+     j=$(bash skills/_shared/taxonomy-state.sh get-journey \
+       --project-root="$PWD" --domain="$domain" --slug="$jslug")
      if [ -z "$j" ] || [ "$j" = "null" ]; then
-       echo "ERROR: journey ${domain}/${jslug} missing from domains.json — re-run /snap:define publish?" >&2
+       echo "ERROR: journey ${domain}/${jslug} missing from _taxonomy.json — re-run /snap:define publish?" >&2
        exit 1
      fi
      page_id=$(echo "$j" | jq -r '.page_id')
@@ -106,17 +114,32 @@ Validate prerequisites. Fail loud, fail early.
    done
    ```
 
-8. **Hand off** to step-01 with vars:
-   - `$FEATURE_ID`, `$FEATURE_DIR`, `$META`
-   - `$PRD_PAGE_ID`
-   - `$JOURNEYS_RESOLVED` (JSON array)
-   - `$PLATFORM`, `$WORKSPACE_ID`, `$AUTO_UPDATE_MODE`
-   - `$DRY_RUN`, `$AUTO`
+9. **Telemetry + progress**:
+   ```bash
+   bash skills/_shared/telemetry.sh log \
+     --project-root="$PWD" --skill=doc-update \
+     --step-num=00 --step-name=init --status=ok
+
+   bash skills/_shared/progress.sh step \
+     --project-root="$PWD" \
+     --skill=doc-update \
+     --feature-id="$FEATURE_ID" \
+     --step-num=00 \
+     --step-name=init \
+     --status=ok
+   ```
+
+10. **Hand off** to step-01 with vars:
+    - `$FEATURE_ID`, `$MANIFEST`
+    - `$PRD_PAGE_ID`
+    - `$JOURNEYS_RESOLVED` (JSON array)
+    - `$PLATFORM`, `$WORKSPACE_ID`, `$AUTO_UPDATE_MODE`
+    - `$DRY_RUN`, `$AUTO`
 
 ## Acceptance check
 
 - Feature resolved + state == `qa-validated`.
-- All impacted journeys present in `domains.json` with `page_id`.
+- All impacted journeys present in `_taxonomy.json` with `page_id`.
 - MCP for `$PLATFORM` reachable.
 
 ## Next step

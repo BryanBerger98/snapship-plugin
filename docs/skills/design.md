@@ -55,7 +55,7 @@ Desktop Bridge que `/snap:wireframe figma`.
 | Flag                   | Effet                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------- |
 | `<ticket-id\|feature-id>` | Requis sauf avec `--resume`. Ticket id → un ticket ; feature id → tous les tickets UI. |
-| `--resume` / `-r`      | Reprend via `resume-state.sh next --skill=design`.                                     |
+| `--resume` / `-r`      | Reprend via `progress.sh resume next --skill=design`.                                     |
 | `--dry-run`            | Les helpers retournent des descripteurs mock : aucun appel MCP, aucun asset ni écriture doc. |
 | `--no-wireframe-reuse` | Saute le prompt « réutiliser les écrans `/wireframe` » ; reconstruit la liste depuis les tickets. |
 
@@ -93,12 +93,12 @@ Le DS est **lu uniquement** — `/snap:design` n'y écrit jamais.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/design/{screen-id}-{state}.{fmt}` (cache local).
-- Page `design-gallery` dans la doc (URL cachée dans `.docs-cache.json` sous
-  `design_gallery.{feature_id}`).
-- `.claude/product/design-gallery.md` — une section par écran.
-- Chaque ticket UI cible dans `tickets.json` gagne `design_screen`, `design_url`,
-  `design_mode` (`mockup` | `reused`).
+- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}` (cache local pré-push).
+- Page `design-gallery` dans la doc — ref persistée dans
+  `manifests/{feature_id}.manifest.json` → `refs.design_gallery.{page_id,url,synced_at,sync_status}`.
+- `.snap/designs/{feature_id}/gallery.md` — une section par écran (source rendue avant push).
+- Chaque ticket UI cible dans `.snap/tickets/{feature_id}.json` gagne
+  `design_screen`, `design_url`, `design_mode` (`mockup` | `reused`).
 
 ## Étape suivante
 

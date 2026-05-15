@@ -1,70 +1,92 @@
 ---
 name: ticket
-description: Decompose a feature PRD into atomic, dev-ready tickets, enrich each with parallel agent research, format per platform, and push to GitHub/GitLab/JIRA via tickets-adapter.
+description: Decompose a feature PRD into atomic, dev-ready tickets, enrich each with parallel agent research, format per platform, and push to GitHub/GitLab/JIRA/Linear via tickets-adapter. Blocks when tickets.platform = "none".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
-# /ticket — feature → tickets skill
+# /snap:ticket — feature → tickets skill
 
-Run this skill **after `/define`** when a feature PRD exists and you need to break it
-into atomic tickets ready for `/develop`.
+Run this skill **after `/snap:define`** when a feature manifest exists and you
+need to break the PRD into atomic tickets ready for `/snap:develop`.
+
+## Prerequisite
+
+- `/snap:init` ran and `tickets.platform != "none"` in `snapship.config.json`.
+  If `none`, this skill **blocks** with:
+
+  ```
+  ERROR: tickets.platform is "none" — no tracker configured.
+  Re-run /snap:init --force to set a tracker, then retry /snap:ticket.
+  ```
+  (v1.0 decision : `/snap:ticket` is mandatory in the pipeline, hard-block
+  is honest about the gap.)
+
+- `/snap:define` produced the feature manifest at
+  `.snap/manifests/{feature_id}.manifest.json` with `refs.prd.sync_status =
+  "synced"`. The PRD body is fetched from remote in step-01 if the local
+  staging file is missing.
 
 ## When to use
 
-- A feature PRD (`prd-feature.md`) exists in `.claude/product/features/{feature_id}/`.
-- You want a numbered list of dev-ready stories (5-30min, 1-5 files each) on the
-  configured ticket platform.
-- Resume: `--resume` (`-r`) restarts from the last successful step recorded in the
-  feature's `progress.md`.
+- A manifest exists for the feature and you want a numbered list of dev-ready
+  stories (5-30 min, 1-5 files each) on the configured tracker.
+- Resume : `--resume` (`-r`) restarts from the last in-flight step recorded in
+  `.snap/progress.json`.
 
 ## Pipeline
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`     | Parse args, resolve `feature_id`, load PRD + config |
-| 01 | `step-01-load.md`     | Read `prd-feature.md`, extract AC + scope to context |
-| 02 | `step-02-decompose.md`| Break feature into atomic stories (5-30min, 1-5 files) |
-| 03 | `step-03-enrich.md`   | Parallel agents: codebase / docs / web search per story |
-| 04 | `step-04-format.md`   | Render each story via `templates/ticket-{platform}.md` |
-| 05 | `step-05-push.md`     | Push via `tickets-adapter.sh` (MCP > CLI) |
-| 06 | `step-06-index.md`    | Cache `tickets.json` + update feature `meta.json` |
+| 00 | `step-00-init.md`     | Parse args, resolve `feature_id`, load config, block if `tickets.platform=none` |
+| 01 | `step-01-load.md`     | Ensure PRD staging present (fetch from remote if needed), extract AC + scope to context |
+| 02 | `step-02-decompose.md`| Break feature into atomic stories (5-30 min, 1-5 files) |
+| 03 | `step-03-enrich.md`   | Parallel agents : codebase / docs / web search per story |
+| 04 | `step-04-format.md`   | Render each story via `templates/ticket-{platform}.md` (per type + platform) |
+| 05 | `step-05-push.md`     | Push via `tickets-adapter.sh` (CLI > MCP fallback) |
+| 06 | `step-06-index.md`    | Promote draft → `.snap/tickets/{fid}.json`, ack refs into manifest |
 
 ## Args
 
 ```
-/ticket [--resume|-r] [--feature=NN-slug] [--platform=github|gitlab|jira]
-        [--max-stories=N] [--dry-run]
+/snap:ticket [--resume|-r] [--feature=NN-slug]
+             [--platform=github|gitlab|jira|linear]
+             [--max-stories=N] [--dry-run]
 ```
 
-- `--feature` (required if multiple features defined): target feature_id (partial-match
-  via `resume-state.sh`).
+- `--feature` (required if multiple manifests): target `feature_id`
+  (partial-match supported).
 - `--platform`: override `config.tickets.platform`.
 - `--max-stories`: cap auto-decomposition (default 12).
-- `--dry-run`: format + log but skip the platform write (uses tickets-adapter
-  `--dry-run`).
+- `--dry-run`: format + log but skip the platform write.
 
 ## Outputs
 
-- `.claude/product/features/{feature_id}/tickets.json` — cached tickets array (id,
-  title, body, labels, status, platform_url).
-- `.claude/product/features/{feature_id}/meta.json` — `tickets_count` updated.
-- Tickets created on GitHub / GitLab / JIRA (URLs cached above).
-- `.claude/product/features/{feature_id}/progress.md` — append-only log.
+Local (persistent — references to remote) :
+
+- `.snap/tickets/{feature_id}.json` — cached tickets array (local_id,
+  platform_id, url, title, status, …) — schema `tickets.schema.json`.
+- `.snap/manifests/{feature_id}.manifest.json` — `refs.tickets` populated by
+  `sync-push.sh ack` (platform, url, synced_at, sync_status).
+
+Remote (single source of truth) :
+
+- Tickets / issues on GitHub / GitLab / JIRA / Linear (URLs cached above).
+
+Local (runtime — gitignored) :
+
+- `.snap/progress.json` — in-flight skill state, purged on terminal-step ok.
+- `.snap/telemetry.ndjson` — append-only event log.
 
 ## Resume protocol
 
-`/ticket --resume --feature=01` delegates to:
-
-```bash
-bash skills/_shared/resume-state.sh next --skill=ticket \
-  --feature="$feature" --project-root="$PWD"
-```
-
-Jump to the returned `next_step` with `feature_id` pre-loaded. See `step-00-init.md`.
+`/snap:ticket --resume --feature=01` reads `.snap/progress.json` via
+`progress.sh resume --skill=ticket --feature-id=<resolved>` — jumps to the
+returned step.
 
 ## Acceptance check (whole skill)
 
-- Every refined feature in `.claude/product/features/` either has a `tickets.json` with
-  ≥ 1 entry, or a `progress.md` ending with `ticket step-NN — fail|skip` and a clear
-  reason.
-- `tickets.json` schema-validates against `_shared/schemas/tickets.schema.json`.
+- Manifest has `refs.tickets.sync_status = "synced"` after step-06.
+- `.snap/tickets/{feature_id}.json` validates against
+  `_shared/schemas/tickets.schema.json` and contains ≥ 1 ticket.
+- `progress.json.in_flight` no longer contains a `ticket` entry for the
+  feature (purged by `progress.sh finish --status=ok`).

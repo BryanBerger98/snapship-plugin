@@ -52,7 +52,7 @@ echo "=== load-config.sh tests ==="
 echo ""
 echo "[1] No config file → defaults"
 DIR=$(setup_dir)
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "1.1 default lang" "fr" "$(echo "$out" | jq -r '.defaults.lang')"
 assert_eq "1.2 default review_cycles_max" "3" "$(echo "$out" | jq -r '.develop.review_cycles_max')"
 assert_eq "1.3 default security threshold" "info" "$(echo "$out" | jq -r '.develop.reviews.security.severity_threshold')"
@@ -64,7 +64,7 @@ echo ""
 echo "[2] Minimal config (version only)"
 DIR=$(setup_dir)
 cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "2.1 version" "1.0" "$(echo "$out" | jq -r '.version')"
 assert_eq "2.2 default qa_cycles_max" "2" "$(echo "$out" | jq -r '.qa.qa_cycles_max')"
 assert_eq "2.3 default ticket_id_regex (no platform → JIRA pattern)" "[A-Z]+-[0-9]+" "$(echo "$out" | jq -r '.naming.ticket_id_regex')"
@@ -75,7 +75,7 @@ echo ""
 echo "[3] github-only fixture (inherit, user overrides)"
 DIR=$(setup_dir)
 cp "${FIXTURES}/github-only.json" "${DIR}/snapship.config.json"
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "3.1 inherit resolved → github" "github" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "3.2 ticket_id_regex github" "#[0-9]+" "$(echo "$out" | jq -r '.naming.ticket_id_regex')"
 assert_eq "3.3 lang user override" "en" "$(echo "$out" | jq -r '.defaults.lang')"
@@ -90,7 +90,7 @@ echo ""
 echo "[4] full-jira fixture"
 DIR=$(setup_dir)
 cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "4.1 jira platform" "jira" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "4.2 jira project_key" "PROJ" "$(echo "$out" | jq -r '.tickets.jira.project_key')"
 assert_eq "4.3 wireframe_check enabled (user)" "true" "$(echo "$out" | jq -r '.qa.wireframe_check.enabled')"
@@ -102,11 +102,11 @@ echo ""
 echo "[5] Invalid config rejected"
 DIR=$(setup_dir)
 cp "${INVALID}/bad-platform.json" "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
+bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "5.1 bad-platform exit 1" 1 $?
 
 cp "${INVALID}/extra-field.json" "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
+bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "5.2 extra-field exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
 
@@ -115,7 +115,7 @@ echo ""
 echo "[6] Unsupported version"
 DIR=$(setup_dir)
 echo '{"version":"2.0"}' > "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate >/dev/null 2>&1
+bash "$SCRIPT" --project-root="$DIR" --no-validate >/dev/null 2>&1
 assert_exit "6.1 version 2.0 exit 2" 2 $?
 trash "$DIR" 2>/dev/null || true
 
@@ -124,26 +124,26 @@ echo ""
 echo "[7] inherit without repository"
 DIR=$(setup_dir)
 echo '{"version":"1.0","tickets":{"platform":"inherit"}}' > "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate >/dev/null 2>&1
+bash "$SCRIPT" --project-root="$DIR" --no-validate >/dev/null 2>&1
 assert_exit "7.1 unresolved inherit exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
 
-# 8. Cache: 2nd call reads cache file
+# 8. Stdout: 2nd call returns same resolved config
 echo ""
-echo "[8] Cache write + read"
+echo "[8] Stdout determinism (no cache file in v1.0.0)"
 DIR=$(setup_dir)
 cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
-if [ -f "${DIR}/.claude/product/.config-resolved.json" ]; then
-  echo "  PASS  8.1 cache file written"
+out1=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
+if [ ! -f "${DIR}/.snap/.config-resolved.json" ]; then
+  echo "  PASS  8.1 no cache file written (v1.0.0 stdout-only)"
   PASS=$((PASS + 1))
 else
-  echo "  FAIL  8.1 cache file missing"
+  echo "  FAIL  8.1 unexpected cache file present"
   FAIL=$((FAIL + 1))
-  ERRORS+=("8.1: cache file not written")
+  ERRORS+=("8.1: cache file should not be written in v1.0.0")
 fi
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
-assert_eq "8.2 cached output valid" "jira" "$(echo "$out" | jq -r '.tickets.platform')"
+out2=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
+assert_eq "8.2 deterministic output" "jira" "$(echo "$out2" | jq -r '.tickets.platform')"
 trash "$DIR" 2>/dev/null || true
 
 # 9. Warning: tickets.jira on non-jira platform
@@ -159,7 +159,7 @@ cat > "${DIR}/snapship.config.json" <<'EOF'
   }
 }
 EOF
-stderr=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>&1 >/dev/null)
+stderr=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>&1 >/dev/null)
 if echo "$stderr" | grep -q "tickets.jira section ignored"; then
   echo "  PASS  9.1 warns on dangling jira section"
   PASS=$((PASS + 1))
@@ -180,7 +180,7 @@ cat > "${DIR}/snapship.config.json" <<'EOF'
   "documentation": { "platform": "affine", "workspace": { "id": "ws-1" } }
 }
 EOF
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
 assert_eq "10.1 functional_root default" "Product Docs" "$(echo "$out" | jq -r '.documentation.paths.functional_root')"
 assert_eq "10.2 prd_root default" "Change Requests" "$(echo "$out" | jq -r '.documentation.paths.prd_root')"
 assert_eq "10.3 auto_update_mode default" "diff" "$(echo "$out" | jq -r '.documentation.auto_update_mode')"
@@ -197,7 +197,7 @@ cat > "${DIR}/snapship.config.json" <<'EOF'
   "documentation": { "platform": "none" }
 }
 EOF
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
 fr=$(echo "$out" | jq -r '.documentation.paths.functional_root // "<absent>"')
 assert_eq "11.1 functional_root absent" "<absent>" "$fr"
 auto=$(echo "$out" | jq -r '.documentation.auto_update_on_qa_success // "<absent>"')
@@ -220,7 +220,7 @@ cat > "${DIR}/snapship.config.json" <<'EOF'
   }
 }
 EOF
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
 assert_eq "12.1 functional_root user" "Specs" "$(echo "$out" | jq -r '.documentation.paths.functional_root')"
 assert_eq "12.2 prd_root user" "PRDs" "$(echo "$out" | jq -r '.documentation.paths.prd_root')"
 assert_eq "12.3 auto_update_mode user" "rewrite" "$(echo "$out" | jq -r '.documentation.auto_update_mode')"
@@ -232,7 +232,7 @@ echo ""
 echo "[13] templates defaults injection"
 DIR=$(setup_dir)
 cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "13.1 templates.tickets.user_story default null" "null" "$(echo "$out" | jq '.templates.tickets.user_story')"
 assert_eq "13.2 templates.tickets.bug default null"        "null" "$(echo "$out" | jq '.templates.tickets.bug')"
 assert_eq "13.3 templates.tickets.epic default null"       "null" "$(echo "$out" | jq '.templates.tickets.epic')"
@@ -254,7 +254,7 @@ cat > "${DIR}/snapship.config.json" <<'EOF'
   }
 }
 EOF
-out=$(bash "$SCRIPT" --project-root="$DIR" --no-cache --no-validate 2>/dev/null)
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
 assert_eq "14.1 user_story override"   "custom/us.md"  "$(echo "$out" | jq -r '.templates.tickets.user_story')"
 assert_eq "14.2 bug override"          "custom/bug.md" "$(echo "$out" | jq -r '.templates.tickets.bug')"
 assert_eq "14.3 epic still null"       "null"          "$(echo "$out" | jq '.templates.tickets.epic')"
@@ -267,7 +267,7 @@ echo ""
 echo "[15] invalid templates rejected"
 DIR=$(setup_dir)
 cp "${INVALID}/bad-templates.json" "${DIR}/snapship.config.json"
-bash "$SCRIPT" --project-root="$DIR" --no-cache >/dev/null 2>&1
+bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "15.1 bad-templates exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
 
