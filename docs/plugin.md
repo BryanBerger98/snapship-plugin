@@ -4,7 +4,7 @@
 
 Plugin v1 packagé conforme schéma Claude Code: manifest `.claude-plugin/plugin.json`, MCP servers via `.mcp.json` racine, skills/agents auto-découverts depuis dossiers conventionnels.
 
-- Install marketplace `bryanberger` (Phase 10): `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install snap@bryanberger`
+- Install marketplace `bryanberger` (Phase 10): `/plugin marketplace add BryanBerger98/claude-plugins` puis `/plugin install snap@bryanberger`
 - Ou clone manuel: `git clone … ~/.claude/plugins/snap` (auto-loaded)
 - Compatible installation projet via `.claude/settings.json` (`extraKnownMarketplaces` + `enabledPlugins`)
 
@@ -82,7 +82,7 @@ CI run cette validation à chaque push (Phase 7.3).
 ### Marketplace `bryanberger` (Phase 10)
 
 ```bash
-/plugin marketplace add bryanberger/claude-plugins
+/plugin marketplace add BryanBerger98/claude-plugins
 /plugin install snap@bryanberger
 ```
 
@@ -101,7 +101,7 @@ Plugin auto-chargé au prochain démarrage Claude Code.
 ```json
 {
   "extraKnownMarketplaces": {
-    "bryanberger": { "source": { "source": "github", "repo": "bryanberger/claude-plugins" } }
+    "bryanberger": { "source": { "source": "github", "repo": "BryanBerger98/claude-plugins" } }
   },
   "enabledPlugins": { "snap@bryanberger": true }
 }

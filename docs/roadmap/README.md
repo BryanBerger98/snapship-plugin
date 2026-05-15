@@ -38,7 +38,7 @@
 | 7.6   | v0.6.0 : `/design ds-extract` LLM-driven React → YAML CSpec (stack-agnostic), chain-init optionnel, tests verts |
 | 8     | 1 feature complète shipped via snap en dogfood (incluant /design)            |
 | 9     | User non-impliqué installe + run premier `/define` sans aide                 |
-| 10    | `/plugin marketplace add bryanberger/claude-plugins` + install fonctionne    |
+| 10    | `/plugin marketplace add BryanBerger98/claude-plugins` + install fonctionne  |
 | 11    | 3 méthodes install testées (marketplace bryanberger + clone global + projet) |
 | 12    | Cadence release tenue, telemetry-driven priorities                           |
 
@@ -62,7 +62,7 @@
 | 7.6   | 1.5j    | LLM-driven extract (stack-agnostic, no parser tooling)      |
 | 8     | 2j      | Bugs prod réels                        |
 | 9     | 1.5j    | Screencast prod                        |
-| 10    | 1j      | Repo `bryanberger/claude-plugins` + CI |
+| 10    | 1j      | Repo `BryanBerger98/claude-plugins` + CI |
 | 11    | 0.5j    | -                                      |
 | 12    | continu | Bandwidth maintainer                   |
 

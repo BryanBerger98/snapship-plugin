@@ -4,7 +4,7 @@
 
 ```bash
 # Dans Claude Code session
-/plugin marketplace add bryanberger/claude-plugins
+/plugin marketplace add BryanBerger98/claude-plugins
 /plugin install snap@bryanberger
 # Skills + agents + scripts + schemas + templates copiés ~/.claude/
 ```
@@ -24,7 +24,7 @@ git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/sna
 # Dans repo projet, ajouter à .claude/settings.json:
 {
   "extraKnownMarketplaces": {
-    "bryanberger": { "source": { "source": "github", "repo": "bryanberger/claude-plugins" } }
+    "bryanberger": { "source": { "source": "github", "repo": "BryanBerger98/claude-plugins" } }
   },
   "enabledPlugins": { "snap@bryanberger": true }
 }

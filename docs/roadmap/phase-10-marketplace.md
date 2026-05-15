@@ -1,6 +1,6 @@
 # Phase 10 — Marketplace `bryanberger`
 
-**Objectif:** héberger snap (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add bryanberger/claude-plugins`.
+**Objectif:** héberger snap (et futurs plugins) dans une marketplace personnelle GitHub découvrable via `/plugin marketplace add BryanBerger98/claude-plugins` (repo réel) puis `/plugin install snap@bryanberger` (alias marketplace `name`).
 
 > Claude Code n'a pas de marketplace centrale Anthropic — chaque créateur publie via un repo GitHub contenant `.claude-plugin/marketplace.json`. Nom `bryanberger` libre (liste réservée complète: `claude-code-marketplace`, `claude-code-plugins`, `claude-plugins-official`, `anthropic-marketplace`, `anthropic-plugins`, `agent-skills`, `knowledge-work-plugins`, `life-sciences`).
 >
@@ -70,4 +70,4 @@
 - [x] README snapship-plugin: badges install + lien marketplace
 - [ ] Annonce communauté CC (Discord / Reddit r/ClaudeAI / X) — manuelle
 
-**Sortie:** `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install snap@bryanberger` fonctionne sur n'importe quelle session Claude Code.
+**Sortie:** `/plugin marketplace add BryanBerger98/claude-plugins` puis `/plugin install snap@bryanberger` fonctionne sur n'importe quelle session Claude Code.

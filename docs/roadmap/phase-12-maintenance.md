@@ -8,6 +8,6 @@
 - [ ] Minor releases (v0.2+) — nouvelles features (templates additionnels, nouveaux adapters platforms)
 - [ ] Major release (v1.0) — API stable, breaking changes documentés
 - [ ] Compatibilité MCP versions (track upstream changes affine/frame0/penpot/figma-mcp/bridge/playwright)
-- [ ] Sync `bryanberger/claude-plugins` `marketplace.json` à chaque release snap (`ref` → nouveau tag, `version` bumpée)
+- [ ] Sync `BryanBerger98/claude-plugins` `marketplace.json` à chaque release snap (`ref` → nouveau tag, `version` bumpée)
 
 **Sortie:** plugin maintenu, communauté contribue (PRs).
