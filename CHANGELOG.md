@@ -5,6 +5,63 @@ All notable changes to snapship-plugin documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-05-15
+
+### Added — native GitHub routing (Issue Type + Projects v2)
+
+`/snap:ticket` no longer emits `type:`, `priority:`, `scope:`, `size:` labels
+on github. Story attributes are routed to org-level Issue Types and Projects v2
+single-select fields instead. Falls back to labels when Issue Type / Project
+unavailable or unconfigured.
+
+- **Config schema** — new `tickets.github` block (`enabled`, `issue_types`,
+  `project.{id,number,url,title,fields}`, `label_fallback_prefixes`). Schema
+  remains v1.0 backward-compatible: omitting the block means labels-only
+  (v1.0 behaviour preserved). See
+  `tests/fixtures/valid/config/github-native-routing.json`.
+- **`skills/_shared/detect-github-fields.sh`** — read-only GraphQL probe that
+  returns org Issue Types + Projects v2 + their single-select fields/options.
+  Graceful when Issue Types feature is unavailable.
+- **`skills/_shared/apply-github-metadata.sh`** — post-create orchestrator.
+  Calls the adapter to set the Issue Type, add the issue to the configured
+  Project, and apply the mapped single-select fields. Returns
+  `residual_labels` for the caller to fall back on.
+- **`skills/_shared/tickets-adapter.sh`** — three new github-only actions:
+  `set-issue-type`, `add-to-project`, `set-project-field`. All other
+  platforms (gitlab / jira) return `not_supported`.
+- **`skills/ticket/step-02-decompose.md`** — stories carry `priority`,
+  `estimated_size`, `scope`, `type` as structured top-level keys; no
+  `type:value` labels written.
+- **`skills/ticket/step-05-push.md`** — calls
+  `apply-github-metadata.sh` after a successful create and applies any
+  residual labels via the adapter `update` action.
+- **`skills/ticket/step-00-init.md`** — lazy self-heal: when platform=github
+  and `tickets.github` is missing from the resolved config, the run offers a
+  one-shot detect + map prompt before continuing.
+
+### Migration v1.0.0 → v1.1.0
+
+- **`skills/_shared/migrations/v1.0.0_to_v1.1.0.sh`** — idempotent, dry-run
+  safe. Honors `SNAP_DECISIONS_JSON.github_native_routing` (`enable` |
+  `skip`), `github_project_link` (`auto` | `skip`), and optional explicit
+  `issue_types_map` / `fields_map` / `project_selection`. Detection failure
+  falls back to a minimal `{enabled:true}` block; the lazy self-heal in
+  `step-00-init` re-prompts the user on the next `/snap:ticket`.
+- `skills/_shared/migrations/registry.json` — bumped `schema_version` +
+  `current_version` to `1.1.0`; migration entry added with two decisions.
+
+### Tests
+
+- `tests/test-detect-github-fields.sh` (28 assertions)
+- `tests/test-apply-github-metadata.sh` (41 assertions)
+- `tests/test-migration-v100-to-v110.sh` (33 assertions)
+- `tests/test-tickets-adapter.sh` extended with 12 cases for the new actions.
+
+### Fixed
+
+- `detect-github-fields.sh` rejected bare `--repo=name` without slash (was
+  splitting into owner=name / name=name silently). Now validates format.
+
 ## [1.0.0] — 2026-05-15
 
 ### Changed — documentation reorganised (`usage/` vs `contributing/`)

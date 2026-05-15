@@ -442,6 +442,192 @@ out=$(bash "$SCRIPT" --action=comment-pr --platform=jira --pr-id=99 --comment="h
 echo "$out" | jq -e '.descriptor' >/dev/null 2>&1
 [ $? -ne 0 ] && ok "36.1 no descriptor field" || ko "36.1 descriptor leaked"
 
+# --- native github actions (set-issue-type / add-to-project / set-project-field) ----
+
+# Stub that handles repo view + graphql mutations.
+mk_gh_graphql_stub() {
+  local path="$1"
+  mkdir -p "$(dirname "$path")"
+  cat > "$path" <<'STUB'
+#!/usr/bin/env bash
+ARGS="$*"
+case "$ARGS" in
+  "repo view --json nameWithOwner -q .nameWithOwner")
+    echo "acme/widgets"; exit 0 ;;
+esac
+# api graphql — branch by mutation/query content
+if echo "$ARGS" | grep -q "issueTypes(first:50)"; then
+  # resolve query for set-issue-type
+  cat <<'JSON'
+{"data":{"repository":{"issue":{"id":"ISSUE_NODE_42"},
+ "issueTypes":{"nodes":[{"id":"IT_F","name":"Feature"},{"id":"IT_B","name":"Bug"}]}}}}
+JSON
+  exit 0
+fi
+if echo "$ARGS" | grep -q "updateIssueIssueType"; then
+  cat <<'JSON'
+{"data":{"updateIssueIssueType":{"issue":{"id":"ISSUE_NODE_42","issueType":{"name":"Feature"}}}}}
+JSON
+  exit 0
+fi
+if echo "$ARGS" | grep -q "issue(number:\$num){ id }"; then
+  # resolve for add-to-project
+  cat <<'JSON'
+{"data":{"repository":{"issue":{"id":"ISSUE_NODE_42"}}}}
+JSON
+  exit 0
+fi
+if echo "$ARGS" | grep -q "addProjectV2ItemById"; then
+  cat <<'JSON'
+{"data":{"addProjectV2ItemById":{"item":{"id":"PVTI_kwHO_abc"}}}}
+JSON
+  exit 0
+fi
+if echo "$ARGS" | grep -q "updateProjectV2ItemFieldValue"; then
+  cat <<'JSON'
+{"data":{"updateProjectV2ItemFieldValue":{"projectV2Item":{"id":"PVTI_kwHO_abc"}}}}
+JSON
+  exit 0
+fi
+echo "stub: unhandled gh args: $ARGS" >&2
+exit 1
+STUB
+  chmod +x "$path"
+}
+
+# Stub where issueTypes query returns empty (org without Issue Types feature).
+mk_gh_no_type_stub() {
+  local path="$1"
+  mkdir -p "$(dirname "$path")"
+  cat > "$path" <<'STUB'
+#!/usr/bin/env bash
+ARGS="$*"
+case "$ARGS" in
+  "repo view --json nameWithOwner -q .nameWithOwner")
+    echo "acme/widgets"; exit 0 ;;
+esac
+if echo "$ARGS" | grep -q "issueTypes(first:50)"; then
+  cat <<'JSON'
+{"data":{"repository":{"issue":{"id":"ISSUE_NODE_99"},"issueTypes":{"nodes":[]}}}}
+JSON
+  exit 0
+fi
+echo "stub: unhandled gh args: $ARGS" >&2
+exit 1
+STUB
+  chmod +x "$path"
+}
+
+echo ""
+echo "[37] set-issue-type happy path"
+TMP=$(mktemp -d)
+mk_gh_graphql_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=set-issue-type --platform=github \
+  --ticket-id=42 --issue-type=Feature)
+rc=$?
+[ $rc -eq 0 ] && ok "37.1 exit 0" || ko "37.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.ok')" = "true" ] && ok "37.2 ok=true" || ko "37.2"
+[ "$(echo "$out" | jq -r '.result.platform_id')" = "42" ] && ok "37.3 platform_id" || ko "37.3"
+[ "$(echo "$out" | jq -r '.result.issue_type')" = "Feature" ] && ok "37.4 issue_type" || ko "37.4"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[38] set-issue-type missing required args"
+bash "$SCRIPT" --action=set-issue-type --platform=github --ticket-id=42 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "38.1 missing issue-type exit 2" || ko "38.1"
+bash "$SCRIPT" --action=set-issue-type --platform=github --issue-type=Feature >/dev/null 2>&1
+[ $? -eq 2 ] && ok "38.2 missing ticket-id exit 2" || ko "38.2"
+
+echo ""
+echo "[39] set-issue-type rejected on non-github"
+out=$(bash "$SCRIPT" --action=set-issue-type --platform=gitlab --ticket-id=42 --issue-type=Feature 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "39.1 exit 1" || ko "39.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ] && ok "39.2 not_supported" || ko "39.2"
+
+echo ""
+echo "[40] set-issue-type type not on org → exit 1"
+TMP=$(mktemp -d)
+mk_gh_no_type_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=set-issue-type --platform=github \
+  --ticket-id=99 --issue-type=Feature 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "40.1 exit 1" || ko "40.1 rc=$rc"
+echo "$out" | grep -q "issue type" && ok "40.2 error mentions type" || ko "40.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[41] add-to-project happy path"
+TMP=$(mktemp -d)
+mk_gh_graphql_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=add-to-project --platform=github \
+  --ticket-id=42 --project-id=PVT_xxx)
+rc=$?
+[ $rc -eq 0 ] && ok "41.1 exit 0" || ko "41.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.result.item_id')" = "PVTI_kwHO_abc" ] && ok "41.2 item_id" || ko "41.2"
+[ "$(echo "$out" | jq -r '.result.project_id')" = "PVT_xxx" ] && ok "41.3 project_id" || ko "41.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[42] add-to-project missing args"
+bash "$SCRIPT" --action=add-to-project --platform=github --ticket-id=42 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "42.1 missing project-id exit 2" || ko "42.1"
+bash "$SCRIPT" --action=add-to-project --platform=github --project-id=PVT_x >/dev/null 2>&1
+[ $? -eq 2 ] && ok "42.2 missing ticket-id exit 2" || ko "42.2"
+
+echo ""
+echo "[43] set-project-field via option-id (single-select)"
+TMP=$(mktemp -d)
+mk_gh_graphql_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=set-project-field --platform=github \
+  --item-id=PVTI_kwHO_abc --project-id=PVT_xxx --field-id=PVTSSF_pri --option-id=opt_p0)
+rc=$?
+[ $rc -eq 0 ] && ok "43.1 exit 0" || ko "43.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.result.updated')" = "true" ] && ok "43.2 updated" || ko "43.2"
+[ "$(echo "$out" | jq -r '.result.option_id')" = "opt_p0" ] && ok "43.3 option_id" || ko "43.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[44] set-project-field via --value (text)"
+TMP=$(mktemp -d)
+mk_gh_graphql_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=set-project-field --platform=github \
+  --item-id=PVTI_kwHO_abc --project-id=PVT_xxx --field-id=PVTSSF_note --value="hello")
+rc=$?
+[ $rc -eq 0 ] && ok "44.1 exit 0" || ko "44.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.result.value')" = "hello" ] && ok "44.2 value" || ko "44.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[45] set-project-field needs option-id OR value"
+TMP=$(mktemp -d)
+mk_gh_graphql_stub "$TMP/gh"
+SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=set-project-field --platform=github \
+  --item-id=PVTI_x --project-id=PVT_x --field-id=PVTSSF_x >/dev/null 2>&1
+[ $? -eq 2 ] && ok "45.1 missing both exit 2" || ko "45.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[46] set-project-field rejected on non-github"
+out=$(bash "$SCRIPT" --action=set-project-field --platform=jira \
+  --item-id=x --project-id=p --field-id=f --option-id=o 2>&1)
+rc=$?
+[ $rc -eq 1 ] && ok "46.1 exit 1" || ko "46.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ] && ok "46.2 not_supported" || ko "46.2"
+
+echo ""
+echo "[47] dry-run set-issue-type returns mock"
+out=$(bash "$SCRIPT" --action=set-issue-type --platform=github \
+  --ticket-id=42 --issue-type=Feature --dry-run)
+[ "$(echo "$out" | jq -r '.mode')" = "dry-run" ] && ok "47.1 dry-run mode" || ko "47.1"
+[ "$(echo "$out" | jq -r '.result.issue_type')" = "Feature" ] && ok "47.2 issue_type echoed" || ko "47.2"
+
+echo ""
+echo "[48] dry-run add-to-project returns mock item_id"
+out=$(bash "$SCRIPT" --action=add-to-project --platform=github \
+  --ticket-id=42 --project-id=PVT_xxx --dry-run)
+[ "$(echo "$out" | jq -r '.result.item_id')" = "DRY-ITEM-0" ] && ok "48.1 mock item_id" || ko "48.1"
+
 unset TMP
 
 echo ""

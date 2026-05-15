@@ -34,6 +34,34 @@ Bootstrap a `/snap:ticket` run for a single feature.
    ```
    Do **not** write progress entry; this is a config error, not a run failure.
 
+3a. **GitHub native routing — lazy self-heal** (v1.1):
+
+   If `platform = "github"` and `tickets.github` is absent from the resolved
+   config, the install pre-dates the native-routing change. Offer a one-shot
+   detect + map prompt; otherwise the run silently falls back to label-only
+   behaviour (v1.0 compatible).
+
+   ```bash
+   if [ "$platform" = "github" ] && [ -z "$(jq -r '.tickets.github // empty' <<<"$CONFIG_JSON")" ]; then
+     # AskUserQuestion (single-select):
+     #  - "Configurer Issue Type + Project maintenant (recommandé)"
+     #  - "Continuer avec labels seulement (skip définitivement, écrit tickets.github.enabled=false)"
+     #
+     # On "configure": run detect-github-fields.sh, AskUserQuestion to map
+     # type/priority/size/scope, write the resulting tickets.github.* block into
+     # snapship.config.json (atomic write via tmp + mv), reload CONFIG_JSON.
+     #
+     # On "skip": write `{"tickets":{"github":{"enabled":false}}}` so the
+     # prompt never reappears. apply-github-metadata.sh respects this flag and
+     # returns story labels verbatim (residual = labels).
+     :
+   fi
+   ```
+
+   The self-heal runs once per project. Users who reconsider can re-run
+   `/snap:upgrade` (re-detects + re-prompts) or delete `tickets.github` from
+   the config to retrigger the prompt on the next `/snap:ticket`.
+
 4. **Resume short-circuit** : if `--resume`, delegate to `progress.sh resume` :
    ```bash
    resume_line=$(bash skills/_shared/progress.sh resume \

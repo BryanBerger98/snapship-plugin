@@ -1,7 +1,38 @@
 {
-  "schema_version": "1.0.0",
-  "current_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "current_version": "1.1.0",
   "migrations": [
+    {
+      "from": "1.0.0",
+      "to": "1.1.0",
+      "script": "v1.0.0_to_v1.1.0.sh",
+      "breaking": false,
+      "summary": "Detect GitHub Issue Types (org-level) + Projects v2 custom fields and persist mapping under tickets.github.* in snapship.config.json. Skipped if tickets.platform != github. Idempotent; user prompted to confirm/edit detected mapping. No data moved.",
+      "decisions": [
+        {
+          "key": "github_native_routing",
+          "question": "Router type/priority/scope vers Issue Type GitHub + Project custom fields plutôt que labels ?",
+          "header": "GH native",
+          "condition": "tickets_platform_github",
+          "options": [
+            { "value": "enable", "label": "Activer (recommandé)", "description": "Détecte Issue Types + Project fields et écrit tickets.github.* dans config. Plus de labels type:/priority:/scope:." },
+            { "value": "skip",   "label": "Skip — garder labels",   "description": "Comportement v1.0 inchangé. Reproposable plus tard via /snap:upgrade ou /snap:ticket." }
+          ],
+          "default": "enable"
+        },
+        {
+          "key": "github_project_link",
+          "question": "Lier les tickets à un GitHub Project v2 ? Lequel ?",
+          "header": "GH project",
+          "condition": "github_projects_available",
+          "options": [
+            { "value": "auto", "label": "Auto-détecté (recommandé)", "description": "Utilise le Project v2 lié au repo détecté par /snap:upgrade." },
+            { "value": "skip", "label": "Pas de Project",             "description": "Tickets créés sans add-to-project. Priority/Size restent en labels fallback." }
+          ],
+          "default": "auto"
+        }
+      ]
+    },
     {
       "from": "0.6.0",
       "to": "1.0.0",

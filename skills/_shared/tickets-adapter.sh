@@ -2,9 +2,10 @@
 # tickets-adapter.sh — abstraction over GitHub / GitLab / JIRA tickets.
 #
 # Actions: create | get | update | comment | comment-pr | list
+#          | set-issue-type | add-to-project | set-project-field   (github only)
 #
 # Platform routing:
-#   - github → shells out to `gh` CLI
+#   - github → shells out to `gh` CLI (GraphQL via `gh api graphql` for native fields)
 #   - gitlab → shells out to `glab` CLI
 #   - jira   → emits MCP descriptor on stdout, exits 10 (skill executes call)
 #
@@ -42,6 +43,12 @@ LIMIT="50"
 COMMENT_TEXT=""
 PR_ID=""
 BODY_FILE=""
+ISSUE_TYPE=""
+PROJECT_ID=""
+FIELD_ID=""
+OPTION_ID=""
+VALUE_TEXT=""
+ITEM_ID=""
 DRY_RUN="${SNAP_DRY_RUN:-false}"
 MODE="auto"
 
@@ -50,14 +57,18 @@ usage() {
 Usage: tickets-adapter.sh --action=ACTION [OPTIONS]
 
 Actions: create | get | update | comment | comment-pr | list
+         set-issue-type | add-to-project | set-project-field   (github only)
 
 Required per action:
-  create      --title (--body, --labels, --assignees optional)
-  get         --ticket-id
-  update      --ticket-id (any of --title/--body/--labels/--state)
-  comment     --ticket-id (--comment | --body-file)
-  comment-pr  --pr-id (--comment | --body-file)   github/gitlab only
-  list        (--state, --labels, --assignees, --limit optional)
+  create            --title (--body, --labels, --assignees optional)
+  get               --ticket-id
+  update            --ticket-id (any of --title/--body/--labels/--state)
+  comment           --ticket-id (--comment | --body-file)
+  comment-pr        --pr-id (--comment | --body-file)   github/gitlab only
+  list              (--state, --labels, --assignees, --limit optional)
+  set-issue-type    --ticket-id --issue-type=NAME      github only
+  add-to-project    --ticket-id --project-id=PVT_xxx   github only (echoes item_id)
+  set-project-field --item-id --project-id --field-id --option-id   github only
 
 Options:
   --platform=github|gitlab|jira  Override config.tickets.platform
@@ -72,6 +83,12 @@ Options:
   --state=open|closed
   --limit=N                      For list (default 50)
   --comment=TEXT                 For comment / comment-pr actions
+  --issue-type=NAME              For set-issue-type (e.g., Feature, Bug, Epic)
+  --project-id=ID                Project v2 node ID (PVT_xxx)
+  --field-id=ID                  Project v2 single-select field ID (PVTSSF_xxx)
+  --option-id=ID                 Project v2 single-select option ID
+  --value=TEXT                   Free-text value for non-single-select fields (number/date/text)
+  --item-id=ID                   Project v2 item ID (issue inside project)
   --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   --mode=auto|cli|mcp            Force routing (default auto)
   -h, --help                     Show this help
@@ -93,6 +110,12 @@ while [ $# -gt 0 ]; do
     --comment=*)       COMMENT_TEXT="${1#--comment=}" ;;
     --pr-id=*)         PR_ID="${1#--pr-id=}" ;;
     --body-file=*)     BODY_FILE="${1#--body-file=}" ;;
+    --issue-type=*)    ISSUE_TYPE="${1#--issue-type=}" ;;
+    --project-id=*)    PROJECT_ID="${1#--project-id=}" ;;
+    --field-id=*)      FIELD_ID="${1#--field-id=}" ;;
+    --option-id=*)     OPTION_ID="${1#--option-id=}" ;;
+    --value=*)         VALUE_TEXT="${1#--value=}" ;;
+    --item-id=*)       ITEM_ID="${1#--item-id=}" ;;
     --dry-run)         DRY_RUN="true" ;;
     --mode=*)          MODE="${1#--mode=}" ;;
     -h|--help)         usage; exit 0 ;;
@@ -106,6 +129,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 
 case "$ACTION" in
   create|get|update|comment|comment-pr|list) ;;
+  set-issue-type|add-to-project|set-project-field) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
@@ -163,10 +187,18 @@ if [ "$DRY_RUN" = "true" ] && [ "$ACTION" != "get" ] && [ "$ACTION" != "list" ];
     --arg body "$BODY" \
     --arg state "${STATE:-open}" \
     --arg comment "$COMMENT_TEXT" \
+    --arg issue_type "$ISSUE_TYPE" \
+    --arg project_id "$PROJECT_ID" \
+    --arg field_id "$FIELD_ID" \
+    --arg option_id "$OPTION_ID" \
+    --arg value "$VALUE_TEXT" \
+    --arg item_id "${ITEM_ID:-DRY-ITEM-0}" \
     --argjson labels    "$(csv_to_array "$LABELS_CSV")" \
     --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" '
     {dry_run:true, action:$act, platform_id:$pid, pr_id:$pr_id, title:$title, body:$body, state:$state,
-     comment:$comment, labels:$labels, assignees:$assignees}')
+     comment:$comment, labels:$labels, assignees:$assignees,
+     issue_type:$issue_type, project_id:$project_id, field_id:$field_id, option_id:$option_id,
+     value:$value, item_id:$item_id}')
   ok_result "dry-run" "$MOCK"
   exit 0
 fi
@@ -212,6 +244,16 @@ if [ "$ACTION" = "comment-pr" ] && [ "$PLATFORM" = "jira" ]; then
   jq -nc '{ok:false, error:"not_supported", reason:"jira platform has no PR concept; use action=comment on the parent ticket instead"}'
   exit 1
 fi
+
+case "$ACTION" in
+  set-issue-type|add-to-project|set-project-field)
+    if [ "$PLATFORM" != "github" ]; then
+      jq -nc --arg act "$ACTION" --arg p "$PLATFORM" \
+        '{ok:false, error:"not_supported", reason:($act + " only supported on github (got: " + $p + ")")}'
+      exit 1
+    fi
+    ;;
+esac
 
 if [ "$MODE" = "mcp" ] || [ "$PLATFORM" = "jira" ]; then
   emit_mcp_descriptor
@@ -325,6 +367,101 @@ run_github() {
         assignees: ((.assignees // []) | map(.login // .))
       }')"']')
       jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    set-issue-type)
+      need "$TICKET_ID" "ticket-id required for set-issue-type"
+      need "$ISSUE_TYPE" "issue-type required (e.g., Feature, Bug, Epic)"
+      local repo_full owner name node_id type_id
+      repo_full=$("$bin" repo view --json nameWithOwner -q .nameWithOwner 2>&1) \
+        || { err_out "gh repo view failed: $repo_full"; exit 1; }
+      owner="${repo_full%%/*}"; name="${repo_full#*/}"
+      # Resolve issue node ID + the org issue type ID matching $ISSUE_TYPE
+      local resolve_q='query($o:String!,$n:String!,$num:Int!){
+        repository(owner:$o,name:$n){
+          issue(number:$num){ id }
+          issueTypes(first:50){ nodes{ id name } }
+        }
+      }'
+      local resolved
+      resolved=$("$bin" api graphql -f query="$resolve_q" \
+                  -F o="$owner" -F n="$name" -F num="$TICKET_ID" 2>&1) \
+        || { err_out "gh graphql resolve failed: $resolved"; exit 1; }
+      node_id=$(echo "$resolved" | jq -r '.data.repository.issue.id // ""')
+      type_id=$(echo "$resolved" | jq -r --arg t "$ISSUE_TYPE" \
+        '(.data.repository.issueTypes.nodes // []) | map(select(.name==$t)) | .[0].id // ""')
+      [ -n "$node_id" ] || { err_out "issue #$TICKET_ID not found"; exit 1; }
+      [ -n "$type_id" ] || { err_out "issue type \"$ISSUE_TYPE\" not available on org"; exit 1; }
+      local mut_q='mutation($iid:ID!,$tid:ID!){
+        updateIssueIssueType(input:{issueId:$iid,issueTypeId:$tid}){ issue{ id issueType{ name } } }
+      }'
+      local mut_out
+      mut_out=$("$bin" api graphql -f query="$mut_q" \
+                -F iid="$node_id" -F tid="$type_id" 2>&1) \
+        || { err_out "gh graphql updateIssueIssueType failed: $mut_out"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" --arg t "$ISSUE_TYPE" \
+        '{platform_id:$pid, issue_type:$t}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    add-to-project)
+      need "$TICKET_ID" "ticket-id required for add-to-project"
+      need "$PROJECT_ID" "project-id required (PVT_xxx)"
+      local repo_full owner name node_id
+      repo_full=$("$bin" repo view --json nameWithOwner -q .nameWithOwner 2>&1) \
+        || { err_out "gh repo view failed: $repo_full"; exit 1; }
+      owner="${repo_full%%/*}"; name="${repo_full#*/}"
+      local resolve_q='query($o:String!,$n:String!,$num:Int!){
+        repository(owner:$o,name:$n){ issue(number:$num){ id } }
+      }'
+      local resolved
+      resolved=$("$bin" api graphql -f query="$resolve_q" \
+                  -F o="$owner" -F n="$name" -F num="$TICKET_ID" 2>&1) \
+        || { err_out "gh graphql resolve failed: $resolved"; exit 1; }
+      node_id=$(echo "$resolved" | jq -r '.data.repository.issue.id // ""')
+      [ -n "$node_id" ] || { err_out "issue #$TICKET_ID not found"; exit 1; }
+      local mut_q='mutation($pid:ID!,$cid:ID!){
+        addProjectV2ItemById(input:{projectId:$pid,contentId:$cid}){ item{ id } }
+      }'
+      local mut_out item_id
+      mut_out=$("$bin" api graphql -f query="$mut_q" \
+                -F pid="$PROJECT_ID" -F cid="$node_id" 2>&1) \
+        || { err_out "gh graphql addProjectV2ItemById failed: $mut_out"; exit 1; }
+      item_id=$(echo "$mut_out" | jq -r '.data.addProjectV2ItemById.item.id // ""')
+      [ -n "$item_id" ] || { err_out "addProjectV2ItemById returned no item id"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" --arg proj "$PROJECT_ID" --arg item "$item_id" \
+        '{platform_id:$pid, project_id:$proj, item_id:$item}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    set-project-field)
+      need "$ITEM_ID" "item-id required for set-project-field"
+      need "$PROJECT_ID" "project-id required"
+      need "$FIELD_ID" "field-id required"
+      [ -n "$OPTION_ID" ] || [ -n "$VALUE_TEXT" ] || \
+        { err_out "either --option-id or --value required for set-project-field"; exit 2; }
+      local mut_out
+      if [ -n "$OPTION_ID" ]; then
+        local mut_q='mutation($pid:ID!,$iid:ID!,$fid:ID!,$opt:String!){
+          updateProjectV2ItemFieldValue(input:{
+            projectId:$pid, itemId:$iid, fieldId:$fid,
+            value:{ singleSelectOptionId:$opt }
+          }){ projectV2Item{ id } }
+        }'
+        mut_out=$("$bin" api graphql -f query="$mut_q" \
+                  -F pid="$PROJECT_ID" -F iid="$ITEM_ID" -F fid="$FIELD_ID" -F opt="$OPTION_ID" 2>&1) \
+          || { err_out "gh graphql updateProjectV2ItemFieldValue (single-select) failed: $mut_out"; exit 1; }
+      else
+        local mut_q='mutation($pid:ID!,$iid:ID!,$fid:ID!,$v:String!){
+          updateProjectV2ItemFieldValue(input:{
+            projectId:$pid, itemId:$iid, fieldId:$fid,
+            value:{ text:$v }
+          }){ projectV2Item{ id } }
+        }'
+        mut_out=$("$bin" api graphql -f query="$mut_q" \
+                  -F pid="$PROJECT_ID" -F iid="$ITEM_ID" -F fid="$FIELD_ID" -F v="$VALUE_TEXT" 2>&1) \
+          || { err_out "gh graphql updateProjectV2ItemFieldValue (text) failed: $mut_out"; exit 1; }
+      fi
+      jq -nc --arg item "$ITEM_ID" --arg fid "$FIELD_ID" --arg opt "$OPTION_ID" --arg v "$VALUE_TEXT" \
+        '{item_id:$item, field_id:$fid, option_id:$opt, value:$v, updated:true}' \
         | { read -r r; ok_result "cli" "$r"; }
       ;;
   esac

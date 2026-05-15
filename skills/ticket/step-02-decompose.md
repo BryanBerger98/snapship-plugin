@@ -36,10 +36,21 @@ Reject any candidate story that:
      "estimated_min": 15,
      "files": ["src/auth/signup.ts", "src/auth/__tests__/signup.test.ts"],
      "depends_on": [],
-     "labels": ["feature:01-auth", "type:feature"],
+     "labels": ["feature:01-auth"],
+     "priority": "must",
+     "estimated_size": "S",
+     "scope": "backend",
      "status": "draft"
    }
    ```
+   Persist `priority` / `estimated_size` / `scope` as **structured fields**
+   (top-level keys), not labels. step-05 routes them to native GitHub primitives
+   (Issue Type, Project v2 custom fields) when `tickets.github` is configured;
+   otherwise the apply-metadata helper falls back to labels. The `feature:<id>`
+   label is the only platform-agnostic grouping label kept by default
+   (configurable via `tickets.github.label_fallback_prefixes`).
+   `story.type` is set in step-03 (enrich/classify); it must NOT be inlined as a
+   `type:<value>` label here.
 
 2. **Apply naming**: derive `local_id` via `apply-naming.sh`:
    ```bash

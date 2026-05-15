@@ -32,6 +32,35 @@
       "type": "string",
       "enum": ["info", "minor", "major", "critical"]
     },
+    "github_project_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field_id"],
+      "description": "Mapping vers un champ single-select d'un GitHub Project v2.",
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "description": "Field node ID (PVTSSF_xxx) du Project v2."
+        },
+        "field_name": {
+          "type": "string",
+          "description": "Nom lisible affiché côté GitHub (informationnel)."
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["option_id"],
+            "properties": {
+              "option_id": { "type": "string", "description": "Single-select option ID." },
+              "option_name": { "type": "string" }
+            }
+          },
+          "description": "Mapping valeur logique (must/should/could, XS/S/M/L/XL, backend/frontend, …) → option Project."
+        }
+      }
+    },
     "repository": {
       "type": "object",
       "additionalProperties": false,
@@ -65,6 +94,63 @@
         "default_labels": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "github": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Routing natif GitHub : Issue Type (org-level) + Projects v2 custom fields. Quand absent, tout part en labels (comportement v1.0). Détecté par /snap:upgrade ou /snap:ticket step-00 (lazy self-heal).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Si false, /snap:ticket ne tente plus la détection ni le routage natif (labels only)."
+            },
+            "issue_types": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Mapping story.type → Issue Type GitHub. Ex: {\"user-story\":\"Feature\",\"bug\":\"Bug\",\"epic\":\"Epic\"}. Clés absentes → fallback label `type:<key>`.",
+              "properties": {
+                "user-story": { "type": "string" },
+                "bug": { "type": "string" },
+                "epic": { "type": "string" }
+              }
+            },
+            "project": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "GitHub Project v2 lié. Optionnel — quand absent, tickets pas ajoutés au project.",
+              "required": ["id"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Project v2 node ID (PVT_xxx)."
+                },
+                "number": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Project number visible dans l'URL (informationnel)."
+                },
+                "url": { "type": "string", "format": "uri" },
+                "title": { "type": "string" },
+                "fields": {
+                  "type": "object",
+                  "additionalProperties": { "$ref": "#/$defs/github_project_field" },
+                  "description": "Mapping story attr → Project v2 single-select field. Clés conventionnelles: priority, size, scope.",
+                  "properties": {
+                    "priority": { "$ref": "#/$defs/github_project_field" },
+                    "size": { "$ref": "#/$defs/github_project_field" },
+                    "scope": { "$ref": "#/$defs/github_project_field" }
+                  }
+                }
+              }
+            },
+            "label_fallback_prefixes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["feature:"],
+              "description": "Prefixes labels conservés tels quels même quand routage natif est actif (ex: groupement feature)."
+            }
+          }
         },
         "jira": {
           "type": "object",

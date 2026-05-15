@@ -1,0 +1,12 @@
+{
+  "version": "1.1",
+  "tickets": {
+    "platform": "github",
+    "github": {
+      "project": {
+        "number": 12,
+        "title": "Missing id field"
+      }
+    }
+  }
+}

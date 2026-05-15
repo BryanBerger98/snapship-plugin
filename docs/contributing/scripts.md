@@ -228,11 +228,55 @@ All scripts in `skills/_shared/`. Reusable across skills.
 #   - list <feature_query>                 → array
 #   - list-prs --branch=<name>             → existing PR for the branch (idempotent push)
 #   - update-pr / create-pr                → PR CRUD
+#   - set-issue-type    --ticket-id --issue-type=NAME           (github only, v1.1+)
+#   - add-to-project    --ticket-id --project-id=PVT_xxx        (github only, v1.1+; echoes item_id)
+#   - set-project-field --item-id --project-id --field-id       (github only, v1.1+)
+#                       (--option-id=OPT | --value=TEXT)
 # Implementations:
-#   - github: gh CLI or github MCP
+#   - github: gh CLI or github MCP (native actions use `gh api graphql`)
 #   - gitlab: glab CLI or gitlab MCP
 #   - jira: jira CLI or atlassian MCP
+# Non-github platforms get a `not_supported` exit 1 for the three native actions.
 # --body-file: read into COMMENT_TEXT if --comment empty (useful for rendered review-thread).
+```
+
+## detect-github-fields.sh (v1.1+)
+
+```bash
+# Pure read GraphQL probe — discovers org-level Issue Types + Projects v2
+# attached to a repo (with their single-select fields and options).
+# args:
+#   --project-root=PATH        (accepted for parity; helper has no need for it)
+#   --repo=owner/name          (default: resolved via `gh repo view`)
+# Stdout JSON shape:
+#   { ok, owner, repo, owner_type, issue_types:[{id,name,description}],
+#     projects:[{id, number, title, url, fields:[{id, name, data_type, options}]}] }
+# Graceful: if the Issue Types feature is unavailable on the org, returns an
+# empty `issue_types` array (no fatal). Same for Projects v2.
+# Test hook: SNAP_GH_BIN (stub binary).
+```
+
+## apply-github-metadata.sh (v1.1+)
+
+```bash
+# Post-create orchestrator. Reads the story (stdin or --story-file) + the
+# resolved config block at tickets.github.* and dispatches:
+#   - story.type → set-issue-type   (via the mapping issue_types{user-story|bug|epic})
+#   - project.id present → add-to-project, then for each of {priority,size,scope}
+#     → set-project-field if a mapping exists in project.fields.
+# args:
+#   --ticket-id=N                  GitHub issue number freshly created (REQUIRED)
+#   --story-file=PATH | -          Story JSON (REQUIRED; `-` reads stdin)
+#   --project-root=PATH            (default: $PWD or $SNAP_PROJECT_ROOT)
+#   --config-json=JSON             Pre-resolved config (skips load-config.sh)
+#   --dry-run                      Forwards SNAP_DRY_RUN=true to the adapter
+# Stdout JSON shape:
+#   { ok, ticket_id, applied:{issue_type, project_item_id, fields},
+#     residual_labels:[…], skipped_reasons:{issue_type, project} }
+# Early opt-out: tickets.github.enabled=false → returns story labels verbatim
+# as residual, no adapter calls.
+# Residual labels: drop type:/priority:/scope:/size: prefixes; keep labels
+# matching tickets.github.label_fallback_prefixes (default ["feature:"]).
 ```
 
 ## detect-repo-templates.sh

@@ -1,0 +1,60 @@
+{
+  "version": "1.1",
+  "repository": {
+    "platform": "github",
+    "http_url": "https://github.com/org/repo.git",
+    "default_branch": "main"
+  },
+  "tickets": {
+    "platform": "github",
+    "github": {
+      "enabled": true,
+      "issue_types": {
+        "user-story": "Feature",
+        "bug": "Bug",
+        "epic": "Epic"
+      },
+      "project": {
+        "id": "PVT_kwDOAxxxxxxxxxxxxxxxxxxx",
+        "number": 12,
+        "url": "https://github.com/orgs/org/projects/12",
+        "title": "SnapShip Project",
+        "fields": {
+          "priority": {
+            "field_id": "PVTSSF_aaaaaaaa",
+            "field_name": "Priority",
+            "values": {
+              "must":   { "option_id": "p0_opt_id", "option_name": "P0" },
+              "should": { "option_id": "p1_opt_id", "option_name": "P1" },
+              "could":  { "option_id": "p2_opt_id", "option_name": "P2" }
+            }
+          },
+          "size": {
+            "field_id": "PVTSSF_bbbbbbbb",
+            "field_name": "Size",
+            "values": {
+              "XS": { "option_id": "xs_opt", "option_name": "XS" },
+              "S":  { "option_id": "s_opt",  "option_name": "S" },
+              "M":  { "option_id": "m_opt",  "option_name": "M" },
+              "L":  { "option_id": "l_opt",  "option_name": "L" },
+              "XL": { "option_id": "xl_opt", "option_name": "XL" }
+            }
+          },
+          "scope": {
+            "field_id": "PVTSSF_cccccccc",
+            "field_name": "Scope",
+            "values": {
+              "backend":  { "option_id": "be_opt", "option_name": "Backend" },
+              "frontend": { "option_id": "fe_opt", "option_name": "Frontend" }
+            }
+          }
+        }
+      },
+      "label_fallback_prefixes": ["feature:"]
+    }
+  },
+  "documentation": {
+    "platform": "affine",
+    "workspace": { "id": "ws-1", "root_page_id": "p-1" }
+  }
+}

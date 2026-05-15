@@ -26,7 +26,10 @@ For each story in dependency-sorted order :
    `.snap/tickets/${feature_id}.draft.json[].url` — non-null means a prior
    run created it; keep the cached `platform_id` / `url` and continue.
 
-2. **Call the adapter** :
+2. **Call the adapter** to create the issue. On `platform=github`, omit the
+   structured fields (`type`/`priority`/`scope`/`size`) from the labels CSV —
+   they are routed natively by `apply-github-metadata.sh` in step 3. The CSV
+   should only carry residual labels (e.g. `feature:<id>`) the user wants kept.
    ```bash
    adapter_out=$(bash skills/_shared/tickets-adapter.sh \
      --action=create \
@@ -34,13 +37,14 @@ For each story in dependency-sorted order :
      --platform="$platform" \
      --title="$story_title" \
      --body="$story_body_rendered" \
-     --labels="$story_labels_csv" \
+     --labels="$story_residual_labels_csv" \
      ${dry_run:+--dry-run})
    rc=$?
    ```
 
 3. **Branch on exit code** :
-   - `0` → CLI/dry-run succeeded; parse `result.id`, `result.url` from JSON.
+   - `0` → CLI/dry-run succeeded; parse `result.id` (alias `platform_id`),
+     `result.url` from JSON.
    - `10` → MCP descriptor emitted (JIRA / Linear) : parse `descriptor.tool` +
      `descriptor.args`, invoke the MCP tool, capture `id` + `url` from the
      response.
@@ -48,17 +52,50 @@ For each story in dependency-sorted order :
      progress `fail` with the failing `local_id`. Re-run via
      `/snap:ticket --resume` skips the already-pushed stories.
 
-4. **Cache result** in `.snap/tickets/${feature_id}.draft.json` :
+4. **Route native fields (github only)** : right after a successful `create`,
+   call the orchestrator. It reads `tickets.github.*` mapping and applies the
+   Issue Type + Project v2 fields, returning the residual labels the adapter
+   should fall back on for anything not natively mapped.
+   ```bash
+   if [ "$platform" = "github" ] && [ "$(jq -r 'if (.tickets.github // {}) | has("enabled") then .tickets.github.enabled else true end' <<<"$CONFIG_JSON")" = "true" ]; then
+     story_json=$(jq -c --argjson s "$story" '$s' <<<'{}')
+     meta_out=$(printf '%s' "$story_json" | \
+       bash skills/_shared/apply-github-metadata.sh \
+         --ticket-id="$platform_id" \
+         --project-root="$PWD" \
+         --config-json="$CONFIG_JSON" \
+         --story-file=- \
+         ${dry_run:+--dry-run})
+     residual=$(jq -r '.residual_labels | join(",")' <<<"$meta_out")
+     if [ -n "$residual" ]; then
+       bash skills/_shared/tickets-adapter.sh \
+         --action=update \
+         --platform=github \
+         --project-root="$PWD" \
+         --ticket-id="$platform_id" \
+         --labels="$residual" >/dev/null
+     fi
+   fi
+   ```
+
+5. **Cache result** in `.snap/tickets/${feature_id}.draft.json` :
    ```json
    {
      "local_id": "t-001",
      "platform_id": "42",
      "url": "https://github.com/org/repo/issues/42",
-     "pushed_at": "2026-05-09T12:34:56Z"
+     "pushed_at": "2026-05-09T12:34:56Z",
+     "github_meta": {
+       "issue_type": "Feature",
+       "project_item_id": "PVTI_xxx",
+       "fields": { "priority": "P0", "size": "S" }
+     }
    }
    ```
+   `github_meta` is informational; tickets.json keeps storing the high-level
+   `type`/`priority`/`estimated_size` per the existing schema.
 
-5. **Rate limiting** : if the platform returns a 429 / "too many requests",
+6. **Rate limiting** : if the platform returns a 429 / "too many requests",
    sleep the `Retry-After` (or 60s) and retry once. Second 429 → fail the loop.
 
 ### C. Telemetry
