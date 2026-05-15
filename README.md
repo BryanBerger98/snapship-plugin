@@ -13,7 +13,7 @@ Plugin Claude Code — workflow produit autonome, 6 skills enchaînables (`defin
 | `/snap:ticket`    | Décompose un PRD feature en tickets adaptés à la plateforme.         | Plateforme tickets + `tickets.json`      |
 | `/snap:wireframe` | Wireframes low-fi multi-écrans (Frame0/Penpot/Figma) liés aux tickets. | Plateforme wireframe + gallery doc     |
 | `/snap:design`    | Maquettes hi-fi pour un ticket/feature (Penpot/Figma). Optionnel.   | Plateforme design + gallery doc          |
-| `/snap:develop`   | Développe ticket(s). Standalone + loop session/daemon, 3 reviewers. | Code + commits atomiques + PR            |
+| `/snap:develop`   | Développe ticket(s). Standalone + loop session, 3 reviewers. | Code + commits atomiques + PR            |
 | `/snap:qa`        | Validation runtime : régression scope + diff wireframe Playwright.  | Tests + Playwright vs wireframes         |
 
 ### Utilitaires documentation
@@ -25,26 +25,30 @@ Plugin Claude Code — workflow produit autonome, 6 skills enchaînables (`defin
 
 Chaque skill a sa doc d'usage détaillée (flags, pipeline, outputs) dans [`docs/skills/`](docs/skills/).
 
-## Quickstart
+## Quickstart (5 min)
 
 ```bash
-# Install (marketplace bryanberger, Phase 10)
-/plugin marketplace add bryanberger/claude-plugins
-/plugin install snap@bryanberger
-
-# Ou clone manuel global (auto-loaded au prochain démarrage CC)
+# 1. Install (clone manuel global — marketplace bryanberger en Phase 10)
 git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 
-# Premier projet
+# 2. Lance Claude Code dans ton projet
 cd <mon-projet>
 claude
-# Dans session — bootstrap once:
-/snap:init
-# Puis première feature:
-/snap:define "feature description"
+
+# 3. Dans la session — bootstrap une fois par projet
+/snap:init                          # interactif : détecte plateformes & demande confirmation
+# (ou /snap:init --auto pour utiliser tous les defaults détectés)
+
+# 4. Première feature
+/snap:define "Authentification email + magic link"
+/snap:ticket  01-auth-email
+/snap:develop 01-auth-email
+/snap:qa      01-auth-email
 ```
 
-`/snap:init` détecte `.git/config`, MCP servers actifs, test commands → écrit `snapship.config.json` racine projet + scaffold `.snap/`. Toutes les autres commandes refusent de s'exécuter sans config et pointent vers `/snap:init`.
+`/snap:init` détecte `.git/config`, les MCP servers actifs, la structure projet → écrit `snapship.config.json` racine projet et scaffold `.snap/`. Toutes les autres commandes refusent de s'exécuter sans cette config et pointent vers `/snap:init`.
+
+Détails install + prérequis : [docs/install.md](docs/install.md). Walkthrough complet : [docs/getting-started.md](docs/getting-started.md). Migration v0.6 → v1.0 : [docs/migration-v1.md](docs/migration-v1.md).
 
 ## Prérequis
 
@@ -66,7 +70,11 @@ claude
 Specs complètes dans [`docs/`](docs/README.md):
 
 - [docs/structure.md](docs/structure.md) — file tree + storage projet
-- [docs/config.md](docs/config.md) — schema `snapship.config.json`
+- [docs/install.md](docs/install.md) — install (marketplace + clone) + prérequis
+- [docs/getting-started.md](docs/getting-started.md) — premier `/snap:init` puis première feature
+- [docs/troubleshooting.md](docs/troubleshooting.md) — erreurs courantes (auth MCP, secrets, resume, sync)
+- [docs/configuration.md](docs/configuration.md) — schema `snapship.config.json`
+- [docs/migration-v1.md](docs/migration-v1.md) — guide migration v0.6 → v1.0
 - [docs/workflow.md](docs/workflow.md) — détection plateformes + intégration
 - [docs/modes.md](docs/modes.md) — flags `-a`, telemetry, `--dry-run`, hooks
 - [docs/mcp-refs.md](docs/mcp-refs.md) — Frame0, AFFiNE, code-review-graph, Playwright
@@ -81,4 +89,4 @@ MIT. Voir [LICENSE](LICENSE).
 
 ## Status
 
-`v0.6.0` — en développement actif. Pas encore publié marketplace.
+`v1.0.0` — refactor breaking (remote-first, `.snap/` réorganisé). Pas encore publié marketplace (Phase 10). Upgrade depuis v0.6.x : `/snap:upgrade` (voir [docs/migration-v1.md](docs/migration-v1.md)).

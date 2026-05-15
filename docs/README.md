@@ -28,7 +28,11 @@ Chaining manuel (skill suggère prochain à fin). `/snap:init` est obligatoire a
 | ------------------------------------------ | ---------------------------------------------------------------------------------- |
 | [plugin.md](plugin.md)                     | Manifest plugin, distribution, install, layout                                     |
 | [structure.md](structure.md)               | File tree global + storage projet + index.md                                       |
-| [config.md](config.md)                     | Config schema `snapship.config.json` + auto-discovery + fallback                    |
+| [configuration.md](configuration.md)       | Config schema `snapship.config.json` + auto-discovery + fallback                    |
+| [install.md](install.md)                   | Installation marketplace + clone manuel + prérequis                                |
+| [getting-started.md](getting-started.md)   | Premier `/snap:init` → `/snap:define` walkthrough                                  |
+| [troubleshooting.md](troubleshooting.md)   | Erreurs courantes : auth MCP, config, resume, sync                                 |
+| [migration-v1.md](migration-v1.md)         | Guide migration v0.6 → v1.0 (chemins, helpers, `/snap:upgrade`)                    |
 | [scripts.md](scripts.md)                   | Scripts partagés `_shared/` (load-config, adapters, helpers)                       |
 | [workflow.md](workflow.md)                 | Détection plateformes + intégration docs/tickets + error handling                  |
 | [modes.md](modes.md)                       | Flags `-a` autonomous, monitoring usage, telemetry, `--dry-run`, SessionStart hook |

@@ -125,7 +125,7 @@ Manifest `version` = SemVer. Compat config:
 - Minor bump → backward compatible
 - Major bump → instructions migration via `load-config.sh` (check `version` champ config user)
 
-Schemas JSON validés runtime (voir [config.md](config.md) section validation).
+Schemas JSON validés runtime (voir [configuration.md](configuration.md) section validation).
 
 ## Templates docs-defaults
 

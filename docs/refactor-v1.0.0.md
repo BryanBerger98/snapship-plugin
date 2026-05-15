@@ -353,7 +353,7 @@ Logique partagée dans `_shared/sync-push.sh` :
 - `docs/scripts.md` — nouveaux scripts
 - `docs/templates.md` — drop daemon template
 - `docs/decisions.md` — ADR "Remote-first architecture"
-- `docs/config.md` — versioning section
+- `docs/configuration.md` — versioning section
 - `agents/*.md` — chemins
 
 ### Gitignore
