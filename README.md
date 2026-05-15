@@ -144,11 +144,40 @@ Full specs in [`docs/`](docs/README.md) — split between **usage** (for plugin 
 
 ---
 
-## 📦 Status
+## 🔄 Upgrade version
 
-**`v1.0.0`** — remote-first workspace.
+When a new release ships, refresh the marketplace cache, reinstall the plugin, then migrate each downstream workspace.
 
-Published via the [`BryanBerger98/claude-plugins`](https://github.com/BryanBerger98/claude-plugins) marketplace → `/plugin install snap@bryanberger`.
+**1. Refresh the marketplace cache** (inside Claude Code, from anywhere):
+
+```text
+/plugin marketplace update bryanberger
+```
+
+**2. Reinstall the plugin** to pull the new version:
+
+```text
+/plugin install snap@bryanberger
+```
+
+Or, if you cloned manually:
+
+```bash
+cd ~/.claude/plugins/snap
+git pull --ff-only
+```
+
+**3. Migrate your project workspace** — run inside each downstream project that uses `.snap/`:
+
+```text
+/snap:upgrade            # interactive plan + decisions
+# or /snap:upgrade --dry-run for a preview
+# or /snap:upgrade --auto to accept every default
+```
+
+`/snap:upgrade` reads the installed plugin version, chains the required migrations (e.g. `v1.0.0_to_v1.1.0`), backs up `.snap/` to `.snap.bak-v{from}-{ts}/`, then applies + validates. Idempotent — re-running is safe.
+
+> 📖 Full upgrade pipeline → [`skills/upgrade/SKILL.md`](skills/upgrade/SKILL.md) · Release notes → [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 
