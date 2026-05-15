@@ -8,14 +8,14 @@
 
 ## 10.1 Préparation plugin
 
-- [ ] Tag release `v1.0.0` sur repo plugin (`git tag -a v1.0.0 -m "..." && git push --tags`)
-- [ ] GitHub Release notes (extrait CHANGELOG.md)
-- [ ] Setup issue templates (`bug.yml`, `feature.yml`, `question.yml`) dans `.github/ISSUE_TEMPLATE/`
+- [x] Tag release `v1.0.0` sur repo plugin (`git tag -a v1.0.0 -m "..." && git push --tags`)
+- [x] GitHub Release notes (extrait CHANGELOG.md) — [release v1.0.0](https://github.com/BryanBerger98/snapship-plugin/releases/tag/v1.0.0)
+- [x] Setup issue templates (`bug.yml`, `feature.yml`, `question.yml`, `config.yml`) dans `.github/ISSUE_TEMPLATE/`
 
 ## 10.2 Création marketplace repo
 
-- [ ] Créer repo public `bryanberger/claude-plugins` (license MIT, README quickstart)
-- [ ] Arbo:
+- [x] Créer repo public `BryanBerger98/claude-plugins` (license MIT, README quickstart) — [github.com/BryanBerger98/claude-plugins](https://github.com/BryanBerger98/claude-plugins). Owner réel = `BryanBerger98` (compte GitHub authentifié) ; identifier marketplace = `bryanberger` (utilisé dans `/plugin install snap@bryanberger`).
+- [x] Arbo:
 
   ```
   claude-plugins/
@@ -51,23 +51,23 @@
   }
   ```
 
-- [ ] Validation: `claude plugin validate .` passe sans warning
-- [ ] Test local end-to-end:
-  - `/plugin marketplace add ./claude-plugins`
+- [x] Validation: `scripts/validate-marketplace.sh` PASS (jq syntax + per-plugin keys)
+- [ ] Test local end-to-end (manuel, depuis Claude Code) :
+  - `/plugin marketplace add BryanBerger98/claude-plugins`
   - `/plugin install snap@bryanberger`
-  - Vérifier 5 skills disponibles dans session Claude Code
+  - Vérifier les 9 skills `/snap:*` disponibles dans session
 
 ## 10.3 Publication
 
-- [ ] Push GitHub `bryanberger/claude-plugins` (public)
-- [ ] Test depuis machine vierge: `/plugin marketplace add bryanberger/claude-plugins`
-- [ ] README marketplace: badge install, lien snap, instructions ajout marketplaces additionnels
-- [ ] CI workflow `validate-marketplace.yml`: `claude plugin validate .` sur push/PR
-- [ ] Auto-bump `marketplace.json` `ref`/`version` à chaque release snap (script `bump-marketplace.sh` ou GitHub Action workflow_dispatch)
+- [x] Push GitHub `BryanBerger98/claude-plugins` (public)
+- [ ] Test depuis machine vierge (manuel)
+- [x] README marketplace: install + plugins listing + maintenance + validation
+- [x] CI workflow `.github/workflows/validate.yml`: jq syntax + structural sanity sur push/PR (run verte)
+- [x] Helper `scripts/bump-plugin.sh` pour bump `ref`/`version` par plugin
 
 ## 10.4 Annonce
 
-- [ ] README snapship-plugin: badge install + lien marketplace
-- [ ] Annonce communauté CC (Discord / Reddit r/ClaudeAI / X)
+- [x] README snapship-plugin: badges install + lien marketplace
+- [ ] Annonce communauté CC (Discord / Reddit r/ClaudeAI / X) — manuelle
 
 **Sortie:** `/plugin marketplace add bryanberger/claude-plugins` puis `/plugin install snap@bryanberger` fonctionne sur n'importe quelle session Claude Code.

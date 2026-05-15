@@ -3,8 +3,8 @@
 Snap est un **plugin Claude Code**. Trois voies d'installation, par ordre de
 préférence :
 
-1. **Marketplace** `bryanberger` (à venir Phase 10 — pas encore publié).
-2. **Clone manuel global** dans `~/.claude/plugins/` (recommandé aujourd'hui).
+1. **Marketplace** `bryanberger` (recommandé — repo [`BryanBerger98/claude-plugins`](https://github.com/BryanBerger98/claude-plugins)).
+2. **Clone manuel global** dans `~/.claude/plugins/` (alternative sans marketplace).
 3. **Clone projet-scoped** dans `<project>/.claude/plugins/` (isole une version
    par projet).
 
@@ -12,15 +12,17 @@ préférence :
 > qui est runtime obligatoire (jq, `code-review-graph`, MCPs docs/design) doit
 > exister avant le premier `/snap:init`.
 
-## 1. Marketplace (Phase 10 — pas encore disponible)
+## 1. Marketplace (recommandé)
 
 ```text
-/plugin marketplace add bryanberger/claude-plugins
+/plugin marketplace add BryanBerger98/claude-plugins
 /plugin install snap@bryanberger
 ```
 
-Une fois publié, c'est la voie la plus simple : update via
-`/plugin update snap@bryanberger`, désinstall via `/plugin remove snap`.
+Update via `/plugin update snap@bryanberger`, désinstall via
+`/plugin remove snap`. La marketplace track le tag git de la release (`v1.0.0`
+actuellement) — à chaque nouvelle release du plugin, la marketplace est
+bumpée et `/plugin update` rapatrie la nouvelle version.
 
 ## 2. Clone manuel global
 

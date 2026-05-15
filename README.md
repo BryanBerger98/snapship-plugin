@@ -1,5 +1,9 @@
 # SnapShip
 
+[![release](https://img.shields.io/github/v/release/BryanBerger98/snapship-plugin?label=release)](https://github.com/BryanBerger98/snapship-plugin/releases)
+[![marketplace](https://img.shields.io/badge/install-snap%40bryanberger-blue)](https://github.com/BryanBerger98/claude-plugins)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Plugin Claude Code — workflow produit autonome, 6 skills enchaînables (`define → ticket → wireframe → design → develop → qa`) + 2 utilitaires doc (`doc-import`, `doc-update`). Adaptatif plateformes tickets (GitHub/GitLab/JIRA), docs (AFFiNE/Notion), wireframes (Frame0/Penpot/Figma) et design hi-fi (Penpot/Figma).
 
 ## Skills
@@ -28,7 +32,12 @@ Chaque skill a sa doc d'usage détaillée (flags, pipeline, outputs) dans [`docs
 ## Quickstart (5 min)
 
 ```bash
-# 1. Install (clone manuel global — marketplace bryanberger en Phase 10)
+# 1. Install via marketplace bryanberger (recommandé)
+#    Dans une session claude :
+#    /plugin marketplace add BryanBerger98/claude-plugins
+#    /plugin install snap@bryanberger
+#
+#    Ou clone manuel global :
 git clone https://github.com/BryanBerger98/snapship-plugin ~/.claude/plugins/snap
 
 # 2. Lance Claude Code dans ton projet
@@ -89,4 +98,4 @@ MIT. Voir [LICENSE](LICENSE).
 
 ## Status
 
-`v1.0.0` — refactor breaking (remote-first, `.snap/` réorganisé). Pas encore publié marketplace (Phase 10). Upgrade depuis v0.6.x : `/snap:upgrade` (voir [docs/migration-v1.md](docs/migration-v1.md)).
+`v1.0.0` — refactor breaking (remote-first, `.snap/` réorganisé). Publié via marketplace [`BryanBerger98/claude-plugins`](https://github.com/BryanBerger98/claude-plugins) (`/plugin install snap@bryanberger`). Upgrade depuis v0.6.x : `/snap:upgrade` (voir [docs/migration-v1.md](docs/migration-v1.md)).
