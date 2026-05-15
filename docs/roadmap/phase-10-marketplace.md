@@ -8,7 +8,7 @@
 
 ## 10.1 Préparation plugin
 
-- [ ] Tag release `v0.1.0` sur repo plugin (`git tag -a v0.1.0 -m "..." && git push --tags`)
+- [ ] Tag release `v1.0.0` sur repo plugin (`git tag -a v1.0.0 -m "..." && git push --tags`)
 - [ ] GitHub Release notes (extrait CHANGELOG.md)
 - [ ] Setup issue templates (`bug.yml`, `feature.yml`, `question.yml`) dans `.github/ISSUE_TEMPLATE/`
 
@@ -38,9 +38,9 @@
         "source": {
           "source": "github",
           "repo": "BryanBerger98/snapship-plugin",
-          "ref": "v0.1.0"
+          "ref": "v1.0.0"
         },
-        "version": "0.1.0",
+        "version": "1.0.0",
         "author": { "name": "Bryan Berger", "email": "contact@bryanberger.dev" },
         "homepage": "https://github.com/BryanBerger98/snapship-plugin",
         "repository": "https://github.com/BryanBerger98/snapship-plugin",

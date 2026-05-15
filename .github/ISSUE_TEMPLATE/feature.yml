@@ -1,0 +1,43 @@
+name: ✨ Feature request
+description: Proposer une amélioration ou nouvelle capacité
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème / besoin
+      description: Quel cas d'usage n'est pas couvert ? Quel friction tu rencontres ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Quoi ajouter / changer. Inclure flag CLI, sortie attendue, skill concerné si applicable.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      multiple: true
+      options:
+        - Skill existant (modification)
+        - Nouveau skill
+        - Helper `_shared/`
+        - Plateforme nouvelle (tickets/docs/design)
+        - Config schema
+        - Docs
+        - CI / build
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Workarounds actuels ou autres approches considérées.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Contexte additionnel

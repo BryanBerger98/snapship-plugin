@@ -1,0 +1,83 @@
+name: 🐛 Bug report
+description: Quelque chose ne fonctionne pas comme attendu
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci pour le rapport. Pour une triage rapide, complète chaque section.
+  - type: input
+    id: snap-version
+    attributes:
+      label: Version snap
+      description: Sortie de `jq -r .version ~/.claude/plugins/snap/.claude-plugin/plugin.json`
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: claude-code-version
+    attributes:
+      label: Version Claude Code
+      description: Sortie de `claude --version`
+      placeholder: "1.x.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Skill concerné
+      options:
+        - "/snap:init"
+        - "/snap:define"
+        - "/snap:ticket"
+        - "/snap:wireframe"
+        - "/snap:design"
+        - "/snap:develop"
+        - "/snap:qa"
+        - "/snap:doc-import"
+        - "/snap:doc-update"
+        - "/snap:fetch"
+        - "/snap:upgrade"
+        - "Autre / N/A"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Commandes exécutées + état initial (config plateforme, MCP actifs).
+      placeholder: |
+        1. /snap:init --auto
+        2. /snap:define "..."
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportement observé
+      description: Inclure les messages d'erreur littéraux + extraits de `.snap/progress.json` si pertinent.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environnement
+      description: OS, shell, plateformes configurées (`jq -r '.tickets.platform,.documentation.platform,.wireframes.platform,.design.platform' snapship.config.json`).
+      placeholder: |
+        - OS: macOS 14.5
+        - Shell: zsh 5.9
+        - tickets=github, docs=notion, wireframes=frame0, design=figma
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Logs / contexte additionnel

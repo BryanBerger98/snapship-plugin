@@ -1,0 +1,24 @@
+name: ❓ Question / aide
+description: Question d'usage, doc unclear, comportement attendu pas sûr
+title: "[question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Avant d'ouvrir : lis [docs/troubleshooting.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/troubleshooting.md) et [docs/getting-started.md](https://github.com/BryanBerger98/snapship-plugin/blob/main/docs/getting-started.md). Si la réponse est déjà documentée, je propose qu'on améliore la doc ensemble.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: Ce que tu as déjà essayé
+      description: Commandes lancées, docs lues, recherches issue tracker.
+  - type: textarea
+    id: env
+    attributes:
+      label: Contexte (version snap, plateformes configurées)
