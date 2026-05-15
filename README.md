@@ -88,7 +88,6 @@ Specs complètes dans [`docs/`](docs/README.md):
 - [docs/modes.md](docs/modes.md) — flags `-a`, telemetry, `--dry-run`, hooks
 - [docs/mcp-refs.md](docs/mcp-refs.md) — Frame0, AFFiNE, code-review-graph, Playwright
 - [docs/decisions.md](docs/decisions.md) — décisions validées + history
-- [docs/roadmap/](docs/roadmap/README.md) — étapes dev → publication → install (1 fichier par phase)
 - [docs/diagram.md](docs/diagram.md) — schémas Mermaid workflow
 - [docs/skills/](docs/skills/) — doc d'usage par skill (1 fichier par skill : flags, pipeline, outputs)
 

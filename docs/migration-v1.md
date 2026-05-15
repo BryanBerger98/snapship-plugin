@@ -121,7 +121,6 @@ restaure depuis `.snap.bak-v0-{timestamp}/`.
 
 ## Plus de détails
 
-- [refactor-v1.0.0.md](refactor-v1.0.0.md) — design doc complet du refactor
 - [CHANGELOG.md](../CHANGELOG.md) — entrée v1.0.0 (toutes les ruptures)
 - [structure.md](structure.md) — nouvelle arbo `.snap/`
 - [scripts.md](scripts.md) — contrats helpers refactorés

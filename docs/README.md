@@ -39,7 +39,6 @@ Chaining manuel (skill suggère prochain à fin). `/snap:init` est obligatoire a
 | [mcp-refs.md](mcp-refs.md)                 | MCP servers: Frame0, AFFiNE, code-review-graph, Playwright                         |
 | [coverage.md](coverage.md)                 | Couverture besoins user → skills mapping                                           |
 | [diagram.md](diagram.md)                   | Diagrammes Mermaid: vue globale + zooms par skill + variantes                      |
-| [roadmap.md](roadmap.md)                   | Étapes développement → publication marketplace → install user-side                 |
 | [templates.md](templates.md)               | Templates docs bundlés (PRD global/feature, wireframes gallery)                    |
 | [decisions.md](decisions.md)               | Décisions validées + history + validation pré-build                                |
 | [skills/init.md](skills/init.md)           | Skill `/snap:init` — usage, flags, pipeline                                        |
