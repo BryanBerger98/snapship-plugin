@@ -177,6 +177,7 @@ JSON
         local_id: .ticket_id,
         title: .title,
         status: "todo",
+        story_type: "user-story",
         labels: .labels,
         depends_on: .depends_on,
         files: .expected_files,

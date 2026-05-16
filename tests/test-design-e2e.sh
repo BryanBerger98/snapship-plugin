@@ -49,10 +49,10 @@ make_fixture() {
   "story_id": "01-auth",
   "platform": "github",
   "tickets": [
-    {"local_id":"t-001","title":"Build signup screen","status":"todo","files":["src/components/Signup.tsx"]},
-    {"local_id":"t-002","title":"Verify email page","status":"todo","files":["src/pages/Verify.tsx"]},
-    {"local_id":"t-003","title":"Show error modal","status":"todo","files":["src/components/ErrorModal.tsx"]},
-    {"local_id":"t-099","title":"DB migration users","status":"todo","files":["db/001-users.sql"]}
+    {"local_id":"t-001","title":"Build signup screen","status":"todo","story_type":"user-story","files":["src/components/Signup.tsx"]},
+    {"local_id":"t-002","title":"Verify email page","status":"todo","story_type":"user-story","files":["src/pages/Verify.tsx"]},
+    {"local_id":"t-003","title":"Show error modal","status":"todo","story_type":"user-story","files":["src/components/ErrorModal.tsx"]},
+    {"local_id":"t-099","title":"DB migration users","status":"todo","story_type":"task","files":["db/001-users.sql"]}
   ]
 }
 JSON

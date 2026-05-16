@@ -50,9 +50,9 @@ cat > "$TICKETS" <<JSON
   "story_id": "${FEATURE_ID}",
   "platform": "github",
   "tickets": [
-    {"local_id":"t-001","title":"Build signup form","status":"todo","type":"feat","files":["src/signup.ts"]},
-    {"local_id":"t-002","title":"Add login flow","status":"todo","type":"feat","files":["src/login.ts"]},
-    {"local_id":"t-003","title":"Fix verify regex","status":"todo","type":"fix","files":["src/verify.ts"]}
+    {"local_id":"t-001","title":"Build signup form","status":"todo","story_type":"user-story","commit_type":"feat","files":["src/signup.ts"]},
+    {"local_id":"t-002","title":"Add login flow","status":"todo","story_type":"user-story","commit_type":"feat","files":["src/login.ts"]},
+    {"local_id":"t-003","title":"Fix verify regex","status":"todo","story_type":"bug","commit_type":"fix","files":["src/verify.ts"]}
   ]
 }
 JSON
@@ -117,7 +117,7 @@ echo ""
 echo "[step-03a] commit message + tickets patch"
 
 ticket=$(jq '.tickets[0]' "$TICKETS")
-type=$(jq -r '.type' <<<"$ticket")
+type=$(jq -r '.commit_type' <<<"$ticket")
 title=$(jq -r '.title' <<<"$ticket")
 local_id=$(jq -r '.local_id' <<<"$ticket")
 scope="auth"

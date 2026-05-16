@@ -22,7 +22,7 @@ ok() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
 ko() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }
 
 VALID_SEVERITIES="none info minor major critical"
-KNOWN_TOOLS="Read Write Edit Bash Grep Glob WebFetch WebSearch Task TaskCreate TaskUpdate TaskList NotebookEdit"
+KNOWN_TOOLS="Read Write Edit Bash Grep Glob WebFetch WebSearch Task TaskCreate TaskUpdate TaskList NotebookEdit mcp__claude_ai_Context7__resolve-library-id mcp__claude_ai_Context7__query-docs"
 
 extract_frontmatter() {
   awk '

@@ -58,7 +58,7 @@ cat > "$TICKETS" <<JSON
   "platform": "github",
   "tickets": [
     {
-      "local_id":"t-001","title":"Build signup form","status":"in_review","type":"feat",
+      "local_id":"t-001","title":"Build signup form","status":"in_review","story_type":"user-story","commit_type":"feat",
       "files":["src/signup.ts","src/signup.test.ts"],"commit_sha":"${T1_SHA}",
       "developed_at":"2026-05-09T12:00:00Z",
       "acceptance_criteria":[
@@ -67,7 +67,7 @@ cat > "$TICKETS" <<JSON
       ]
     },
     {
-      "local_id":"t-002","title":"Add login flow","status":"todo","type":"feat",
+      "local_id":"t-002","title":"Add login flow","status":"todo","story_type":"user-story","commit_type":"feat",
       "files":["src/login.ts"]
     }
   ]
