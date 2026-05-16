@@ -61,11 +61,12 @@ Si "Non" → second `AskUserQuestion` :
 bash skills/_shared/define-state.sh init \
   --project-root="$PWD" \
   --lang="${lang:-en}" \
-  --mode="$define_mode"
-
-bash skills/_shared/define-state.sh set define_mode "$define_mode" \
-  --project-root="$PWD"
+  --define-mode="$define_mode"
 ```
+
+`cmd_init` est merge-aware : si le state existe déjà, seules les keys passées
+en flag sont mises à jour. Si appel suivant (story-init) passe
+`--codebase-mode=greenfield`, le `define_mode` cached ici survit.
 
 ### E. Progress
 

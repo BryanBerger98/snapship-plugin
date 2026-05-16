@@ -25,7 +25,7 @@ echo "=== /define --mode=story ==="
 
 # 1. add-feature accepts parent_epic_id (mode "existant")
 DIR=$(setup_dir)
-bash "$DEFST" init --project-root="$DIR" --lang=en --mode=greenfield >/dev/null
+bash "$DEFST" init --project-root="$DIR" --lang=en --codebase-mode=greenfield >/dev/null
 FT_EXISTING='{
   "story_id":"01-auth",
   "feature_title":"Sign-up with email",

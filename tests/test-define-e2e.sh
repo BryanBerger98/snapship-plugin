@@ -59,7 +59,7 @@ else
 fi
 
 # step-00: init state, log progress
-bash "$STATE" init --lang=en --mode=greenfield --project-root="$DIR" >/dev/null
+bash "$STATE" init --lang=en --codebase-mode=greenfield --project-root="$DIR" >/dev/null
 [ -f "$DIR/.snap/.define-state.json" ] && ok "1.3 state file created" || ko "1.3"
 bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=00 --step-name=init --status=ok >/dev/null
@@ -186,7 +186,7 @@ bash "$SETUP" --project-root="$DIR" --story-id=02-billing --story-name="Billing"
   && ok "2.1b extension manifest created" \
   || ko "2.1b manifest missing"
 
-bash "$STATE" init --lang=en --mode=extension --feature=02-billing --project-root="$DIR" >/dev/null
+bash "$STATE" init --lang=en --codebase-mode=extension --feature=02-billing --project-root="$DIR" >/dev/null
 bash "$STATE" set vision "Existing product description that is long enough and contains a verb." --project-root="$DIR"
 bash "$STATE" set north_star_metric "wad" --project-root="$DIR"
 bash "$STATE" set north_star_current "10" --project-root="$DIR"

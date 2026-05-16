@@ -22,12 +22,33 @@ echo "=== define-state.sh tests ==="
 echo ""
 echo "[1] init"
 DIR=$(setup_dir)
-bash "$SCRIPT" init --project-root="$DIR" --lang=en --mode=greenfield
+bash "$SCRIPT" init --project-root="$DIR" --lang=en --codebase-mode=greenfield --define-mode=story
 F="${DIR}/.snap/.define-state.json"
 [ -f "$F" ] && ok "1.1 file created" || ko "1.1 missing"
 jq empty "$F" 2>/dev/null && ok "1.2 valid JSON" || ko "1.2 invalid JSON"
 [ "$(jq -r '.lang' "$F")" = "en" ] && ok "1.3 lang stored" || ko "1.3"
-[ "$(jq -r '.mode' "$F")" = "greenfield" ] && ok "1.4 mode stored" || ko "1.4"
+[ "$(jq -r '.codebase_mode' "$F")" = "greenfield" ] && ok "1.4 codebase_mode stored" || ko "1.4"
+[ "$(jq -r '.define_mode' "$F")" = "story" ] && ok "1.5 define_mode stored" || ko "1.5"
+
+# 1bis. init merge — second call only updates passed flags
+DIR2=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR2" --lang=fr --define-mode=vision
+bash "$SCRIPT" init --project-root="$DIR2" --codebase-mode=extension
+F2="${DIR2}/.snap/.define-state.json"
+[ "$(jq -r '.lang' "$F2")" = "fr" ] && ok "1.6 merge preserves lang" || ko "1.6"
+[ "$(jq -r '.define_mode' "$F2")" = "vision" ] && ok "1.7 merge preserves define_mode" || ko "1.7"
+[ "$(jq -r '.codebase_mode' "$F2")" = "extension" ] && ok "1.8 merge sets codebase_mode" || ko "1.8"
+trash "$DIR2" 2>/dev/null || true
+
+# 1ter. init rejects deprecated --mode= flag
+DIR3=$(setup_dir)
+if bash "$SCRIPT" init --project-root="$DIR3" --mode=greenfield 2>/dev/null; then
+  ko "1.9 --mode= should be rejected"
+else
+  ok "1.9 --mode= rejected (deprecated)"
+fi
+trash "$DIR3" 2>/dev/null || true
+
 trash "$DIR" 2>/dev/null || true
 
 # 2. set/get scalar

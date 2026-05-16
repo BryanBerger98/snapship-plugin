@@ -6,11 +6,15 @@
 # step-04 to render templates. Cleaned up by step-05 on success.
 #
 # Subcommands:
-#   init [--lang=fr|en] [--mode=greenfield|extension] [--feature=NN-slug]
-#                         Create empty state file with frontmatter.
+#   init [--lang=fr|en] [--define-mode=vision|journey|story]
+#        [--codebase-mode=greenfield|extension] [--feature=NN-slug]
+#                         Create OR merge-update the state file. If the file
+#                         already exists, only the flags passed are updated —
+#                         other keys (define_mode, codebase_mode, vision, …)
+#                         are preserved. Safe to call from multiple steps.
 #   set KEY VALUE         Set a top-level scalar key (vision, north_star_metric,
 #                         north_star_current, north_star_target, target_horizon,
-#                         lang, mode, active_story_id).
+#                         lang, define_mode, codebase_mode, active_story_id).
 #   get KEY               Print scalar value (empty if unset).
 #   add-persona JSON      Append a persona object {persona_name, persona_role,
 #                         persona_goals, persona_pains, persona_tools}.
@@ -44,7 +48,7 @@ usage() {
 Usage: define-state.sh <subcommand> [args] [--project-root=PATH]
 
 Subcommands:
-  init [--lang=…] [--mode=…] [--feature=…]
+  init [--lang=…] [--define-mode=…] [--codebase-mode=…] [--feature=…]
   set KEY VALUE
   get KEY
   add-persona JSON
@@ -81,36 +85,68 @@ ensure_state() {
 }
 
 cmd_init() {
-  local lang="" mode="" feature=""
+  local lang="" define_mode="" codebase_mode="" feature=""
+  # Track which flags were explicitly passed (so merge updates only those keys).
+  local set_lang=0 set_define_mode=0 set_codebase_mode=0 set_feature=0
   for a in "$@"; do
     case "$a" in
-      --lang=*)    lang="${a#--lang=}" ;;
-      --mode=*)    mode="${a#--mode=}" ;;
-      --feature=*) feature="${a#--feature=}" ;;
+      --lang=*)           lang="${a#--lang=}";                     set_lang=1 ;;
+      --define-mode=*)    define_mode="${a#--define-mode=}";       set_define_mode=1 ;;
+      --codebase-mode=*)  codebase_mode="${a#--codebase-mode=}";   set_codebase_mode=1 ;;
+      --feature=*)        feature="${a#--feature=}";               set_feature=1 ;;
+      --mode=*)
+        echo "WARNING: --mode= is deprecated; pass --define-mode= or --codebase-mode= explicitly" >&2
+        return 2 ;;
       *) echo "ERROR: unknown arg: $a" >&2; return 2 ;;
     esac
   done
   local f
   f=$(state_file)
   mkdir -p "$(dirname "$f")"
-  jq -n \
+
+  if [ ! -f "$f" ]; then
+    # First call — create the full skeleton.
+    jq -n \
+      --arg lang "$lang" \
+      --arg define_mode "$define_mode" \
+      --arg codebase_mode "$codebase_mode" \
+      --arg feature "$feature" \
+      --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{
+        created_at: $created,
+        lang: $lang,
+        define_mode: $define_mode,
+        codebase_mode: $codebase_mode,
+        active_story_id: $feature,
+        vision: "",
+        north_star_metric: "",
+        north_star_current: "",
+        north_star_target: "",
+        target_horizon: "",
+        personas: [],
+        features: []
+      }' > "$f"
+    return 0
+  fi
+
+  # Merge — only update keys whose flag was explicitly passed.
+  local tmp
+  tmp=$(mktemp)
+  jq \
     --arg lang "$lang" \
-    --arg mode "$mode" \
+    --arg define_mode "$define_mode" \
+    --arg codebase_mode "$codebase_mode" \
     --arg feature "$feature" \
-    --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '{
-      created_at: $created,
-      lang: $lang,
-      mode: $mode,
-      active_story_id: $feature,
-      vision: "",
-      north_star_metric: "",
-      north_star_current: "",
-      north_star_target: "",
-      target_horizon: "",
-      personas: [],
-      features: []
-    }' > "$f"
+    --argjson set_lang "$set_lang" \
+    --argjson set_define_mode "$set_define_mode" \
+    --argjson set_codebase_mode "$set_codebase_mode" \
+    --argjson set_feature "$set_feature" \
+    '
+      (if $set_lang == 1 then .lang = $lang else . end)
+      | (if $set_define_mode == 1 then .define_mode = $define_mode else . end)
+      | (if $set_codebase_mode == 1 then .codebase_mode = $codebase_mode else . end)
+      | (if $set_feature == 1 then .active_story_id = $feature else . end)
+    ' "$f" > "$tmp" && mv "$tmp" "$f"
 }
 
 cmd_set() {
@@ -119,7 +155,7 @@ cmd_set() {
   local key="$1" val="$2"
   case "$key" in
     vision|north_star_metric|north_star_current|north_star_target|target_horizon|\
-lang|mode|active_story_id) ;;
+lang|define_mode|codebase_mode|active_story_id) ;;
     *) echo "ERROR: unsupported key: $key" >&2; return 2 ;;
   esac
   local f tmp

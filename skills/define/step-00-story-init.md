@@ -52,14 +52,20 @@ to `/snap:init`.
    Show `signals` to the user when announcing the chosen path so they can override
    the heuristic if needed (e.g., "Detected codebase via: package.json, .git").
 
-6. **Initialize transient state file** (consumed by step-01..04, wiped by step-05):
+6. **Update transient state file** (merge-update — the routeur step-00 already
+   created the file with `define_mode`. We only patch the keys this step
+   owns: `codebase_mode`, `lang`, optional `active_story_id`):
    ```bash
    bash skills/_shared/define-state.sh init \
      --project-root="$PWD" \
      --lang="$lang" \
-     --mode="$mode" \
+     --codebase-mode="$codebase_mode" \
      ${story_id:+--feature="$story_id"}
    ```
+
+   `codebase_mode` ∈ `{greenfield, extension}` (issu de `detect-codebase.sh`,
+   task 5 ci-dessus). Ne pas confondre avec `define_mode` ∈ `{vision, journey,
+   story}` qui appartient au routeur.
 
 7. **Capture resolved config** into a shell variable (load-config writes nothing
    to disk in v1.0 — stdout only):
@@ -98,7 +104,7 @@ to `/snap:init`.
 | `has_codebase` | detection | step-01 (skip vision if extending) |
 | `lang` | `--lang` or detected | step-04 (template rendering) |
 | `story_id` | `--feature` or chosen later | step-03 onward |
-| `mode` | `greenfield` \| `extension` | step-01..03 |
+| `codebase_mode` | `greenfield` \| `extension` | step-01..03 |
 | `CONFIG_JSON` | `load-config.sh` stdout | step-05 (paths, platform) |
 
 ## Acceptance check

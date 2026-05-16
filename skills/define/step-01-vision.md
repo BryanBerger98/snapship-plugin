@@ -10,13 +10,13 @@ Collect the product's vision and its single tracked metric.
 
 ## Inputs
 
-- `mode` from step-00 (`greenfield` | `extension`).
+- `codebase_mode` from step-00-story-init (`greenfield` | `extension`).
 - Optional: existing `.snap/manifests/*.manifest.json` + workspace metadata in
   `_taxonomy.json` (extension mode) — read first for context.
 
 ## Tasks
 
-1. **Skip condition**: if `mode = extension` AND the workspace already has cached
+1. **Skip condition**: if `codebase_mode = extension` AND the workspace already has cached
    vision + north star metric in `.snap/.define-state.json` (or in the taxonomy
    workspace metadata), skip to step-02 with the existing values reused. Note
    the skip via `progress.sh step --status=skip`.
