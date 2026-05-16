@@ -628,6 +628,262 @@ out=$(bash "$SCRIPT" --action=add-to-project --platform=github \
   --ticket-id=42 --project-id=PVT_xxx --dry-run)
 [ "$(echo "$out" | jq -r '.result.item_id')" = "DRY-ITEM-0" ] && ok "48.1 mock item_id" || ko "48.1"
 
+# ============== v1.2 — Phase C additions ==============
+
+# --- capabilities action --------------------------------------------------
+
+echo ""
+echo "[49] capabilities github"
+out=$(bash "$SCRIPT" --action=capabilities --platform=github)
+[ $? -eq 0 ]                                                       && ok "49.1 exit 0"             || ko "49.1"
+[ "$(echo "$out" | jq -r '.mode')" = "static" ]                    && ok "49.2 mode static"        || ko "49.2"
+[ "$(echo "$out" | jq -r '.result.supports_version')" = "false" ]  && ok "49.3 gh no version"      || ko "49.3"
+[ "$(echo "$out" | jq -r '.result.supports_epic')" = "true" ]      && ok "49.4 gh epic"            || ko "49.4"
+[ "$(echo "$out" | jq -r '.result.supports_milestone')" = "true" ] && ok "49.5 gh milestone"       || ko "49.5"
+[ "$(echo "$out" | jq -r '.result.supports_epic_auto_close')" = "false" ] && ok "49.6 gh no autoclose" || ko "49.6"
+
+echo ""
+echo "[50] capabilities gitlab"
+out=$(bash "$SCRIPT" --action=capabilities --platform=gitlab)
+[ "$(echo "$out" | jq -r '.result.supports_version')" = "true" ]   && ok "50.1 gl version"  || ko "50.1"
+[ "$(echo "$out" | jq -r '.result.supports_epic_auto_close')" = "true" ] && ok "50.2 gl autoclose" || ko "50.2"
+
+echo ""
+echo "[51] capabilities jira"
+out=$(bash "$SCRIPT" --action=capabilities --platform=jira)
+[ "$(echo "$out" | jq -r '.result.supports_version')" = "true" ] && ok "51.1 jira version" || ko "51.1"
+
+echo ""
+echo "[52] capabilities linear"
+out=$(bash "$SCRIPT" --action=capabilities --platform=linear)
+[ "$(echo "$out" | jq -r '.result.platform')" = "linear" ] && ok "52.1 linear platform" || ko "52.1"
+[ "$(echo "$out" | jq -r '.result.supports_epic')" = "true" ] && ok "52.2 linear epic" || ko "52.2"
+
+# --- capability-gated rejection on github ---------------------------------
+
+echo ""
+echo "[53] github set-version → not_supported"
+out=$(bash "$SCRIPT" --action=set-version --platform=github --ticket-id=42 --version-name=1.2.3 2>&1)
+rc=$?
+[ $rc -eq 1 ]                                                && ok "53.1 exit 1"        || ko "53.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ]      && ok "53.2 not_supported" || ko "53.2"
+
+echo ""
+echo "[54] github list-versions → not_supported"
+out=$(bash "$SCRIPT" --action=list-versions --platform=github 2>&1)
+[ $? -eq 1 ] && ok "54.1 exit 1" || ko "54.1"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ] && ok "54.2 not_supported" || ko "54.2"
+
+echo ""
+echo "[55] github close-epic → not_supported"
+out=$(bash "$SCRIPT" --action=close-epic --platform=github --ticket-id=1 2>&1)
+[ $? -eq 1 ] && ok "55.1 exit 1" || ko "55.1"
+
+# --- linear routes to MCP descriptor --------------------------------------
+
+echo ""
+echo "[56] linear → MCP descriptor"
+out=$(bash "$SCRIPT" --action=create --platform=linear --title="X" --parent-id=ABC-1)
+rc=$?
+[ $rc -eq 10 ]                                                        && ok "56.1 exit 10"       || ko "56.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.platform')" = "linear" ]        && ok "56.2 linear plat"   || ko "56.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.parent_id')" = "ABC-1" ] && ok "56.3 parent_id"     || ko "56.3"
+
+echo ""
+echo "[57] linear comment-pr → not_supported"
+out=$(bash "$SCRIPT" --action=comment-pr --platform=linear --pr-id=9 --comment=hi 2>&1)
+[ $? -eq 1 ] && ok "57.1 exit 1" || ko "57.1"
+[ "$(echo "$out" | jq -r '.error')" = "not_supported" ] && ok "57.2 not_supported" || ko "57.2"
+
+# --- hierarchical strict (decision 7b) ------------------------------------
+
+echo ""
+echo "[58] link-parent without --parent-id (real, not dry-run) → refused"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=link-parent --platform=github \
+  --child-id=42 2>&1)
+rc=$?
+[ $rc -eq 1 ]                                                       && ok "58.1 exit 1"            || ko "58.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.error')" = "parent_unresolved" ]         && ok "58.2 parent_unresolved" || ko "58.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[59] link-parent with --parent-id=null (real) → refused"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=link-parent --platform=github \
+  --child-id=42 --parent-id=null 2>&1)
+rc=$?
+[ $rc -eq 1 ]                                                && ok "59.1 exit 1"            || ko "59.1"
+[ "$(echo "$out" | jq -r '.error')" = "parent_unresolved" ]  && ok "59.2 parent_unresolved" || ko "59.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[60] link-parent missing --child-id"
+bash "$SCRIPT" --action=link-parent --platform=github --parent-id=1 >/dev/null 2>&1
+[ $? -eq 2 ] && ok "60.1 exit 2" || ko "60.1"
+
+# --- new actions dry-run --------------------------------------------------
+
+echo ""
+echo "[61] dry-run link-parent github echoes params"
+out=$(bash "$SCRIPT" --action=link-parent --platform=github --child-id=42 --parent-id=10 --dry-run)
+[ "$(echo "$out" | jq -r '.mode')" = "dry-run" ]            && ok "61.1 mode"      || ko "61.1"
+[ "$(echo "$out" | jq -r '.result.parent_id')" = "10" ]     && ok "61.2 parent_id" || ko "61.2"
+[ "$(echo "$out" | jq -r '.result.child_id')" = "42" ]      && ok "61.3 child_id"  || ko "61.3"
+
+echo ""
+echo "[62] dry-run set-milestone"
+out=$(bash "$SCRIPT" --action=set-milestone --platform=github --ticket-id=42 --milestone=v1.2 --dry-run)
+[ "$(echo "$out" | jq -r '.result.milestone')" = "v1.2" ] && ok "62.1 milestone" || ko "62.1"
+
+echo ""
+echo "[63] dry-run set-version gitlab"
+out=$(bash "$SCRIPT" --action=set-version --platform=gitlab --ticket-id=7 --version-name=2.0.0 --dry-run)
+[ "$(echo "$out" | jq -r '.result.version_name')" = "2.0.0" ] && ok "63.1 version_name" || ko "63.1"
+
+# --- idempotence guard ----------------------------------------------------
+
+# Stub gh that returns existing title on `issue list --search` then would
+# fail on `issue create` to prove the create branch was NOT taken.
+mk_gh_dedup_stub() {
+  local path="$1" existing_title="$2"
+  mkdir -p "$(dirname "$path")"
+  cat > "$path" <<STUB
+#!/usr/bin/env bash
+case "\${1:-}-\${2:-}" in
+  issue-list)
+    cat <<JSON
+[{"number":99,"title":"${existing_title}","url":"https://github.com/o/r/issues/99"}]
+JSON
+    ;;
+  issue-create)
+    echo "stub: create should NOT be reached when idempotency-check matches" >&2
+    exit 9
+    ;;
+  *) echo "stub: unknown gh args: \$*" >&2; exit 1 ;;
+esac
+STUB
+  chmod +x "$path"
+}
+
+echo ""
+echo "[64] github create --idempotency-check matches → dedup"
+TMP=$(mktemp -d)
+mk_gh_dedup_stub "$TMP/gh" "Existing ticket"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github \
+  --title="Existing ticket" --idempotency-check=true 2>&1)
+rc=$?
+[ $rc -eq 0 ]                                                  && ok "64.1 exit 0 dedup"  || ko "64.1 rc=$rc out=$out"
+[ "$(echo "$out" | jq -r '.result.deduped')" = "true" ]        && ok "64.2 deduped flag"  || ko "64.2"
+[ "$(echo "$out" | jq -r '.result.platform_id')" = "99" ]      && ok "64.3 reused id"     || ko "64.3"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[65] github create --idempotency-check no match → creates"
+TMP=$(mktemp -d)
+# regular stub returns []  for issue list (no matching title)
+cat > "$TMP/gh" <<'STUB'
+#!/usr/bin/env bash
+case "${1:-}-${2:-}" in
+  issue-list)
+    echo "[]"
+    ;;
+  issue-create)
+    echo "https://github.com/o/r/issues/77"
+    ;;
+  *) echo "stub: unknown gh args: $*" >&2; exit 1 ;;
+esac
+STUB
+chmod +x "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github \
+  --title="Brand new" --idempotency-check=true)
+[ "$(echo "$out" | jq -r '.result.platform_id')" = "77" ]      && ok "65.1 created"      || ko "65.1 out=$out"
+[ "$(echo "$out" | jq -r '.result.deduped // false')" = "false" ] && ok "65.2 not deduped" || ko "65.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+# --- retry on transient error --------------------------------------------
+
+# Stub gh that fails twice with "503 Service Unavailable" then succeeds.
+mk_gh_flaky_stub() {
+  local path="$1" counter_file="$2"
+  mkdir -p "$(dirname "$path")"
+  cat > "$path" <<STUB
+#!/usr/bin/env bash
+COUNT_FILE="${counter_file}"
+n=0
+[ -f "\$COUNT_FILE" ] && n=\$(cat "\$COUNT_FILE")
+n=\$((n + 1))
+echo "\$n" > "\$COUNT_FILE"
+if [ "\$n" -lt 3 ]; then
+  echo "HTTP 503 Service Unavailable" >&2
+  exit 1
+fi
+case "\${1:-}-\${2:-}" in
+  issue-create)
+    echo "https://github.com/o/r/issues/42"
+    ;;
+  issue-view)
+    cat <<JSON
+{"number":42,"url":"https://github.com/o/r/issues/42","title":"T","body":"B","state":"OPEN","labels":[],"assignees":[]}
+JSON
+    ;;
+  *) echo "stub: unknown gh args after retry: \$*" >&2; exit 1 ;;
+esac
+STUB
+  chmod +x "$path"
+}
+
+echo ""
+echo "[66] retry on 503 → succeeds on 3rd attempt"
+TMP=$(mktemp -d)
+mk_gh_flaky_stub "$TMP/gh" "$TMP/count"
+# tighten backoff for test speed (50ms instead of 1000ms)
+out=$(SNAP_TRACKER_BACKOFF_MS=50 SNAP_GH_BIN="$TMP/gh" \
+  bash "$SCRIPT" --action=create --platform=github --title="X" 2>&1)
+rc=$?
+[ $rc -eq 0 ]                                              && ok "66.1 exit 0 after retry" || ko "66.1 rc=$rc out=$out"
+[ "$(cat "$TMP/count")" = "3" ]                            && ok "66.2 3 attempts"         || ko "66.2 count=$(cat "$TMP/count")"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[67] non-transient error → no retry"
+TMP=$(mktemp -d)
+mk_failing_stub "$TMP/gh"  # always echoes 'boom' rc=1 (not transient)
+out=$(SNAP_TRACKER_BACKOFF_MS=5000 SNAP_GH_BIN="$TMP/gh" \
+  bash "$SCRIPT" --action=create --platform=github --title="X" 2>&1)
+rc=$?
+# Non-transient error must surface immediately, not after retries.
+[ $rc -eq 1 ] && ok "67.1 exit 1 on non-transient" || ko "67.1 rc=$rc out=$out"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+# --- new MCP-routed actions on jira ---------------------------------------
+
+echo ""
+echo "[68] jira link-parent → MCP descriptor"
+out=$(bash "$SCRIPT" --action=link-parent --platform=jira --child-id=PROJ-7 --parent-id=PROJ-1 --parent-type=epic)
+[ $? -eq 10 ] && ok "68.1 exit 10" || ko "68.1"
+[ "$(echo "$out" | jq -r '.descriptor.params.parent_id')" = "PROJ-1" ] && ok "68.2 parent_id" || ko "68.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.parent_type')" = "epic" ] && ok "68.3 parent_type" || ko "68.3"
+
+echo ""
+echo "[69] jira set-version → MCP descriptor"
+out=$(bash "$SCRIPT" --action=set-version --platform=jira --ticket-id=PROJ-9 --version-name=1.4.0)
+[ $? -eq 10 ] && ok "69.1 exit 10" || ko "69.1"
+[ "$(echo "$out" | jq -r '.descriptor.params.version_name')" = "1.4.0" ] && ok "69.2 version_name" || ko "69.2"
+
+# --- gitlab close-epic ----------------------------------------------------
+
+echo ""
+echo "[70] gitlab close-epic"
+TMP=$(mktemp -d)
+mk_glab_stub "$TMP/glab"
+out=$(SNAP_GLAB_BIN="$TMP/glab" bash "$SCRIPT" --action=close-epic --platform=gitlab --ticket-id=7)
+[ $? -eq 0 ] && ok "70.1 exit 0" || ko "70.1"
+[ "$(echo "$out" | jq -r '.result.closed')" = "true" ] && ok "70.2 closed" || ko "70.2"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
 unset TMP
 
 echo ""
