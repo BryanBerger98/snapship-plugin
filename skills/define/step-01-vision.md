@@ -29,6 +29,22 @@ Collect the product's vision and its single tracked metric.
 
    Save as `vision`.
 
+   **Anti-junk gate (LLM-judged, multilingue natif)** : avant de persister,
+   juger la réponse. Si la phrase ne décrit pas une **action / transformation**
+   (= que des adjectifs marketing, ou taxonomie marché sans verbe d'action en
+   `$lang`), re-prompt avec la raison :
+
+   > "La vision saisie décrit un état / une catégorie, pas un changement.
+   > Reformule avec un verbe d'action — qui, quel changement, pourquoi."
+
+   Exemples à rejeter :
+   - « Une plateforme moderne et performante pour freelances » → adjectifs.
+   - « SaaS B2B vertical pour PME industrielles » → taxonomie, pas d'action.
+
+   Exemples à accepter :
+   - « Aide les freelances à facturer leurs clients en 30 secondes ».
+   - « Permet aux PME industrielles de réduire leur empreinte carbone ».
+
 3. **Ask north star metric** via `AskUserQuestion` with 4 options (multiSelect: false):
    - Activation rate
    - Weekly active users (WAU)
@@ -45,9 +61,10 @@ Collect the product's vision and its single tracked metric.
 
    Save as `north_star_current`, `north_star_target`, `target_horizon`.
 
-5. **Validate**: vision must be at least 50 chars and contain a verb. North star metric
-   must be a non-empty string. If validation fails, re-ask with the validation reason
-   shown to the user.
+5. **Validate**: vision must be at least 50 chars (anti-junk action-verb check
+   handled by LLM gate at step 2, not by helper regex). North star metric
+   must be a non-empty string. If validation fails, re-ask with the validation
+   reason shown to the user.
 
 6. **Cache** the collected values via `define-state.sh`:
    ```bash
