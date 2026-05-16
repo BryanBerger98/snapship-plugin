@@ -127,6 +127,48 @@ F3="${DIR3}/.snap/manifests/_taxonomy.json"
 
 trash "$DIR3" 2>/dev/null || true
 
+# 9. SNAP_TAXONOMY_FILE redirect (N7 — runtime cache atomic edits)
+echo ""
+echo "[9] SNAP_TAXONOMY_FILE redirect"
+DIR4=$(setup_dir)
+bash "$TAX" init --project-root="$DIR4" >/dev/null
+REAL="${DIR4}/.snap/manifests/_taxonomy.json"
+ORIGINAL_VISION="initial vision long enough to satisfy validators."
+bash "$TAX" set-vision "$ORIGINAL_VISION" --project-root="$DIR4" >/dev/null
+
+# Snapshot real file into runtime cache (mimic step-00-vision-edit Task A).
+CACHE_BASE="${DIR4}/.snap/.runtime/define-vision-test"
+mkdir -p "$CACHE_BASE"
+cp "$REAL" "${CACHE_BASE}/_taxonomy.json"
+
+# Run set-vision with env override — should hit the cache, NOT the real file.
+SNAP_TAXONOMY_FILE="${CACHE_BASE}/_taxonomy.json" \
+  bash "$TAX" set-vision "Edited in cache — must not leak to real file yet." \
+  --project-root="$DIR4" >/dev/null
+
+[ "$(jq -r '.workspace.vision' "$REAL")" = "$ORIGINAL_VISION" ] \
+  && ok "9.1 real file unchanged during cache edit" || ko "9.1" "leak"
+[ "$(jq -r '.workspace.vision' "${CACHE_BASE}/_taxonomy.json")" = "Edited in cache — must not leak to real file yet." ] \
+  && ok "9.2 cache holds the edit" || ko "9.2" "cache empty"
+
+# Simulate the F.5 atomic flush.
+mv "${CACHE_BASE}/_taxonomy.json" "$REAL"
+[ "$(jq -r '.workspace.vision' "$REAL")" = "Edited in cache — must not leak to real file yet." ] \
+  && ok "9.3 flush applies cache to real file" || ko "9.3" "flush failed"
+
+# Abort scenario: redirect set, never flushes → real file stays at flushed value.
+SNAP_TAXONOMY_FILE="${CACHE_BASE}/_taxonomy.json" \
+  bash "$TAX" init --project-root="$DIR4" >/dev/null
+SNAP_TAXONOMY_FILE="${CACHE_BASE}/_taxonomy.json" \
+  bash "$TAX" set-vision "Aborted edit — never flushed." \
+  --project-root="$DIR4" >/dev/null
+# user "interrupts" → drop cache, don't flush.
+trash "$CACHE_BASE" 2>/dev/null || true
+[ "$(jq -r '.workspace.vision' "$REAL")" = "Edited in cache — must not leak to real file yet." ] \
+  && ok "9.4 abort leaves real file untouched" || ko "9.4" "drift"
+
+trash "$DIR4" 2>/dev/null || true
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

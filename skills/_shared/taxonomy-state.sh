@@ -44,6 +44,15 @@
 #   path                          Print absolute path to file.
 #
 # Usage: taxonomy-state.sh <subcommand> [args] [--project-root=PATH]
+#
+# Env overrides:
+#   SNAP_TAXONOMY_FILE   Absolute path that replaces the default
+#                        ${PROJECT_ROOT}/.snap/manifests/_taxonomy.json.
+#                        Used by /define modes vision and journey to point
+#                        the helpers at a runtime cache copy
+#                        (.snap/.runtime/define-<id>/_taxonomy.json) so
+#                        edits stay isolated until the orchestrator flushes
+#                        them. Default behaviour unchanged when unset.
 
 set -euo pipefail
 
@@ -51,7 +60,13 @@ PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 SCHEMA_VERSION="1.1.0"
 SLUG_RE='^[a-z0-9][a-z0-9-]*$'
 
-state_file() { echo "${PROJECT_ROOT}/.snap/manifests/_taxonomy.json"; }
+state_file() {
+  if [ -n "${SNAP_TAXONOMY_FILE:-}" ]; then
+    echo "$SNAP_TAXONOMY_FILE"
+  else
+    echo "${PROJECT_ROOT}/.snap/manifests/_taxonomy.json"
+  fi
+}
 
 usage() {
   cat <<'EOF'
@@ -107,7 +122,8 @@ parse_flags() {
 }
 
 ensure_dir() {
-  local dir="${PROJECT_ROOT}/.snap/manifests"
+  local dir
+  dir=$(dirname "$(state_file)")
   [ -d "$dir" ] || mkdir -p "$dir"
 }
 
@@ -423,7 +439,7 @@ cmd_has_journey() {
 }
 
 cmd_path() {
-  echo "$(state_file)"
+  state_file
 }
 
 cmd_validate() {

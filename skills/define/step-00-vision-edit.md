@@ -17,13 +17,30 @@ le mode vision.
 
 ## Tasks
 
-### A. Bootstrap taxonomy
+### A. Bootstrap taxonomy + runtime cache (transactional edits)
+
+Wrap the multi-set workflow in a runtime cache copy so an interrupted
+`/snap:define --mode=vision` leaves `_taxonomy.json` untouched.
 
 ```bash
+# 1. ensure the real taxonomy exists (idempotent, may create from scratch)
 bash skills/_shared/taxonomy-state.sh init --project-root="$PWD"
+
+# 2. spin up an ephemeral subject and snapshot the file into it
+SUBJECT_ID=$(bash skills/_shared/cache-runtime.sh id-gen --prefix=define-vision)
+bash skills/_shared/cache-runtime.sh init "$SUBJECT_ID" --project-root="$PWD"
+CACHE_DIR=$(bash skills/_shared/cache-runtime.sh path "$SUBJECT_ID" --project-root="$PWD")
+TAX_FILE="$PWD/.snap/manifests/_taxonomy.json"
+cat "$TAX_FILE" > "$CACHE_DIR/_taxonomy.json"
+
+# 3. redirect every taxonomy-state.sh call to the cache copy
+export SNAP_TAXONOMY_FILE="$CACHE_DIR/_taxonomy.json"
 ```
 
-Idempotent — laisse l'existant intact.
+Every `set-*` call in Tasks C-E now writes to the cache only — the real
+file is not touched until Task F.5 flush. If the user aborts (Ctrl-C,
+session exit, validation failure abandoned), the cache remains orphan
+but `_taxonomy.json` is byte-identical to its pre-edit state.
 
 ### B. Lire l'état actuel
 
@@ -100,11 +117,28 @@ bash skills/_shared/taxonomy-state.sh set-north-star \
 bash skills/_shared/taxonomy-state.sh validate --project-root="$PWD"
 ajv validate \
   -s skills/_shared/schemas/taxonomy.schema.json \
-  -d .snap/manifests/_taxonomy.json \
+  -d "$SNAP_TAXONOMY_FILE" \
   --spec=draft2020 --strict=false
 ```
 
-Sur échec : surface l'erreur, propose ré-édition.
+`ajv` reads the cache copy via `$SNAP_TAXONOMY_FILE` (helpers also honour
+that env var). Sur échec : surface l'erreur, propose ré-édition. **Ne pas
+flusher** tant que la validation ne passe pas — le runtime cache absorbe
+le rejet sans toucher au fichier réel.
+
+### F.5 Flush atomique vers `_taxonomy.json`
+
+Validation passée → commit la copie runtime en place avec un `mv`
+atomique, puis purge le subject :
+
+```bash
+mv "$SNAP_TAXONOMY_FILE" "$TAX_FILE"
+unset SNAP_TAXONOMY_FILE
+bash skills/_shared/cache-runtime.sh purge "$SUBJECT_ID" --project-root="$PWD"
+```
+
+À partir de cette ligne, toute commande `taxonomy-state.sh` ré-attaque
+le vrai `_taxonomy.json` (env var purgée).
 
 ### G. Telemetry + step progress
 

@@ -16,11 +16,30 @@ Terminal step pour le mode journey.
 
 ## Tasks
 
-### A. Bootstrap taxonomy
+### A. Bootstrap taxonomy + runtime cache (transactional edits)
+
+Wrap the multi-set workflow in a runtime cache copy so an interrupted
+`/snap:define --mode=journey` leaves `_taxonomy.json` untouched.
 
 ```bash
+# 1. ensure the real taxonomy exists (idempotent)
 bash skills/_shared/taxonomy-state.sh init --project-root="$PWD"
+
+# 2. spin up an ephemeral subject and snapshot the file into it
+SUBJECT_ID=$(bash skills/_shared/cache-runtime.sh id-gen --prefix=define-journey)
+bash skills/_shared/cache-runtime.sh init "$SUBJECT_ID" --project-root="$PWD"
+CACHE_DIR=$(bash skills/_shared/cache-runtime.sh path "$SUBJECT_ID" --project-root="$PWD")
+TAX_FILE="$PWD/.snap/manifests/_taxonomy.json"
+cat "$TAX_FILE" > "$CACHE_DIR/_taxonomy.json"
+
+# 3. redirect every taxonomy-state.sh call to the cache copy
+export SNAP_TAXONOMY_FILE="$CACHE_DIR/_taxonomy.json"
 ```
+
+Every helper call in Tasks B-F now writes to the cache only — the real
+file is not touched until Task G.5 flush. Interrupting mid-edit leaves
+the cache orphan but `_taxonomy.json` byte-identical to its pre-edit
+state.
 
 ### B. Choisir sous-mode
 
@@ -123,9 +142,25 @@ bash skills/_shared/taxonomy-state.sh set-journey-content \
 bash skills/_shared/taxonomy-state.sh validate --project-root="$PWD"
 ajv validate \
   -s skills/_shared/schemas/taxonomy.schema.json \
-  -d .snap/manifests/_taxonomy.json \
+  -d "$SNAP_TAXONOMY_FILE" \
   --spec=draft2020 --strict=false
 ```
+
+`ajv` reads the cache copy (the env var redirects helpers; the schema
+file path stays absolute). **Ne pas flusher** tant que la validation
+ne passe pas — le runtime cache absorbe le rejet sans toucher au
+fichier réel.
+
+### G.5 Flush atomique vers `_taxonomy.json`
+
+```bash
+mv "$SNAP_TAXONOMY_FILE" "$TAX_FILE"
+unset SNAP_TAXONOMY_FILE
+bash skills/_shared/cache-runtime.sh purge "$SUBJECT_ID" --project-root="$PWD"
+```
+
+À partir de cette ligne, toute commande `taxonomy-state.sh` ré-attaque
+le vrai `_taxonomy.json`.
 
 ### H. Telemetry + step progress
 
