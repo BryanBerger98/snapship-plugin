@@ -1,63 +1,118 @@
 ---
 step: 02-prepare
 next_step: 03a-standalone
-description: Idempotent branch, conventions load, impact_radius warm-up. Common to standalone + loops.
+description: Resolve worktree per story_type (dedicated or reuse), checkout/create branch, capture conventions + impact radius.
 ---
 
 # step-02 — prepare
 
-Set the workspace up before any code is written.
+Set the workspace up before any code is written. v1.2 worktree strategy is
+gated by `story_type` (decision #11) and resolved by `worktree-helper.sh`.
 
 ## Tasks
 
-### A. Branch (idempotent)
-
-Branch name from `naming.branch_pattern` applied to the *first* ticket in the
-queue (loop) or the single ticket (standalone):
+### A. Worktree resolve
 
 ```bash
-branch=$(bash skills/_shared/apply-naming.sh \
-  --pattern="$(jq -r '.naming.branch_pattern // "feature/{story_id}-{slug}"' <<<"$CONFIG_JSON")" \
-  --story-id="$story_id" \
-  --slug="$slug")
+ticket_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" ticket.json \
+              --project-root="$PWD")
+parent_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" parent.json \
+              --project-root="$PWD" 2>/dev/null || echo '')
 
-if git rev-parse --verify "$branch" >/dev/null 2>&1; then
-  git checkout "$branch"
-else
-  git checkout -b "$branch"
-fi
+resolve_args=(--ticket-json="$ticket_json" --project-root="$PWD")
+[ -n "$parent_json" ] && resolve_args+=(--parent-json="$parent_json")
+
+wt_resp=$(bash skills/_shared/worktree-helper.sh resolve "${resolve_args[@]}")
+strategy=$(jq -r '.strategy'      <<<"$wt_resp")  # dedicated | reuse
+branch=$(jq -r   '.branch_name'   <<<"$wt_resp")
+wt_path=$(jq -r  '.worktree_path' <<<"$wt_resp")
 ```
 
-Refuse to proceed if the resolved branch is in `repository.protected_branches`.
+Failure modes :
 
-### B. Conventions
+- `story_type=epic` → helper exits 1 (this is step-01's job to filter ; defensive).
+- `branch_name` missing on ticket → helper exits 1. Run `/snap:ticket` step-04
+  (apply-naming) first.
 
-Cache `CLAUDE.md`, `CONTRIBUTING.md`, `.cursorrules` content (whichever exist) —
-will be passed to the snap-developer agent in step-03a.
+Refuse to proceed if `branch` is in `repository.protected_branches` :
+
+```bash
+echo "$CONFIG_JSON" | jq -e --arg b "$branch" \
+  '(.repository.protected_branches // []) | index($b) | not' >/dev/null \
+  || { echo "ERROR: branch $branch is protected"; exit 1; }
+```
+
+### B. Branch checkout (strategy-aware)
+
+```bash
+case "$strategy" in
+  reuse)
+    # Task child of US — reuse parent worktree. Branch must already exist.
+    if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
+      echo "ERROR: reuse strategy but branch $branch does not exist locally." >&2
+      echo "Has the parent User Story been developed yet?" >&2
+      exit 1
+    fi
+    echo "WARN: reusing parent User Story worktree on branch $branch"
+    git checkout "$branch"
+    ;;
+
+  dedicated)
+    # New worktree or new branch on shared tree.
+    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+      git checkout "$branch"
+    else
+      git checkout -b "$branch"
+    fi
+    ;;
+
+  *)
+    echo "ERROR: unknown worktree strategy: $strategy" >&2
+    exit 1
+    ;;
+esac
+```
+
+### C. Track worktree path in cache
+
+```bash
+jq -nc --arg s "$strategy" --arg b "$branch" --arg p "$wt_path" \
+  '{strategy:$s, branch:$b, worktree_path:$p}' \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" worktree.json \
+      --project-root="$PWD"
+```
+
+### D. Conventions
+
+Cache `CLAUDE.md`, `CONTRIBUTING.md`, `.cursorrules` content (whichever exist).
+The developer agent will read them.
 
 ```bash
 conventions=""
 for f in CLAUDE.md CONTRIBUTING.md .cursorrules; do
   [ -f "$f" ] && conventions="${conventions}$(cat "$f")\n\n---\n\n"
 done
+printf '%s' "$conventions" \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" conventions.md \
+      --project-root="$PWD"
 ```
 
-### C. Impact radius (graph-aware)
+### E. Impact radius (graph-aware, optional)
 
-If `code-review-graph` MCP is reachable, prefetch impact radius for files the
-ticket targets — this seeds the analyze step in Phase 1:
+When `code-review-graph` MCP is reachable, prefetch impact radius for files the
+ticket targets :
 
 ```bash
-files=$(jq -r '.files[]?' <<< "$ticket_json")
-# emit MCP descriptor (exit 10) for get_impact_radius_tool
-bash skills/_shared/check-mcp-required.sh --skill=develop --project-root="$PWD" \
-  --mcp=code-review-graph || true   # graph optional, not fatal
+files_json=$(jq -c '.files // []' <<<"$ticket_json")
+if [ "$(jq 'length' <<<"$files_json")" -gt 0 ]; then
+  # MCP descriptor (exit 10) signals the orchestrator to invoke the tool.
+  bash skills/_shared/check-mcp-required.sh --skill=develop --project-root="$PWD" \
+    --mcp=code-review-graph || true   # graph optional, not fatal
+  # Orchestrator persists impact.json into the ephemeral subject.
+fi
 ```
 
-Cache result under `.snap/queues/${story_id}.impact-${local_id}.json` — read
-by step-03a Phase 1.
-
-### D. Test commands
+### F. Test commands
 
 ```bash
 test_cmd=$(jq -r '.testing.test_command // empty' <<<"$CONFIG_JSON")
@@ -65,34 +120,27 @@ lint_cmd=$(jq -r '.testing.lint_command // empty' <<<"$CONFIG_JSON")
 type_cmd=$(jq -r '.testing.typecheck_command // empty' <<<"$CONFIG_JSON")
 ```
 
-If absent, fall through to `detect-test-commands.sh` and persist in config.
+If absent, fall through to `detect-test-commands.sh` and persist into config.
 
-### E. Append progress
+### G. Append progress
 
 ```bash
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --story-id="$story_id" \
+  --story-id="$TICKET_ID" \
   --step-num=02 \
   --step-name=prepare \
   --status=ok
 ```
 
-## Branch routing
-
-After step-02:
-
-- `target_kind=ticket` → step-03a.
-- `target_kind=feature` → step-03b (session loop — delegates to step-03a per
-  ticket).
-
 ## Acceptance check
 
 - `git rev-parse --abbrev-ref HEAD` matches `$branch`.
-- Conventions captured (or empty if no convention files exist — fine).
-- Test/lint/typecheck commands resolved.
+- `worktree.json` cached with `{strategy, branch, worktree_path}`.
+- Conventions captured (or empty — fine).
+- Test / lint / typecheck commands resolved.
 
 ## Next step
 
-→ `step-03a-standalone.md` (or `03b` per branch routing).
+→ `step-03a-standalone.md`
