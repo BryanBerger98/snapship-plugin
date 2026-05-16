@@ -31,8 +31,8 @@ terminal: true
    ✅ /snap:fetch — N targets resync'd
      01-auth.prd          : synced (notion://abc-123)
      01-auth.design_file  : synced (figma://...)
-     02-billing.tickets   : synced (linear://proj-xyz)
    ```
+   (`tickets` n'apparait plus en v1.2 — tracker = source unique.)
 
 4. **Telemetry + progress finish** :
    ```bash

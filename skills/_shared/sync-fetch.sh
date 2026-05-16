@@ -41,7 +41,9 @@ Subcommands:
   fail         --story-id=X --kind=K [--note=TEXT]
   check-mark   --story-id=X --kind=K --remote-edited=TIMESTAMP
 
-Kinds: prd, design-gallery, wireframes-gallery, tickets, design-file
+Kinds: prd, design-gallery, wireframes-gallery, design-file
+       (v1.2 — `tickets` kind removed; tracker is the single source of truth,
+        use `/snap:fetch --probe-tracker` for connectivity/auth/capability check)
 
 Common: --project-root=PATH, -h
 EOF
@@ -87,8 +89,13 @@ done
 [ -z "$KIND" ] && { echo "ERROR: --kind required" >&2; exit 1; }
 
 case "$KIND" in
-  prd|design-gallery|wireframes-gallery|tickets|design-file) ;;
-  *) echo "ERROR: --kind must be prd|design-gallery|wireframes-gallery|tickets|design-file" >&2; exit 1 ;;
+  prd|design-gallery|wireframes-gallery|design-file) ;;
+  tickets)
+    echo "ERROR: --kind=tickets removed in v1.2 — tracker is the single source." >&2
+    echo "       Use /snap:fetch --probe-tracker for connectivity/auth/capabilities." >&2
+    exit 1
+    ;;
+  *) echo "ERROR: --kind must be prd|design-gallery|wireframes-gallery|design-file" >&2; exit 1 ;;
 esac
 
 MANIFEST="${SNAP_DIR}/manifests/${FEATURE_ID}.manifest.json"
@@ -98,7 +105,6 @@ ref_key() {
     prd) echo "prd" ;;
     design-gallery) echo "design_gallery" ;;
     wireframes-gallery) echo "wireframes_gallery" ;;
-    tickets) echo "tickets" ;;
     design-file) echo "design_file" ;;
   esac
 }
@@ -108,7 +114,6 @@ staging_target() {
     prd)                 echo "${SNAP_DIR}/PRDs/${FEATURE_ID}.md" ;;
     design-gallery)      echo "${SNAP_DIR}/designs/${FEATURE_ID}/gallery.md" ;;
     wireframes-gallery)  echo "${SNAP_DIR}/wireframes/${FEATURE_ID}/gallery.md" ;;
-    tickets)             echo "${SNAP_DIR}/tickets/${FEATURE_ID}.json" ;;
     design-file)         echo "${SNAP_DIR}/designs/${FEATURE_ID}/design.txt" ;;
   esac
 }

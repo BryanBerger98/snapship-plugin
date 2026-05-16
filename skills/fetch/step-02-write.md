@@ -23,7 +23,10 @@ description: Écrit le contenu pull dans le staging local approprié (.snap/PRDs
    `.snap/designs/{slug}/figma-context.json`. Pas de tentative de copie binaire
    complète — c'est référencé via URL.
 
-5. **Tickets** : `.snap/tickets/{slug}.json` — liste tickets sérialisée.
+5. **Tickets** : _retiré en v1.2_ — tracker = source unique (décision 3).
+   Aucune écriture `.snap/tickets/`. Les skills consommateurs (`/qa`,
+   `/develop`, `/doc-update`) lisent les tickets en live via
+   `tickets-adapter.sh get-ticket`.
 
 6. **Skip si `--dry-run`** : log "DRY: would write $TARGET → $PATH".
 
