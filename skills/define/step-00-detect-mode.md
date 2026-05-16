@@ -31,16 +31,27 @@ le handler approprié :
 
 ### B. Détection LLM (concertation)
 
-Lire `RAW_INPUT` et classifier selon mots-clés :
+1. **Charger le lexique** via `Read` : `skills/define/_keywords.json`. Fichier
+   versionné (`version: 1`) contenant `categories.{vision,journey,story}.{fr,en}`.
+   Progressive disclosure — chargé uniquement par le routeur, jamais par
+   `SKILL.md`.
 
-| Mode | Indicateurs (FR/EN) |
-|------|---------------------|
-| `vision`  | « vision produit », « north star », « principes », « ambition », "product vision", "north star", "principles", "guiding values" |
-| `journey` | « parcours », « flow », « étapes », « experience », "user journey", "flow", "steps", "experience map" |
-| `story`   | _défaut_ — toute description de feature livrable, problem/solution, AC, persona |
+2. **Scoring** :
+   - Normaliser `RAW_INPUT` en lowercase.
+   - Pour chaque catégorie ∈ {vision, journey, story}, fusionner `fr ∪ en`.
+   - Compter les occurrences word-boundary (insensible à la casse) de chaque
+     mot-clé dans `RAW_INPUT`.
+   - Score catégorie = somme des occurrences.
 
-Heuristique de scoring : compter les mentions par catégorie. Si égalité ou
-ambiguïté → `story` (fallback safe).
+3. **Résolution** :
+   - Score max unique → ce mode.
+   - Égalité ou tous scores à zéro → `ambiguous` (passe à Phase C pour
+     demander à l'utilisateur ; **ne pas** auto-fallback `story`).
+
+Le fichier `_keywords.json` est la **source unique** du routage. Toute
+modification du lexique se fait là — le test `test-define-mode-detection.sh`
+charge le même fichier et vérifie ≥ 90 % de classement correct sur un
+corpus 10 FR + 10 EN par mode.
 
 ### C. Confirmation user
 
@@ -101,9 +112,12 @@ Set `next_step` runtime variable accordingly. The frontmatter default
 
 ## Failure handling
 
-- `RAW_INPUT` vide + pas de `--mode=` → fallback `story` + warning UX
-  "Mode auto-détecté `story` (aucun input distinctif). Préciser via `--mode=` au prochain run."
+- `RAW_INPUT` vide + pas de `--mode=` → score `ambiguous` → Phase C demande
+  explicitement le mode (pas d'auto-pick silencieux).
 - User refuse 2 fois → abort propre avec `progress.sh step --status=fail`.
+- `_keywords.json` absent ou non parsable → abort avec message
+  "lexique routeur introuvable — réinstaller plugin ou récupérer
+  `skills/define/_keywords.json`".
 
 ## Next step
 
