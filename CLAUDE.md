@@ -90,6 +90,27 @@ Helpers that touch state or platforms (`progress.sh`, `taxonomy-state.sh`, `load
 - **Never skip pre-commit hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
 - **Don't drift docs.** `docs/usage/` is for plugin users, `docs/contributing/` is for plugin developers. Don't mix audiences.
 
+## Analysis / audit / planning requests
+
+When the user asks for an **analysis**, an **audit**, or **task planning** (mots-clés FR/EN : `analyse`, `audit`, `planifie`, `plan`, `planning`, `cadrage`), **do not write code**. No `Edit`, no `Write` on source files, no shell mutations. Read-only exploration only (`code-review-graph` MCP, `Read`, `Grep`, `Glob`).
+
+Deliverable goes to `.claude/plan/{task_name}/` (kebab-case slug derived from the request):
+
+1. Create `.claude/plan/{task_name}/README.md` — synthesis of the analysis/audit/planning. Sections:
+   - **Contexte** — what was asked, scope, assumptions.
+   - **Constats** — findings from the codebase (cite file paths + line numbers).
+   - **Risques / impacts** — blast radius, coupling, regressions to watch.
+   - **Découpage en phases** — one phase per file to touch. For each phase:
+     - `### Phase N — <relative/path/to/file>`
+     - Objective (1 sentence, why this file).
+     - Detailed checklist (`- [ ]` items) of every concrete change required in that file: functions to add/edit/remove, signatures, schema keys, tests to update, etc. Granular enough that another agent could execute the phase without re-deriving intent.
+   - **Ordre d'exécution** — phase dependencies, suggested sequence.
+   - **Critères de validation** — how to confirm the plan is done (tests, schema checks, manual verifications).
+
+2. One phase = one file. If a single conceptual change spans multiple files, split into multiple phases (one per file) and note the cross-phase dependency in **Ordre d'exécution**.
+
+3. End the response with the path to the generated `README.md` so the user can open it. Do not start implementing until the user explicitly asks for execution.
+
 ## Pointers
 
 - High-level mental model → `docs/contributing/architecture.md`
