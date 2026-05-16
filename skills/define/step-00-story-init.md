@@ -83,13 +83,19 @@ to `/snap:init`.
    ```
    Consumed by `step-03-features.md` Task 7 to skip the Parent Epic question.
 
-6. **Capture resolved config** into a shell variable (load-config writes nothing
-   to disk in v1.0 — stdout only):
+6. **Capture resolved config** into a shell variable **and** persist a
+   snapshot in `.define-state.json` so step-04/05 survive a `--resume` after
+   process exit (T3):
    ```bash
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+   bash skills/_shared/define-state.sh set-config-snapshot "$CONFIG_JSON" \
+     --project-root="$PWD"
    ```
    Fail loud on non-zero exit. `.snap/` already exists (scaffolded by
-   `/snap:init`). Subsequent steps read fields via `jq -r '...' <<<"$CONFIG_JSON"`.
+   `/snap:init`). Subsequent steps read fields via `jq -r '...' <<<"$CONFIG_JSON"`
+   in the same process **or** hydrate from
+   `define-state.sh get-config-snapshot` on resume (fallback to a fresh
+   `load-config.sh` if the snapshot is empty / corrupt).
 
 7. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough
@@ -121,7 +127,7 @@ to `/snap:init`.
 | `lang` | `--lang` or detected | step-04 (template rendering) |
 | `story_id` | `--story` or chosen later | step-03 onward |
 | `codebase_mode` | `greenfield` \| `extension` | step-01..03 |
-| `CONFIG_JSON` | `load-config.sh` stdout | step-05 (paths, platform) |
+| `CONFIG_JSON` | `load-config.sh` stdout (mirrored to `.define-state.json.config_snapshot`) | step-04/05 (paths, platform) |
 
 ## Acceptance check
 

@@ -24,6 +24,15 @@ Terminal step — no `next_step`.
 - `.snap/manifests/{fid}.manifest.json` (state=`defined`)
 - `CONFIG_JSON` shell var (from step-00) → `documentation.platform`,
   `documentation.paths.{functional_root,prd_root}`, `documentation.workspace.id`.
+  On `--resume`, hydrate from the persisted snapshot (T3) before reading:
+  ```bash
+  if [ -z "${CONFIG_JSON:-}" ] || [ "$CONFIG_JSON" = "{}" ]; then
+    CONFIG_JSON=$(bash skills/_shared/define-state.sh get-config-snapshot --project-root="$PWD")
+  fi
+  if [ -z "$CONFIG_JSON" ] || [ "$CONFIG_JSON" = "{}" ]; then
+    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+  fi
+  ```
 - `.snap/manifests/_taxonomy.json` (cache of domain + journey page IDs)
 
 ## Tasks

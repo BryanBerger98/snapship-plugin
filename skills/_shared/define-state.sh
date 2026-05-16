@@ -20,6 +20,12 @@
 #                         lang, define_mode, codebase_mode, active_story_id,
 #                         cli_parent_epic_id).
 #   get KEY               Print scalar value (empty if unset).
+#   set-config-snapshot JSON
+#                         Persist resolved snap.config.json (post load-config)
+#                         as the `config_snapshot` nested object. Consumed by
+#                         step-04/05 on --resume when shell var is gone.
+#   get-config-snapshot   Print the persisted snapshot as JSON object (`{}` if
+#                         never set).
 #   add-persona JSON      Append a persona object {persona_name, persona_role,
 #                         persona_goals, persona_pains, persona_tools}.
 #   add-feature JSON      Append a feature object (see schema in body).
@@ -56,6 +62,8 @@ Subcommands:
        (alias: --story-id=…; deprecated alias: --feature=…)
   set KEY VALUE
   get KEY
+  set-config-snapshot JSON
+  get-config-snapshot
   add-persona JSON
   add-feature JSON
   list-personas
@@ -128,6 +136,7 @@ cmd_init() {
         codebase_mode: $codebase_mode,
         active_story_id: $story,
         cli_parent_epic_id: "",
+        config_snapshot: {},
         vision: "",
         north_star_metric: "",
         north_star_current: "",
@@ -178,6 +187,22 @@ cmd_get() {
   ensure_state
   [ $# -eq 1 ] || { echo "ERROR: get KEY" >&2; return 2; }
   jq -r --arg k "$1" '.[$k] // ""' "$(state_file)"
+}
+
+cmd_set_config_snapshot() {
+  ensure_state
+  [ $# -eq 1 ] || { echo "ERROR: set-config-snapshot JSON" >&2; return 2; }
+  echo "$1" | jq -e 'type == "object"' >/dev/null 2>&1 \
+    || { echo "ERROR: config snapshot must be a JSON object" >&2; return 1; }
+  local f tmp
+  f=$(state_file)
+  tmp=$(mktemp)
+  jq --argjson s "$1" '.config_snapshot = $s' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_get_config_snapshot() {
+  ensure_state
+  jq -c '.config_snapshot // {}' "$(state_file)"
 }
 
 cmd_add_persona() {
@@ -306,9 +331,11 @@ SUBCMD="$1"; shift
 parse_project_root "$@"
 
 case "$SUBCMD" in
-  init)            cmd_init          ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  set)             cmd_set           ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  get)             cmd_get           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  init)                 cmd_init                 ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set)                  cmd_set                  ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  get)                  cmd_get                  ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set-config-snapshot)  cmd_set_config_snapshot  ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  get-config-snapshot)  cmd_get_config_snapshot  ;;
   add-persona)     cmd_add_persona   ${REMAINING[@]+"${REMAINING[@]}"} ;;
   add-feature)     cmd_add_feature   ${REMAINING[@]+"${REMAINING[@]}"} ;;
   list-personas)   cmd_list_personas ;;
