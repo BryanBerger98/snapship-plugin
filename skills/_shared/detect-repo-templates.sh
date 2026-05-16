@@ -40,7 +40,7 @@ or nothing when no repo-native template matches.
 
 Options:
   --kind=KIND          One of: ticket | pr
-  --type=TYPE          Required when kind=ticket. One of: user-story | bug | epic
+  --type=TYPE          Required when kind=ticket. One of: user-story | bug | epic | task
   --platform=PLATFORM  ticket: github|gitlab|jira ; pr: github|gitlab
   --project-root=PATH  Project root (default: $PWD or $SNAP_PROJECT_ROOT)
   -h, --help           Show this help
@@ -68,8 +68,8 @@ case "$KIND" in
     [ -n "$TYPE" ]     || { echo "ERROR: --type required for kind=ticket" >&2; exit 1; }
     [ -n "$PLATFORM" ] || { echo "ERROR: --platform required for kind=ticket" >&2; exit 1; }
     case "$TYPE" in
-      user-story|bug|epic) ;;
-      *) echo "ERROR: invalid --type='$TYPE' (user-story|bug|epic)" >&2; exit 1 ;;
+      user-story|bug|epic|task) ;;
+      *) echo "ERROR: invalid --type='$TYPE' (user-story|bug|epic|task)" >&2; exit 1 ;;
     esac
     case "$PLATFORM" in
       github|gitlab|jira) ;;
@@ -96,6 +96,7 @@ filename_to_type() {
   case "$(to_lower "$1")" in
     *bug*|*defect*)    echo "bug" ;;
     *epic*)            echo "epic" ;;
+    *task*|*chore*)    echo "task" ;;
     *story*|*feature*) echo "user-story" ;;
     *)                 echo "" ;;
   esac
