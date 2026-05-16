@@ -7,6 +7,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TAX="${ROOT}/skills/_shared/taxonomy-state.sh"
+DEFST="${ROOT}/skills/_shared/define-state.sh"
 SCHEMA="${ROOT}/skills/_shared/schemas/taxonomy.schema.json"
 
 PASS=0
@@ -74,6 +75,57 @@ nd=$(jq '.domains | length' "$F")
   && ok "7.2 vision untouched after domain add" || ko "7.2" "lost"
 
 trash "$DIR" "$DIR2" 2>/dev/null || true
+
+# 8. Source-of-truth handoff: step-01-vision skip path (N2 fix).
+#    A pre-existing _taxonomy.workspace.vision + north_star must mirror into
+#    .define-state.json without re-asking. Simulates: --mode=vision first,
+#    then --mode=story re-uses the persisted values.
+echo ""
+echo "[8] source-of-truth handoff to define-state"
+DIR3=$(setup_dir)
+bash "$TAX"   init --project-root="$DIR3" >/dev/null
+bash "$TAX"   set-vision "Helps freelance designers ship client work in under an hour." \
+  --project-root="$DIR3" >/dev/null
+bash "$TAX"   set-north-star "WAU" "100" "1000" "Q4 2026" --project-root="$DIR3" >/dev/null
+bash "$DEFST" init --project-root="$DIR3" --define-mode=story --codebase-mode=greenfield >/dev/null
+
+WS=$(bash "$TAX" get-workspace --project-root="$DIR3")
+WS_VISION=$(echo "$WS" | jq -r '.vision // ""')
+WS_METRIC=$(echo "$WS" | jq -r '.north_star.metric // ""')
+WS_CURRENT=$(echo "$WS" | jq -r '.north_star.current // ""')
+WS_TARGET=$(echo "$WS" | jq -r '.north_star.target // ""')
+WS_HORIZON=$(echo "$WS" | jq -r '.north_star.horizon // ""')
+
+[ -n "$WS_VISION" ] && [ -n "$WS_METRIC" ] \
+  && ok "8.1 taxonomy carries vision + metric" \
+  || ko "8.1" "missing source"
+
+bash "$DEFST" set vision             "$WS_VISION"  --project-root="$DIR3"
+bash "$DEFST" set north_star_metric  "$WS_METRIC"  --project-root="$DIR3"
+bash "$DEFST" set north_star_current "$WS_CURRENT" --project-root="$DIR3"
+bash "$DEFST" set north_star_target  "$WS_TARGET"  --project-root="$DIR3"
+bash "$DEFST" set target_horizon     "$WS_HORIZON" --project-root="$DIR3"
+
+DST_FILE="${DIR3}/.snap/.define-state.json"
+[ "$(jq -r '.vision'             "$DST_FILE")" = "$WS_VISION"  ] \
+  && ok "8.2 define-state.vision mirrors taxonomy" || ko "8.2" "drift"
+[ "$(jq -r '.north_star_metric'  "$DST_FILE")" = "$WS_METRIC"  ] \
+  && ok "8.3 define-state.north_star_metric mirrors taxonomy" || ko "8.3" "drift"
+[ "$(jq -r '.north_star_current' "$DST_FILE")" = "$WS_CURRENT" ] \
+  && ok "8.4 north_star_current mirrored" || ko "8.4" "drift"
+[ "$(jq -r '.north_star_target'  "$DST_FILE")" = "$WS_TARGET"  ] \
+  && ok "8.5 north_star_target mirrored"  || ko "8.5" "drift"
+[ "$(jq -r '.target_horizon'     "$DST_FILE")" = "$WS_HORIZON" ] \
+  && ok "8.6 target_horizon mirrored"     || ko "8.6" "drift"
+
+# Wipe should clear define-state but leave taxonomy untouched.
+bash "$DEFST" wipe --project-root="$DIR3" >/dev/null
+[ ! -f "$DST_FILE" ] && ok "8.7 wipe removed define-state" || ko "8.7" "still there"
+F3="${DIR3}/.snap/manifests/_taxonomy.json"
+[ "$(jq -r '.workspace.vision' "$F3")" = "$WS_VISION" ] \
+  && ok "8.8 wipe preserved taxonomy.workspace.vision" || ko "8.8" "vision lost"
+
+trash "$DIR3" 2>/dev/null || true
 
 echo ""
 echo "=== Summary ==="

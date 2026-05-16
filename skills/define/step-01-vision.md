@@ -16,10 +16,37 @@ Collect the product's vision and its single tracked metric.
 
 ## Tasks
 
-1. **Skip condition**: if `codebase_mode = extension` AND the workspace already has cached
-   vision + north star metric in `.snap/.define-state.json` (or in the taxonomy
-   workspace metadata), skip to step-02 with the existing values reused. Note
-   the skip via `progress.sh step --status=skip`.
+1. **Source of truth = `_taxonomy.workspace`**. The taxonomy is the long-term
+   store (edited by `--mode=vision`). The define-state is a transient mirror
+   used by step-04 to render. Bootstrap + read first :
+
+   ```bash
+   bash skills/_shared/taxonomy-state.sh init --project-root="$PWD"
+   WS=$(bash skills/_shared/taxonomy-state.sh get-workspace --project-root="$PWD")
+   WS_VISION=$(echo "$WS" | jq -r '.vision // ""')
+   WS_METRIC=$(echo "$WS" | jq -r '.north_star.metric  // ""')
+   WS_CURRENT=$(echo "$WS" | jq -r '.north_star.current // ""')
+   WS_TARGET=$(echo "$WS" | jq -r '.north_star.target  // ""')
+   WS_HORIZON=$(echo "$WS" | jq -r '.north_star.horizon // ""')
+   ```
+
+   **Skip condition** : if `WS_VISION` and `WS_METRIC` are both non-empty,
+   skip all `AskUserQuestion` prompts. Mirror the taxonomy values into
+   `.define-state.json` (so step-04 finds them at a single read site) and
+   log the skip :
+
+   ```bash
+   bash skills/_shared/define-state.sh set vision             "$WS_VISION"  --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_metric  "$WS_METRIC"  --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_current "$WS_CURRENT" --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_target  "$WS_TARGET"  --project-root="$PWD"
+   bash skills/_shared/define-state.sh set target_horizon     "$WS_HORIZON" --project-root="$PWD"
+   bash skills/_shared/progress.sh step \
+     --project-root="$PWD" --skill=define --story-id=_global \
+     --step-num=01 --step-name=vision --status=skip \
+     --note="reused from _taxonomy.workspace"
+   ```
+   Then jump to step-02.
 
 2. **Ask vision** via `AskUserQuestion` (single open prompt — let the user free-write,
    do not constrain to options):
@@ -66,14 +93,25 @@ Collect the product's vision and its single tracked metric.
    must be a non-empty string. If validation fails, re-ask with the validation
    reason shown to the user.
 
-6. **Cache** the collected values via `define-state.sh`:
+6. **Dual-write : taxonomy first, define-state mirror**. Persist the new vision
+   + north star in the long-term taxonomy, then mirror into the transient
+   define-state for step-04 :
+
    ```bash
-   bash skills/_shared/define-state.sh set vision "$vision" --project-root="$PWD"
-   bash skills/_shared/define-state.sh set north_star_metric "$nsm" --project-root="$PWD"
-   bash skills/_shared/define-state.sh set north_star_current "$nsc" --project-root="$PWD"
-   bash skills/_shared/define-state.sh set north_star_target "$nst" --project-root="$PWD"
-   bash skills/_shared/define-state.sh set target_horizon "$horizon" --project-root="$PWD"
+   bash skills/_shared/taxonomy-state.sh set-vision "$vision" --project-root="$PWD"
+   bash skills/_shared/taxonomy-state.sh set-north-star \
+     "$nsm" "$nsc" "$nst" "$horizon" --project-root="$PWD"
+
+   bash skills/_shared/define-state.sh set vision             "$vision"  --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_metric  "$nsm"     --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_current "$nsc"     --project-root="$PWD"
+   bash skills/_shared/define-state.sh set north_star_target  "$nst"     --project-root="$PWD"
+   bash skills/_shared/define-state.sh set target_horizon     "$horizon" --project-root="$PWD"
    ```
+
+   Taxonomy survives `define-state.sh wipe` (step-05); the next `/snap:define`
+   run will trigger the skip-condition in Task 1.
+
    The state file `.snap/.define-state.json` was created by `define-state.sh init`
    in step-00.
 
