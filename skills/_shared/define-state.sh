@@ -74,11 +74,6 @@ parse_project_root() {
   fi
 }
 
-ensure_dir() {
-  local dir="${PROJECT_ROOT}/.claude/product"
-  [ -d "$dir" ] || mkdir -p "$dir"
-}
-
 ensure_state() {
   local f
   f=$(state_file)
@@ -86,7 +81,6 @@ ensure_state() {
 }
 
 cmd_init() {
-  ensure_dir
   local lang="" mode="" feature=""
   for a in "$@"; do
     case "$a" in
@@ -187,15 +181,12 @@ cmd_validate() {
   f=$(state_file)
   local errs=()
 
-  # vision
+  # vision — length check only. Anti-junk (verb / action sentence) is judged
+  # by the LLM in step-01-vision before persistence (multilingual native).
   local vision
   vision=$(jq -r '.vision // ""' "$f")
   if [ "${#vision}" -lt 50 ]; then
     errs+=("vision: too short (got ${#vision} chars, need ≥50)")
-  fi
-  # crude verb heuristic: presence of a word ending with common suffixes OR small list
-  if ! echo "$vision" | grep -qE '\b([A-Za-z]+(s|es|ed|ing|ize|ise))\b|\b(is|are|be|do|make|build|help|enable|deliver|let|allow|provide)\b'; then
-    errs+=("vision: no verb detected (heuristic)")
   fi
 
   # north star scalars
