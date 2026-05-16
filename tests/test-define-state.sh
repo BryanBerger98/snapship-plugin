@@ -305,6 +305,75 @@ out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1 || true)
 echo "$out" | grep -q "placeholder" && ok "11bis.9 cmd_validate flags placeholder oos" || ko "11bis.9: $out"
 trash "$DIR" 2>/dev/null || true
 
+# 14bis. validate-feature (Q3 / Phase 12) — incremental per-feature validation
+echo ""
+echo "[14bis] validate-feature"
+
+# Seed a base state (vision + north star + persona) so feature checks run
+# without spurious cross-feature noise.
+DIR=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR"
+bash "$SCRIPT" set vision "$VALID_VISION"          --project-root="$DIR"
+bash "$SCRIPT" set north_star_metric "WAU"         --project-root="$DIR"
+bash "$SCRIPT" set north_star_current "0"          --project-root="$DIR"
+bash "$SCRIPT" set north_star_target "1000"        --project-root="$DIR"
+bash "$SCRIPT" set target_horizon "Q4 2026"        --project-root="$DIR"
+bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
+
+# 14bis.1 — refined feature with valid out_of_scope passes
+bash "$SCRIPT" add-feature '{"story_id":"01-ok","feature_title":"OK","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"signup","out_of_scope":"OAuth, SSO, magic links — handled later"}' --project-root="$DIR"
+if bash "$SCRIPT" validate-feature 01-ok --project-root="$DIR" 2>/dev/null; then
+  ok "14bis.1 valid refined feature passes"
+else
+  ko "14bis.1 should pass"
+fi
+
+# 14bis.2 — refined feature with placeholder oos fails (rc=1)
+bash "$SCRIPT" add-feature '{"story_id":"02-bad","feature_title":"Bad","feature_status":"refined","priority":"should","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"signup","out_of_scope":"TBD"}' --project-root="$DIR"
+out=$(bash "$SCRIPT" validate-feature 02-bad --project-root="$DIR" 2>&1 || true)
+echo "$out" | grep -q "placeholder" && ok "14bis.2 placeholder oos rejected" || ko "14bis.2 got: $out"
+
+# 14bis.3 — refined feature with empty AC fails
+bash "$SCRIPT" add-feature '{"story_id":"03-noac","feature_title":"NoAC","feature_status":"refined","priority":"should","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[],"in_scope":"signup","out_of_scope":"OAuth, SSO, magic links — handled later"}' --project-root="$DIR"
+out=$(bash "$SCRIPT" validate-feature 03-noac --project-root="$DIR" 2>&1 || true)
+echo "$out" | grep -q "no acceptance_criteria" && ok "14bis.3 empty AC rejected" || ko "14bis.3 got: $out"
+
+# 14bis.4 — draft features skip refined checks (always pass)
+bash "$SCRIPT" add-feature '{"story_id":"04-draft","feature_title":"Draft","feature_status":"draft","priority":"could"}' --project-root="$DIR"
+if bash "$SCRIPT" validate-feature 04-draft --project-root="$DIR" 2>/dev/null; then
+  ok "14bis.4 draft skipped → ok"
+else
+  ko "14bis.4 should pass (draft skips refined checks)"
+fi
+
+# 14bis.5 — unknown story_id returns rc=2 with "unknown" message
+err=$(bash "$SCRIPT" validate-feature 99-ghost --project-root="$DIR" 2>&1); rc=$?
+if [ "$rc" -eq 2 ] && echo "$err" | grep -q "unknown"; then
+  ok "14bis.5 unknown story_id → rc=2"
+else
+  ko "14bis.5 rc=$rc err=$err"
+fi
+
+# 14bis.6 — missing arg → rc=2
+err=$(bash "$SCRIPT" validate-feature --project-root="$DIR" 2>&1); rc=$?
+if [ "$rc" -eq 2 ]; then
+  ok "14bis.6 missing arg → rc=2"
+else
+  ko "14bis.6 rc=$rc"
+fi
+
+# 14bis.7 — error message scoped to the failing story_id (other ok features not mentioned)
+out=$(bash "$SCRIPT" validate-feature 02-bad --project-root="$DIR" 2>&1 || true)
+echo "$out" | grep -q "01-ok" && ko "14bis.7 should not mention 01-ok" || ok "14bis.7 error scoped to 02-bad"
+
+# 14bis.8 — global validate still catches cross-feature issues (duplicates etc.)
+# Seed two features with same story_id by writing directly (bypass add-feature
+# uniqueness if any). add-feature appends blindly, so this is fine.
+bash "$SCRIPT" add-feature '{"story_id":"01-ok","feature_title":"Dup","feature_status":"draft","priority":"could"}' --project-root="$DIR"
+out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1 || true)
+echo "$out" | grep -q "duplicate story_id" && ok "14bis.8 global validate catches duplicates" || ko "14bis.8 got: $out"
+trash "$DIR" 2>/dev/null || true
+
 # 12. wipe
 echo ""
 echo "[12] wipe"

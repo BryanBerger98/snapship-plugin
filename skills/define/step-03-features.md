@@ -123,6 +123,28 @@ Persist as `impacted_journeys: [{domain, journey_slug, journey_title, is_new}, �
 New (yet-uncreated) journeys are kept in the state file but not pushed to the
 doc platform until step-05-publish (which calls `lookup-or-create-page`).
 
+#### Per-feature validation (incremental, before Call 4)
+
+Right after the feature is persisted via `add-feature` (end of Phase B for the
+current feature), validate it in isolation :
+
+```bash
+bash skills/_shared/define-state.sh validate-feature "$story_id" \
+  --project-root="$PWD"
+```
+
+- Exit `0` → proceed to Call 4.
+- Exit `1` → surface the error list (one line per finding) to the user and
+  **re-enter Phase B for this feature only**. Loop until `validate-feature`
+  succeeds. Do **not** advance to the next feature with a failing one in
+  state.
+- Exit `2` → bug in the orchestration (unknown `story_id`). Abort and ask
+  the user to report it.
+
+Cross-feature checks (duplicate `story_id`, ≥1 `must` priority, vision /
+personas seeded) stay in the final `validate` call at the end of Phase C —
+they cannot trip on the per-feature path.
+
 #### Call 4 — control flow (1 question)
 
 ```text
@@ -171,12 +193,16 @@ hierarchical strict — Phase D step-03b).
 step-05-publish will create them with an empty body (filled later by the first
 `/snap:doc-update` post-ship).
 
-After all features added, run:
+After all features added, run the global validate as a last-mile cross-feature
+safety net (per-feature checks have already passed via `validate-feature` in
+Phase B — this call only catches global invariants : duplicate `story_id`, ≥1
+`must` priority, vision / personas seeded) :
 ```bash
 bash skills/_shared/define-state.sh validate --project-root="$PWD"
 ```
-If validation fails, surface the error list to the user and re-enter Phase B for the
-feature(s) flagged. Do not advance to step-04 until validation passes.
+If it fails, surface the error list — re-prompt only the affected feature(s) or
+the missing global field, never the whole Phase B. Do not advance to step-04
+until validation passes.
 
 ### Phase D — progress
 

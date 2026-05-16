@@ -33,6 +33,12 @@
 #   list-features         Emit features as NDJSON.
 #   validate              Run schema-style checks; exit 0 if OK, 1 if invalid.
 #                         Prints findings on stderr.
+#   validate-feature STORY_ID
+#                         Validate a single feature in isolation (same per-
+#                         feature rules as `validate`, scoped to one
+#                         story_id). Exit 0 if OK, 1 if invalid, 2 on unknown
+#                         story_id or arg-count error. Cross-feature checks
+#                         (duplicates, ≥1 must) stay in `validate`.
 #   validate-out-of-scope STRING
 #                         Deterministic check for the per-feature out_of_scope
 #                         field. Exit 0 if OK, 1 if reject. Reasons emitted on
@@ -75,6 +81,7 @@ Subcommands:
   list-personas
   list-features
   validate
+  validate-feature STORY_ID
   validate-out-of-scope STRING
   path
   wipe
@@ -275,6 +282,66 @@ cmd_validate_out_of_scope() {
   return 0
 }
 
+# Per-feature validation (reused by `validate` and `validate-feature`).
+# Reads a single feature JSON object on stdin-style arg. Echoes one error line
+# per finding on stdout. Returns 0 if no errors, 1 otherwise.
+_check_feature_obj() {
+  local feat="$1"
+  local errs=()
+  local status fid
+  status=$(echo "$feat" | jq -r '.feature_status // "draft"')
+  fid=$(echo "$feat" | jq -r '.story_id // "_anon_"')
+  if [ "$status" = "refined" ]; then
+    local ps so isc oos ac
+    ps=$(echo "$feat"  | jq -r '.problem_statement // ""')
+    so=$(echo "$feat"  | jq -r '.solution_overview // ""')
+    isc=$(echo "$feat" | jq -r '.in_scope // ""')
+    oos=$(echo "$feat" | jq -r '.out_of_scope // ""')
+    ac=$(echo "$feat"  | jq '.acceptance_criteria // [] | length')
+    [ "${#ps}" -ge 30 ] || errs+=("feature $fid: problem_statement <30 chars")
+    [ -n "$so" ]        || errs+=("feature $fid: solution_overview empty")
+    [ -n "$isc" ]       || errs+=("feature $fid: in_scope empty")
+    if ! cmd_validate_out_of_scope "$oos" 2>/dev/null; then
+      local oos_lc
+      oos_lc=$(printf '%s' "$oos" | tr '[:upper:]' '[:lower:]')
+      case "$oos_lc" in
+        "the rest"|"tout le reste"|"n/a"|"na"|"tbd")
+          errs+=("feature $fid: out_of_scope placeholder (\"$oos\")") ;;
+        *)
+          errs+=("feature $fid: out_of_scope too-short (<20 chars)") ;;
+      esac
+    fi
+    [ "$ac" -ge 1 ]     || errs+=("feature $fid: no acceptance_criteria")
+  fi
+  if [ "${#errs[@]}" -eq 0 ]; then
+    return 0
+  fi
+  printf '%s\n' "${errs[@]}"
+  return 1
+}
+
+cmd_validate_feature() {
+  [ $# -eq 1 ] || { echo "ERROR: validate-feature STORY_ID" >&2; return 2; }
+  ensure_state
+  local story_id="$1" f feat
+  f=$(state_file)
+  feat=$(jq -c --arg sid "$story_id" 'first(.features[] | select(.story_id == $sid)) // empty' "$f")
+  if [ -z "$feat" ]; then
+    echo "validate-feature: unknown story_id \"$story_id\"" >&2
+    return 2
+  fi
+  local errs
+  if errs=$(_check_feature_obj "$feat"); then
+    echo "validate-feature: ok ($story_id)" >&2
+    return 0
+  fi
+  printf 'validate-feature: FAIL (%s)\n' "$story_id" >&2
+  while IFS= read -r line; do
+    printf '  - %s\n' "$line" >&2
+  done <<< "$errs"
+  return 1
+}
+
 cmd_validate() {
   ensure_state
   local f
@@ -326,30 +393,11 @@ cmd_validate() {
     [ -z "$dup" ] || errs+=("features: duplicate story_id(s): $dup")
 
     while IFS= read -r feat; do
-      local status fid
-      status=$(echo "$feat" | jq -r '.feature_status // "draft"')
-      fid=$(echo "$feat" | jq -r '.story_id // "_anon_"')
-      if [ "$status" = "refined" ]; then
-        local ps so isc oos ac
-        ps=$(echo "$feat"  | jq -r '.problem_statement // ""')
-        so=$(echo "$feat"  | jq -r '.solution_overview // ""')
-        isc=$(echo "$feat" | jq -r '.in_scope // ""')
-        oos=$(echo "$feat" | jq -r '.out_of_scope // ""')
-        ac=$(echo "$feat"  | jq '.acceptance_criteria // [] | length')
-        [ "${#ps}" -ge 30 ] || errs+=("feature $fid: problem_statement <30 chars")
-        [ -n "$so" ]        || errs+=("feature $fid: solution_overview empty")
-        [ -n "$isc" ]       || errs+=("feature $fid: in_scope empty")
-        if ! cmd_validate_out_of_scope "$oos" 2>/dev/null; then
-          local oos_lc
-          oos_lc=$(printf '%s' "$oos" | tr '[:upper:]' '[:lower:]')
-          case "$oos_lc" in
-            "the rest"|"tout le reste"|"n/a"|"na"|"tbd")
-              errs+=("feature $fid: out_of_scope placeholder (\"$oos\")") ;;
-            *)
-              errs+=("feature $fid: out_of_scope too-short (<20 chars)") ;;
-          esac
-        fi
-        [ "$ac" -ge 1 ]     || errs+=("feature $fid: no acceptance_criteria")
+      local feat_errs
+      if ! feat_errs=$(_check_feature_obj "$feat"); then
+        while IFS= read -r line; do
+          errs+=("$line")
+        done <<< "$feat_errs"
       fi
     done < <(jq -c '.features[]' "$f")
   fi
@@ -379,6 +427,7 @@ case "$SUBCMD" in
   list-personas)   cmd_list_personas ;;
   list-features)   cmd_list_features ;;
   validate)               cmd_validate                ;;
+  validate-feature)       cmd_validate_feature        ${REMAINING[@]+"${REMAINING[@]}"} ;;
   validate-out-of-scope)  cmd_validate_out_of_scope   ${REMAINING[@]+"${REMAINING[@]}"} ;;
   path)            cmd_path          ;;
   wipe)            cmd_wipe          ;;
