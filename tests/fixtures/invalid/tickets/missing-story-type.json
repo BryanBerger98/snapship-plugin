@@ -1,0 +1,11 @@
+{
+  "story_id": "11-invoice-pdf",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "title": "Générer PDF",
+      "status": "todo"
+    }
+  ]
+}

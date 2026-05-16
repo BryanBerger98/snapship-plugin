@@ -1,0 +1,18 @@
+{
+  "story_id": "30-hotfixes",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-002",
+      "platform_id": "#302",
+      "title": "Ajouter test régression login redirect",
+      "story_type": "task",
+      "commit_type": "test",
+      "parent_story_id": "#301",
+      "parent_epic_id": null,
+      "status": "todo",
+      "branch_name": "fix/repo-301-login-redirect",
+      "estimated_size": "XS"
+    }
+  ]
+}

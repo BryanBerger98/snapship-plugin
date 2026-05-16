@@ -1,0 +1,24 @@
+{
+  "story_id": "10-billing-overhaul",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "platform_id": "#42",
+      "url": "https://github.com/org/repo/issues/42",
+      "title": "Refonte module facturation Q3",
+      "description": "Epic regroupant la migration du module facturation vers le nouveau modèle SaaS.",
+      "story_type": "epic",
+      "priority": "P0",
+      "status": "in_progress",
+      "labels": ["epic", "billing"],
+      "milestone": "Q3-2026",
+      "target_version": "2.0.0",
+      "business_goal": "Unifier la facturation B2B et B2C sur un seul moteur SaaS.",
+      "success_metrics": [
+        "MRR > 100k€ post-migration",
+        "Aucune régression facturation après cut-over"
+      ]
+    }
+  ]
+}

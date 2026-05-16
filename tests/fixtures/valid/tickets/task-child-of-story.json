@@ -1,0 +1,18 @@
+{
+  "story_id": "11-invoice-pdf",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-002",
+      "platform_id": "#102",
+      "title": "Ajouter dépendance pdfkit",
+      "story_type": "task",
+      "commit_type": "build",
+      "parent_story_id": "#101",
+      "parent_epic_id": null,
+      "status": "todo",
+      "branch_name": "feat/repo-101-invoice-pdf",
+      "estimated_size": "XS"
+    }
+  ]
+}

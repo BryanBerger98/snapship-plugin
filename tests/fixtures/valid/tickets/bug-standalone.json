@@ -1,0 +1,18 @@
+{
+  "story_id": "30-hotfixes",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "platform_id": "#301",
+      "title": "Login redirige vers / au lieu de /dashboard",
+      "story_type": "bug",
+      "commit_type": "fix",
+      "parent_epic_id": null,
+      "parent_story_id": null,
+      "priority": "P0",
+      "status": "in_progress",
+      "branch_name": "fix/repo-301-login-redirect"
+    }
+  ]
+}
