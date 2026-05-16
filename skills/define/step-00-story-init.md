@@ -14,7 +14,8 @@ to `/snap:init`.
 ## Tasks
 
 1. **Parse args** from the user's `/snap:define` invocation. Recognize `--resume`/`-r`,
-   `--lang=fr|en`, `--feature=NN-slug`, `--epic=PARENT_EPIC_ID`.
+   `--lang=fr|en`, `--story=NN-slug` (alias déprécié : `--feature=`),
+   `--epic=PARENT_EPIC_ID`.
 
    `--epic=` captures the platform-native Epic ID (ex. `AUTH-1`, `#42`, `&12`).
    No validation here — `/snap:ticket` validates against the target platform.
@@ -31,7 +32,7 @@ to `/snap:init`.
      `story_id` pre-loaded. Skip the rest of this step.
    - Empty → no in-flight run; fall through to step-00 init normally.
 
-   For partial `--feature` matches, resolve against
+   For partial `--story` matches, resolve against
    `.snap/manifests/*.manifest.json` filenames — "01" or "auth" → first match.
    Ambiguous → surface candidate list and re-prompt.
 
@@ -64,7 +65,7 @@ to `/snap:init`.
      --project-root="$PWD" \
      --lang="$lang" \
      --codebase-mode="$codebase_mode" \
-     ${story_id:+--feature="$story_id"}
+     ${story_id:+--story="$story_id"}
    ```
 
    `codebase_mode` ∈ `{greenfield, extension}` (issu de `detect-codebase.sh`,
@@ -91,11 +92,11 @@ to `/snap:init`.
 8. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough
      (steps 01 → 02 → 03 → 04 → 05).
-   - `has_codebase = true` AND `--feature` not set → **extension** path: ask the
+   - `has_codebase = true` AND `--story` not set → **extension** path: ask the
      user whether to create a new feature or extend an existing one. New = same
      flow. Extend = jump to `step-03-features.md` with existing taxonomy loaded
      as context.
-   - `--feature=NN-slug` set → jump straight to `step-03-features.md` and
+   - `--story=NN-slug` set → jump straight to `step-03-features.md` and
      pre-fill `story_id`.
 
 9. **Register skill run in progress.json**:
@@ -116,7 +117,7 @@ to `/snap:init`.
 |-----|--------|---------|
 | `has_codebase` | detection | step-01 (skip vision if extending) |
 | `lang` | `--lang` or detected | step-04 (template rendering) |
-| `story_id` | `--feature` or chosen later | step-03 onward |
+| `story_id` | `--story` or chosen later | step-03 onward |
 | `codebase_mode` | `greenfield` \| `extension` | step-01..03 |
 | `CONFIG_JSON` | `load-config.sh` stdout | step-05 (paths, platform) |
 

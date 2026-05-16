@@ -101,7 +101,7 @@ After each feature, ask `AskUserQuestion`:
 - "Save and exit (remaining features → drafts)"
 
 Drafts skip Phase B; their PRDs are rendered with placeholder sections marked
-`<TBD — fill via /define --resume --feature=NN-slug>`.
+`<TBD — fill via /define --resume --story=NN-slug>`.
 
 ### Phase C — cache
 

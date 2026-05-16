@@ -180,13 +180,13 @@ verdict=$(bash "$DETECT" --project-root="$DIR")
 hc=$(echo "$verdict" | jq -r '.has_codebase')
 [ "$hc" = "true" ] && ok "2.1 has_codebase=true on existing project" || ko "2.1 got $hc"
 
-# Scaffold v1.0 workspace + per-feature manifest (extension uses --feature)
+# Scaffold v1.0 workspace + per-feature manifest (extension uses --story)
 bash "$SETUP" --project-root="$DIR" --story-id=02-billing --story-name="Billing" --lang=en >/dev/null
 [ -f "$DIR/.snap/manifests/02-billing.manifest.json" ] \
   && ok "2.1b extension manifest created" \
   || ko "2.1b manifest missing"
 
-bash "$STATE" init --lang=en --codebase-mode=extension --feature=02-billing --project-root="$DIR" >/dev/null
+bash "$STATE" init --lang=en --codebase-mode=extension --story=02-billing --project-root="$DIR" >/dev/null
 bash "$STATE" set vision "Existing product description that is long enough and contains a verb." --project-root="$DIR"
 bash "$STATE" set north_star_metric "wad" --project-root="$DIR"
 bash "$STATE" set north_star_current "10" --project-root="$DIR"

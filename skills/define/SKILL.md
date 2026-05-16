@@ -83,7 +83,7 @@ isolé dans son propre fichier markdown avec frontmatter `next_step`.
 
 ```
 /snap:define [--mode=vision|journey|story] [--resume|-r] [--lang=fr|en]
-             [--feature=NN-slug] [--epic=PARENT_EPIC_ID]
+             [--story=NN-slug] [--epic=PARENT_EPIC_ID]
 ```
 
 - `--mode` : force le mode et skip la détection LLM. Si absent, le routeur
@@ -92,8 +92,9 @@ isolé dans son propre fichier markdown avec frontmatter `next_step`.
   `.snap/progress.json`. Partial-match story_id (`01` → `01-auth`). Si pas de
   run in-flight, fall-through au routeur.
 - `--lang` : force la langue (default: detect from existing or ask).
-- `--feature` : mode story uniquement — skip greenfield, jump à la PRD
-  per-feature pour un `story_id` existant.
+- `--story` : mode story uniquement — skip greenfield, jump à la PRD
+  per-feature pour un `story_id` existant. Alias accepté : `--feature=`
+  (déprécié, émet un warning stderr).
 - `--epic` : mode story uniquement — reporter l'ID Epic parent sur toutes
   les features capturées dans cette run (skip la question parent Epic).
 

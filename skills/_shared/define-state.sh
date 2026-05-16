@@ -7,11 +7,14 @@
 #
 # Subcommands:
 #   init [--lang=fr|en] [--define-mode=vision|journey|story]
-#        [--codebase-mode=greenfield|extension] [--feature=NN-slug]
+#        [--codebase-mode=greenfield|extension] [--story=NN-slug]
 #                         Create OR merge-update the state file. If the file
 #                         already exists, only the flags passed are updated —
 #                         other keys (define_mode, codebase_mode, vision, …)
 #                         are preserved. Safe to call from multiple steps.
+#                         `--story-id=` is accepted as a synonym of `--story=`.
+#                         `--feature=` is a deprecated alias of `--story=` and
+#                         emits a stderr warning.
 #   set KEY VALUE         Set a top-level scalar key (vision, north_star_metric,
 #                         north_star_current, north_star_target, target_horizon,
 #                         lang, define_mode, codebase_mode, active_story_id,
@@ -49,7 +52,8 @@ usage() {
 Usage: define-state.sh <subcommand> [args] [--project-root=PATH]
 
 Subcommands:
-  init [--lang=…] [--define-mode=…] [--codebase-mode=…] [--feature=…]
+  init [--lang=…] [--define-mode=…] [--codebase-mode=…] [--story=…]
+       (alias: --story-id=…; deprecated alias: --feature=…)
   set KEY VALUE
   get KEY
   add-persona JSON
@@ -86,15 +90,19 @@ ensure_state() {
 }
 
 cmd_init() {
-  local lang="" define_mode="" codebase_mode="" feature=""
+  local lang="" define_mode="" codebase_mode="" story=""
   # Track which flags were explicitly passed (so merge updates only those keys).
-  local set_lang=0 set_define_mode=0 set_codebase_mode=0 set_feature=0
+  local set_lang=0 set_define_mode=0 set_codebase_mode=0 set_story=0
   for a in "$@"; do
     case "$a" in
       --lang=*)           lang="${a#--lang=}";                     set_lang=1 ;;
       --define-mode=*)    define_mode="${a#--define-mode=}";       set_define_mode=1 ;;
       --codebase-mode=*)  codebase_mode="${a#--codebase-mode=}";   set_codebase_mode=1 ;;
-      --feature=*)        feature="${a#--feature=}";               set_feature=1 ;;
+      --story=*)          story="${a#--story=}";                   set_story=1 ;;
+      --story-id=*)       story="${a#--story-id=}";                set_story=1 ;;
+      --feature=*)
+        echo "WARNING: --feature= is deprecated; use --story= instead" >&2
+        story="${a#--feature=}";                                   set_story=1 ;;
       --mode=*)
         echo "WARNING: --mode= is deprecated; pass --define-mode= or --codebase-mode= explicitly" >&2
         return 2 ;;
@@ -111,14 +119,14 @@ cmd_init() {
       --arg lang "$lang" \
       --arg define_mode "$define_mode" \
       --arg codebase_mode "$codebase_mode" \
-      --arg feature "$feature" \
+      --arg story "$story" \
       --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
       '{
         created_at: $created,
         lang: $lang,
         define_mode: $define_mode,
         codebase_mode: $codebase_mode,
-        active_story_id: $feature,
+        active_story_id: $story,
         cli_parent_epic_id: "",
         vision: "",
         north_star_metric: "",
@@ -138,16 +146,16 @@ cmd_init() {
     --arg lang "$lang" \
     --arg define_mode "$define_mode" \
     --arg codebase_mode "$codebase_mode" \
-    --arg feature "$feature" \
+    --arg story "$story" \
     --argjson set_lang "$set_lang" \
     --argjson set_define_mode "$set_define_mode" \
     --argjson set_codebase_mode "$set_codebase_mode" \
-    --argjson set_feature "$set_feature" \
+    --argjson set_story "$set_story" \
     '
       (if $set_lang == 1 then .lang = $lang else . end)
       | (if $set_define_mode == 1 then .define_mode = $define_mode else . end)
       | (if $set_codebase_mode == 1 then .codebase_mode = $codebase_mode else . end)
-      | (if $set_feature == 1 then .active_story_id = $feature else . end)
+      | (if $set_story == 1 then .active_story_id = $story else . end)
     ' "$f" > "$tmp" && mv "$tmp" "$f"
 }
 

@@ -17,7 +17,7 @@ le handler approprié :
 
 - `RAW_INPUT` : message libre user fourni à `/snap:define`.
 - Args : `--mode=<vision|journey|story>` (opt-in), `--lang=fr|en`, `--resume`/`-r`,
-  `--feature=NN-slug`, `--epic=PARENT_EPIC_ID`.
+  `--story=NN-slug` (alias déprécié : `--feature=`), `--epic=PARENT_EPIC_ID`.
 
 ## Tasks
 

@@ -49,6 +49,28 @@ else
 fi
 trash "$DIR3" 2>/dev/null || true
 
+# 1ter-b. --story= sets active_story_id (N5/N6)
+DIR_S=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR_S" --define-mode=story --story=01-auth
+F_S="${DIR_S}/.snap/.define-state.json"
+[ "$(jq -r '.active_story_id' "$F_S")" = "01-auth" ] && ok "1.9b --story= sets active_story_id" || ko "1.9b"
+trash "$DIR_S" 2>/dev/null || true
+
+# 1ter-c. --story-id= synonym
+DIR_SI=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR_SI" --define-mode=story --story-id=03-payments
+F_SI="${DIR_SI}/.snap/.define-state.json"
+[ "$(jq -r '.active_story_id' "$F_SI")" = "03-payments" ] && ok "1.9c --story-id= synonym" || ko "1.9c"
+trash "$DIR_SI" 2>/dev/null || true
+
+# 1ter-d. --feature= deprecated alias still works + emits warning
+DIR_F=$(setup_dir)
+warn=$(bash "$SCRIPT" init --project-root="$DIR_F" --define-mode=story --feature=02-billing 2>&1 >/dev/null)
+F_F="${DIR_F}/.snap/.define-state.json"
+[ "$(jq -r '.active_story_id' "$F_F")" = "02-billing" ] && ok "1.9d --feature= alias still maps to active_story_id" || ko "1.9d"
+echo "$warn" | grep -q "deprecated" && ok "1.9e --feature= emits deprecation warning" || ko "1.9e got: $warn"
+trash "$DIR_F" 2>/dev/null || true
+
 # 1quater. cli_parent_epic_id is a settable scalar (N4)
 DIR4=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR4"
