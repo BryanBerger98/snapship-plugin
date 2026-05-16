@@ -37,71 +37,95 @@ problem/solution/AC.
 
 ### Phase B — per-feature enrichment
 
-For each feature in priority order (`must` → `should` → `could`), ask:
+For each feature in priority order (`must` → `should` → `could`), batch
+prompts in **3-5 `AskUserQuestion` calls** (max 4 questions per call). This
+replaces the previous 8-9 sequential calls per feature.
+
+**Short-circuit CLI parent epic** (read once, applies to every feature in the run) :
+
+```bash
+cli_epic=$(bash skills/_shared/define-state.sh get cli_parent_epic_id \
+  --project-root="$PWD")
+```
+
+If `cli_epic` non-empty → `parent_epic_id="$cli_epic"`, `parent_epic_pending=false`
+on every feature. Skip the Parent Epic question in Call 2 below (replace by the
+fixed value).
+
+#### Call 1 — open description (4 free-text questions)
 
 1. **Problem statement** (free text, ≥30 chars, must mention "who" or a persona name).
 2. **Solution overview** (free text, 3-5 sentences).
-3. **Acceptance criteria** (free text, one per line, prefix `AC-N`). Parse into
+3. **In scope** (free text).
+4. **Out of scope** (free text — push the user to be specific; vague answers like
+   "the rest" are rejected).
+
+#### Call 2 — structured choices (4 questions, mixed types)
+
+1. **Acceptance criteria** (free text, one per line, prefix `AC-N`). Parse into
    `{ ac_id, ac_text }`. At least 1 AC required.
-4. **In scope** (free text).
-5. **Out of scope** (free text — push the user to be specific; vague answers like "the
-   rest" are rejected).
-6. **Wireframe references** (optional — list of expected screen IDs; can be filled
+2. **Wireframe references** (optional — list of expected screen IDs; can be filled
    later by `/wireframe`).
-7. **Parent Epic** (v1.1 — concertation user) :
-   - **Short-circuit CLI** : lire `cli_parent_epic_id` depuis le state :
-     ```bash
-     cli_epic=$(bash skills/_shared/define-state.sh get cli_parent_epic_id \
-       --project-root="$PWD")
-     ```
-     Si non vide → skip `AskUserQuestion`, reporter direct sur **toutes** les
-     features collectées dans ce run : `parent_epic_id = "$cli_epic"`,
-     `parent_epic_pending = false`. C'est l'objet du flag `--epic=` documenté
-     dans SKILL.md (« reporter l'ID Epic parent sur toutes les features »).
-   - Sinon (`cli_epic` vide), `AskUserQuestion` :
-     > "Cette feature fait-elle partie d'un Epic parent ?"
-     > - "Oui — j'ai déjà un Epic identifié (saisir l'ID plateforme)"
-     > - "Oui — l'Epic n'existe pas encore (sera créé par `/snap:ticket`)"
-     > - "Non — feature autonome"
-   - Si "Oui avec ID" : free text `parent_epic_id` (ex. `#42`, `AUTH-1`,
-     `&12`). Pas de validation regex ici — `/snap:ticket` validera contre la
-     plateforme cible.
-   - Si "Oui à créer" : free text `parent_epic_title` (slug + titre). Cache
-     pour `/snap:ticket` qui créera l'Epic puis lien link-parent.
-   - Persister dans le feature object :
-     ```json
-     {"parent_epic_id": "AUTH-1"}   // mode "existant"
-     {"parent_epic_title": "Authentication platform", "parent_epic_pending": true}  // mode "à créer"
-     ```
+3. **Parent Epic** (multiSelect: false) — **skip this question if `cli_epic` was
+   set above** :
+   > "Cette feature fait-elle partie d'un Epic parent ?"
+   > - "Oui — j'ai déjà un Epic identifié (saisir l'ID plateforme)"
+   > - "Oui — l'Epic n'existe pas encore (sera créé par `/snap:ticket`)"
+   > - "Non — feature autonome"
+4. **Domains impacted** (multi-select) :
+   - Pre-load existing domains via
+     `bash skills/_shared/taxonomy-state.sh list-domains --project-root="$PWD"` and
+     use them as predefined options.
+   - The user may also add a new domain via free input — capture the human
+     title, auto-slug kebab. Reject the slug if it already exists with a
+     different title.
+   - ≥1 domain required.
 
-8. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
-   - Read existing domains from cache:
-     ```bash
-     bash skills/_shared/taxonomy-state.sh list-domains --project-root="$PWD"
-     ```
-   - Present them as multi-select options. Allow user to add a new domain (free
-     input → ask title humain, auto-slug kebab). Reject slug if it already
-     exists with a different title.
-   - Persist as `domains: [<slug>, …]` on the feature object. ≥1 domain required.
+#### Sub-call 2b — parent epic detail (conditional, 1 question)
 
-9. **Journeys impacted** (v0.2 — per domain chosen in step 8):
-   For each domain in `feature.domains`:
-   - List existing journeys via:
-     ```bash
-     bash skills/_shared/taxonomy-state.sh list-journeys "$domain" --project-root="$PWD"
-     ```
-   - Multi-select existing + free input ("create new journey: title → slug auto").
-   - Persist as `impacted_journeys: [{domain, journey_slug}, …]`.
+Only fire if Call 2.3 answer ≠ « Non » :
 
-   New (yet-uncreated) journeys are recorded in state file but not pushed to the
-   doc platform until step-05-publish (which calls `lookup-or-create-page`).
+- "Oui avec ID" → free text `parent_epic_id` (e.g. `#42`, `AUTH-1`, `&12`). No
+  regex validation here — `/snap:ticket` will validate against the target
+  platform.
+- "Oui à créer" → free text `parent_epic_title`. Cache for `/snap:ticket` which
+  will create the Epic then link-parent.
 
-After each feature, ask `AskUserQuestion`:
+Persist on the feature object :
+```json
+{"parent_epic_id": "AUTH-1"}                                                  // existing
+{"parent_epic_title": "Authentication platform", "parent_epic_pending": true} // pending
+```
+
+#### Call 3 — journeys per chosen domain (≤4 questions per call, multi-select each)
+
+For each domain in `feature.domains`, build one multi-select question :
+
+- Title : "Which journeys are impacted in domain `<title>` ?"
+- Options : existing journeys (via
+  `bash skills/_shared/taxonomy-state.sh list-journeys "$domain" --project-root="$PWD"`)
+  plus "create new journey" free input.
+
+Group up to **4 domains per `AskUserQuestion` call**. If the feature touches >4
+domains, fire a second Call 3 with the remaining ones.
+
+Persist as `impacted_journeys: [{domain, journey_slug, journey_title, is_new}, …]`.
+New (yet-uncreated) journeys are kept in the state file but not pushed to the
+doc platform until step-05-publish (which calls `lookup-or-create-page`).
+
+#### Call 4 — control flow (1 question)
+
+```text
+"Done with this feature — continue with next, or save and exit?"
 - "Continue with next feature"
 - "Save and exit (remaining features → drafts)"
+```
 
 Drafts skip Phase B; their PRDs are rendered with placeholder sections marked
 `<TBD — fill via /define --resume --story=NN-slug>`.
+
+**Call count summary** : 3 mandatory + 1 conditional + 1 control + (extra Call 3
+batches if >4 domains) ≈ **4-5 calls per feature** vs 8-9 previously.
 
 ### Phase C — cache
 

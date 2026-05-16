@@ -14,21 +14,23 @@ Build the persona list that anchors every feature decision.
    `.snap/.define-state.json` from a prior `/snap:fetch` or earlier run) → ask
    "Add another persona?" (yes/no). If no, skip to step-03 with cached personas.
 
-2. **Loop** until the user is done (max 5 personas — push back if more):
+2. **Loop** until the user is done (max 5 personas — push back if more).
 
-   For each persona, ask via `AskUserQuestion`:
+   Per persona, batch in **2 `AskUserQuestion` calls** (max 4 questions per call —
+   reduces round-trips vs one-by-one prompting) :
 
-   - **Name / archetype** (free text, e.g. "Sarah, freelance designer")
-   - **Role** (free text, 1 sentence)
-   - **Top 3 goals** (free text, comma-separated)
-   - **Top 3 pain points** (free text, comma-separated)
-   - **Tools they use today** (free text, comma-separated; informs integrations later)
+   - **Call 1** (4 questions, all free text) :
+     - **Name / archetype** (e.g. "Sarah, freelance designer")
+     - **Role** (1 sentence)
+     - **Top 3 goals** (comma-separated)
+     - **Top 3 pain points** (comma-separated)
+   - **Call 2** (2 questions) :
+     - **Tools they use today** (free text, comma-separated; informs integrations later)
+     - **Add another persona?** (multiSelect: false) :
+       - "Add another persona"
+       - "Done — proceed to features"
 
-3. **Continue?** After each persona, ask `AskUserQuestion` (multiSelect: false):
-   - "Add another persona"
-   - "Done — proceed to features"
-
-   Stop on "Done" or after 5 personas (with a one-line note that more personas can
+3. **Stop** on "Done" or after 5 personas (one-line note that more personas can
    be added by re-running `/define --resume` later).
 
 4. **Validate**: at least 1 persona collected. Each persona has non-empty role + at

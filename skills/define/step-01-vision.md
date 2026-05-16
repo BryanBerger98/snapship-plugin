@@ -81,7 +81,8 @@ Collect the product's vision and its single tracked metric.
    If `Custom`, follow up with a free-text question for the metric name. Save as
    `north_star_metric`.
 
-4. **Ask current and target values** via `AskUserQuestion` (free text):
+4. **Ask current + target + horizon** in a **single** `AskUserQuestion` call
+   (3 questions, max 4 per call — batch to cut round-trips) :
    - "Current value of `{north_star_metric}` (or 'unknown' if not measured yet)"
    - "Target value at horizon"
    - "Target horizon (e.g. Q3 2026, 6 months, end of year)"
