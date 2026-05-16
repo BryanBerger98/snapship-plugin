@@ -62,6 +62,20 @@ injects defaults).
 
 ### C. Per feature — main loop
 
+Every `docs-adapter.sh` call returns a JSON envelope :
+
+```json
+{ "page_id": "<platform-id>", "url": "https://…" }   // ok
+{ "error":   "<reason>" }                              // failure
+```
+
+Before consuming any field, validate the response via
+`skills/_shared/check-mcp-response.sh JSON KEY`. It exits 1 if the JSON is
+malformed, the envelope carries an `.error`, or the requested key is absent /
+null / empty. On reject the loop must `sync-push.sh fail` the feature and
+`continue` (next feature) — never ack a partial result. The contract is
+documented in `docs/contributing/scripts.md` (docs-adapter section).
+
 For each manifest in `.snap/manifests/*.manifest.json` (skip `_taxonomy.json`) :
 
 ```bash
@@ -85,26 +99,46 @@ fid=$(jq -r '.story_id' "$MANIFEST")
 
 3. **Create PRD parent path** (idempotent recursive) :
    ```bash
-   bash skills/_shared/docs-adapter.sh \
+   MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
      --action=create-page-tree \
      --platform="$PLATFORM" \
      --workspace-id="$WORKSPACE_ID" \
-     --path="${PRD_ROOT}/${YEAR}/${MONTH_YEAR}"
+     --path="${PRD_ROOT}/${YEAR}/${MONTH_YEAR}")
+   if ! MONTH_PARENT_ID=$(bash skills/_shared/check-mcp-response.sh \
+        "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+       --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+     bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
+       --story-id="$fid" --step-num=05 --step-name=publish --status=fail
+     continue
+   fi
    ```
-   Maps to MCP — model executes, captures leaf `page_id` as `$MONTH_PARENT_ID`.
 
 4. **Create the PRD page** (always new — `story_id` is unique) :
    ```bash
    PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
      --story-id="$fid" --kind=prd --project-root="$PWD")
-   bash skills/_shared/docs-adapter.sh \
+   MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
      --action=create \
      --platform="$PLATFORM" \
      --parent-id="$MONTH_PARENT_ID" \
      --title="$(jq -r .story_name "$MANIFEST")" \
-     --content-file="$PRD_STAGING"
+     --content-file="$PRD_STAGING")
+   if ! PRD_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
+        "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+       --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+     bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
+       --story-id="$fid" --step-num=05 --step-name=publish --status=fail
+     continue
+   fi
+   if ! PRD_URL=$(bash skills/_shared/check-mcp-response.sh \
+        "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
+     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+       --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+     continue
+   fi
    ```
-   Capture `page_id` + `url` from MCP response → `$PRD_PAGE_ID`, `$PRD_URL`.
 
 5. **Tag the PRD page with impacted domains** :
    ```bash
@@ -117,11 +151,17 @@ fid=$(jq -r '.story_id' "$MANIFEST")
 
 6. **Lookup-or-create domain pages** (idempotent) :
    ```bash
-   FROOT_ID=$(bash skills/_shared/docs-adapter.sh \
+   MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
      --action=lookup-or-create-page \
      --platform="$PLATFORM" \
      --workspace-id="$WORKSPACE_ID" \
-     --title="$FUNCTIONAL_ROOT")  # → page_id captured by model
+     --title="$FUNCTIONAL_ROOT")
+   if ! FROOT_ID=$(bash skills/_shared/check-mcp-response.sh \
+        "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+       --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+     continue
+   fi
 
    for domain in $(echo "$DOMAINS_JSON" | jq -r '.[]'); do
      existing=$(bash skills/_shared/taxonomy-state.sh get-domain "$domain" \
@@ -132,12 +172,23 @@ fid=$(jq -r '.story_id' "$MANIFEST")
          | .impacted_journeys[] | select(.domain == $d)
          | .domain_title // $d
        ' .snap/.define-state.json | head -1)
-       bash skills/_shared/docs-adapter.sh \
+       MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
          --action=lookup-or-create-page \
          --platform="$PLATFORM" \
          --parent-id="$FROOT_ID" \
-         --title="$DOMAIN_TITLE"
-       # capture $DOMAIN_PAGE_ID, $DOMAIN_URL from MCP response
+         --title="$DOMAIN_TITLE")
+       if ! DOMAIN_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
+            "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+         continue 2
+       fi
+       if ! DOMAIN_URL=$(bash skills/_shared/check-mcp-response.sh \
+            "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
+         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+         continue 2
+       fi
 
        bash skills/_shared/taxonomy-state.sh add-domain \
          "$domain" "$DOMAIN_TITLE" "$DOMAIN_PAGE_ID" "$DOMAIN_URL" \
@@ -163,12 +214,23 @@ fid=$(jq -r '.story_id' "$MANIFEST")
        DOMAIN_PARENT_ID=$(bash skills/_shared/taxonomy-state.sh get-domain "$domain" \
          --project-root="$PWD" | jq -r '.page_id')
 
-       bash skills/_shared/docs-adapter.sh \
+       MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
          --action=lookup-or-create-page \
          --platform="$PLATFORM" \
          --parent-id="$DOMAIN_PARENT_ID" \
-         --title="$jtitle"
-       # capture $JOURNEY_PAGE_ID, $JOURNEY_URL
+         --title="$jtitle")
+       if ! JOURNEY_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
+            "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+         continue 2
+       fi
+       if ! JOURNEY_URL=$(bash skills/_shared/check-mcp-response.sh \
+            "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
+         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+         continue 2
+       fi
 
        bash skills/_shared/taxonomy-state.sh add-journey \
          "$domain" "$jslug" "$jtitle" "$JOURNEY_PAGE_ID" "$JOURNEY_URL" \

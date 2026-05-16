@@ -198,6 +198,47 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # Mode: write actions emit an MCP descriptor (exit 10) + short-circuit on --dry-run.
 ```
 
+### Response envelope contract
+
+Every write action (`create`, `apply-template`, `lookup-or-create-page`,
+`create-page-tree`, `update`, `update-page-content`, `set-page-tags`,
+`upload-blob`) returns a JSON object on stdout. Success and failure share the
+same channel — callers must inspect the envelope before consuming any field.
+
+```json
+{ "page_id": "<platform-id>", "url": "https://…" }   // success
+{ "blob_id": "<id>" }                                  // upload-blob success
+{ "error":   "<reason>" }                              // any failure (rate-limit, auth, conflict, …)
+```
+
+Validate via `check-mcp-response.sh JSON KEY` (see below). Never extract a
+value directly with `jq -r '.page_id'` — `null` round-trips as the literal
+string `"null"` and silently poisons downstream state (`refs.prd`,
+`_taxonomy.json`).
+
+## check-mcp-response.sh
+
+```bash
+# args: JSON KEY
+# Validates an MCP response envelope before the caller consumes a field.
+# Checks (in order):
+#   1. JSON parses as an object       → else rc=1 + stderr "mcp: malformed-json"
+#   2. No `.error` key in object      → else rc=1 + stderr "mcp: error: <reason>"
+#   3. `.KEY` present + non-null +    → else rc=1 + stderr "mcp: missing <KEY>"
+#      non-empty string                          or "mcp: empty <KEY>"
+# Success: stdout = captured value, rc=0.
+# Usage error (wrong arg count): rc=2.
+#
+# Typical use (in step-05-publish.md and any future MCP-bridging helper):
+#   MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh --action=create …)
+#   if ! PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
+#        "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+#     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+#       --reason="$(cat /tmp/mcp.err)"
+#     continue
+#   fi
+```
+
 ## taxonomy-state.sh (domain/journey ↔ page IDs cache)
 
 ```bash
