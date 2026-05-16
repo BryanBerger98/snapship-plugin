@@ -94,7 +94,7 @@ bash "$STATE" add-feature '{
   "solution_overview": "Add email/password signup with verification email.",
   "acceptance_criteria": [{"ac_id":"1","ac_text":"User signs up with email + password"},{"ac_id":"2","ac_text":"Verification email sent"}],
   "in_scope": "email/password, verification email",
-  "out_of_scope": "OAuth, SSO, MFA",
+  "out_of_scope": "OAuth, SSO, MFA — handled by a later iteration of auth",
   "wireframes": []
 }' --project-root="$DIR"
 bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
@@ -198,7 +198,7 @@ bash "$STATE" add-feature '{
   "problem_statement":"Users cannot pay for the service yet, blocking monetisation.",
   "solution_overview":"Stripe checkout integration.",
   "acceptance_criteria":[{"ac_id":"1","ac_text":"Stripe checkout works"}],
-  "in_scope":"Stripe","out_of_scope":"Other gateways","wireframes":[]
+  "in_scope":"Stripe","out_of_scope":"Other gateways (PayPal, Adyen, Braintree) — deferred to v2","wireframes":[]
 }' --project-root="$DIR"
 
 # Per-feature progress: log step-03 fail (so resume has something to surface)

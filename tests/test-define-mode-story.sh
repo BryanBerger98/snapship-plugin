@@ -35,7 +35,7 @@ FT_EXISTING='{
   "solution_overview":"Add email signup flow.",
   "acceptance_criteria":[{"ac_id":"1","ac_text":"User can sign up with email"}],
   "in_scope":"email",
-  "out_of_scope":"OAuth",
+  "out_of_scope":"OAuth, SSO, magic links — handled by later auth stories",
   "parent_epic_id":"AUTH-1",
   "parent_epic_title":null,
   "parent_epic_pending":false,
@@ -59,7 +59,7 @@ FT_PENDING='{
   "solution_overview":"Hook signup into onboarding journey.",
   "acceptance_criteria":[{"ac_id":"1","ac_text":"New user lands on onboarding"}],
   "in_scope":"signup hand-off",
-  "out_of_scope":"oauth providers",
+  "out_of_scope":"oauth providers, SAML, SSO — out of scope for v1",
   "parent_epic_id":null,
   "parent_epic_title":"Authentication platform",
   "parent_epic_pending":true,
@@ -82,7 +82,7 @@ FT_NONE='{
   "solution_overview":"Add upgrade modal.",
   "acceptance_criteria":[{"ac_id":"1","ac_text":"User can upgrade plan"}],
   "in_scope":"upgrade modal",
-  "out_of_scope":"downgrade",
+  "out_of_scope":"downgrade flow, refund handling — handled by support tooling",
   "domains":["billing"],
   "impacted_journeys":[]
 }'

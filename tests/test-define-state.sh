@@ -181,7 +181,7 @@ bash "$SCRIPT" set north_star_current "0"          --project-root="$DIR"
 bash "$SCRIPT" set north_star_target "1000"        --project-root="$DIR"
 bash "$SCRIPT" set target_horizon "Q4 2026"        --project-root="$DIR"
 bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
-bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"a","out_of_scope":"b"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"email signup flow","out_of_scope":"OAuth, SSO, magic links — handled by /develop later"}' --project-root="$DIR"
 if bash "$SCRIPT" validate --project-root="$DIR" 2>/dev/null; then
   ok "8.1 validate happy path"
 else
@@ -233,6 +233,76 @@ bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goal
 bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"draft","priority":"should"}' --project-root="$DIR"
 out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1)
 echo "$out" | grep -q "no must-priority" && ok "11.1 no-must detected" || ko "11.1: $out"
+trash "$DIR" 2>/dev/null || true
+
+# 11bis. validate-out-of-scope (Q1 / Phase 14) — deterministic helper
+echo ""
+echo "[11bis] validate-out-of-scope"
+
+# too-short (<20 chars after trim)
+if bash "$SCRIPT" validate-out-of-scope "short" 2>/dev/null; then
+  ko "11bis.1 should reject <20 chars"
+else
+  ok "11bis.1 rejects too-short"
+fi
+
+# placeholder — EN lowercase
+if bash "$SCRIPT" validate-out-of-scope "the rest" 2>/dev/null; then
+  ko "11bis.2 should reject 'the rest'"
+else
+  ok "11bis.2 rejects 'the rest'"
+fi
+
+# placeholder — FR mixed case + leading/trailing whitespace
+if bash "$SCRIPT" validate-out-of-scope "  Tout Le Reste  " 2>/dev/null; then
+  ko "11bis.3 should reject 'Tout Le Reste' after trim"
+else
+  ok "11bis.3 rejects 'Tout Le Reste' (case-insensitive + trimmed)"
+fi
+
+# placeholder — N/A
+if bash "$SCRIPT" validate-out-of-scope "N/A" 2>/dev/null; then
+  ko "11bis.4 should reject 'N/A'"
+else
+  ok "11bis.4 rejects 'N/A'"
+fi
+
+# placeholder — tbd
+if bash "$SCRIPT" validate-out-of-scope "tbd" 2>/dev/null; then
+  ko "11bis.5 should reject 'tbd'"
+else
+  ok "11bis.5 rejects 'tbd'"
+fi
+
+# valid ≥20 chars
+if bash "$SCRIPT" validate-out-of-scope "OAuth, SSO, magic links — handled later" 2>/dev/null; then
+  ok "11bis.6 accepts a specific ≥20-char answer"
+else
+  ko "11bis.6 should accept specific answer"
+fi
+
+# reason in stderr — too-short
+DIR_OS=$(setup_dir)
+err=$(bash "$SCRIPT" validate-out-of-scope "x" 2>&1 >/dev/null || true)
+echo "$err" | grep -q "too-short" && ok "11bis.7 stderr reason 'too-short'" || ko "11bis.7 got: $err"
+
+# reason in stderr — placeholder-match
+err=$(bash "$SCRIPT" validate-out-of-scope "TBD" 2>&1 >/dev/null || true)
+echo "$err" | grep -q "placeholder-match" && ok "11bis.8 stderr reason 'placeholder-match'" || ko "11bis.8 got: $err"
+trash "$DIR_OS" 2>/dev/null || true
+
+# cmd_validate wires the rule into refined-feature validation
+DIR=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR"
+bash "$SCRIPT" set vision "$VALID_VISION"          --project-root="$DIR"
+bash "$SCRIPT" set north_star_metric "WAU"         --project-root="$DIR"
+bash "$SCRIPT" set north_star_current "0"          --project-root="$DIR"
+bash "$SCRIPT" set north_star_target "1000"        --project-root="$DIR"
+bash "$SCRIPT" set target_horizon "Q4 2026"        --project-root="$DIR"
+bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"email signup flow","out_of_scope":"the rest"}' --project-root="$DIR"
+out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1 || true)
+echo "$out" | grep -q "placeholder" && ok "11bis.9 cmd_validate flags placeholder oos" || ko "11bis.9: $out"
 trash "$DIR" 2>/dev/null || true
 
 # 12. wipe

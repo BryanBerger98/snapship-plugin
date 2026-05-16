@@ -57,8 +57,18 @@ fixed value).
 1. **Problem statement** (free text, ≥30 chars, must mention "who" or a persona name).
 2. **Solution overview** (free text, 3-5 sentences).
 3. **In scope** (free text).
-4. **Out of scope** (free text — push the user to be specific; vague answers like
-   "the rest" are rejected).
+4. **Out of scope** (free text). Validate the captured answer with the
+   deterministic helper before persistence :
+
+   ```bash
+   bash skills/_shared/define-state.sh validate-out-of-scope "$oos"
+   ```
+
+   Helper rejects (exit 1) when the trimmed answer is `<20 chars` OR
+   case-insensitive equal to one of : `the rest`, `tout le reste`, `n/a`, `na`,
+   `tbd`. Reason printed on stderr (`too-short` or `placeholder-match`). On
+   reject, re-prompt with the reason shown to the user — do not silently
+   accept a vague answer.
 
 #### Call 2 — structured choices (4 questions, mixed types)
 

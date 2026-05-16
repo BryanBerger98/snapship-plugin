@@ -33,6 +33,12 @@
 #   list-features         Emit features as NDJSON.
 #   validate              Run schema-style checks; exit 0 if OK, 1 if invalid.
 #                         Prints findings on stderr.
+#   validate-out-of-scope STRING
+#                         Deterministic check for the per-feature out_of_scope
+#                         field. Exit 0 if OK, 1 if reject. Reasons emitted on
+#                         stderr: `too-short` (<20 chars after trim) or
+#                         `placeholder-match` (case-insensitive equal to one of
+#                         "the rest", "tout le reste", "n/a", "na", "tbd").
 #   path                  Print absolute path to state file.
 #   wipe                  Delete state file (called by step-05 on success).
 #
@@ -69,6 +75,7 @@ Subcommands:
   list-personas
   list-features
   validate
+  validate-out-of-scope STRING
   path
   wipe
   -h, --help
@@ -246,6 +253,28 @@ cmd_wipe() {
   return 0
 }
 
+cmd_validate_out_of_scope() {
+  [ $# -eq 1 ] || { echo "ERROR: validate-out-of-scope STRING" >&2; return 2; }
+  local raw="$1" trimmed lc
+  # Trim leading/trailing whitespace.
+  trimmed="${raw#"${raw%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  lc=$(printf '%s' "$trimmed" | tr '[:upper:]' '[:lower:]')
+  # Placeholder check runs first so short canonical non-answers ("TBD", "N/A")
+  # surface a clearer reason than "too-short".
+  case "$lc" in
+    "the rest"|"tout le reste"|"n/a"|"na"|"tbd")
+      echo "out_of_scope: placeholder-match (\"$trimmed\" is a non-answer)" >&2
+      return 1
+      ;;
+  esac
+  if [ "${#trimmed}" -lt 20 ]; then
+    echo "out_of_scope: too-short (got ${#trimmed} chars, need ≥20 after trim)" >&2
+    return 1
+  fi
+  return 0
+}
+
 cmd_validate() {
   ensure_state
   local f
@@ -310,7 +339,16 @@ cmd_validate() {
         [ "${#ps}" -ge 30 ] || errs+=("feature $fid: problem_statement <30 chars")
         [ -n "$so" ]        || errs+=("feature $fid: solution_overview empty")
         [ -n "$isc" ]       || errs+=("feature $fid: in_scope empty")
-        [ -n "$oos" ]       || errs+=("feature $fid: out_of_scope empty")
+        if ! cmd_validate_out_of_scope "$oos" 2>/dev/null; then
+          local oos_lc
+          oos_lc=$(printf '%s' "$oos" | tr '[:upper:]' '[:lower:]')
+          case "$oos_lc" in
+            "the rest"|"tout le reste"|"n/a"|"na"|"tbd")
+              errs+=("feature $fid: out_of_scope placeholder (\"$oos\")") ;;
+            *)
+              errs+=("feature $fid: out_of_scope too-short (<20 chars)") ;;
+          esac
+        fi
         [ "$ac" -ge 1 ]     || errs+=("feature $fid: no acceptance_criteria")
       fi
     done < <(jq -c '.features[]' "$f")
@@ -340,7 +378,8 @@ case "$SUBCMD" in
   add-feature)     cmd_add_feature   ${REMAINING[@]+"${REMAINING[@]}"} ;;
   list-personas)   cmd_list_personas ;;
   list-features)   cmd_list_features ;;
-  validate)        cmd_validate      ;;
+  validate)               cmd_validate                ;;
+  validate-out-of-scope)  cmd_validate_out_of_scope   ${REMAINING[@]+"${REMAINING[@]}"} ;;
   path)            cmd_path          ;;
   wipe)            cmd_wipe          ;;
   -h|--help)       usage; exit 0 ;;
