@@ -12,7 +12,8 @@
       "issue_types": {
         "user-story": "Feature",
         "bug": "Bug",
-        "epic": "Epic"
+        "epic": "Epic",
+        "task": "Task"
       },
       "project": {
         "id": "PVT_kwDOAxxxxxxxxxxxxxxxxxxx",

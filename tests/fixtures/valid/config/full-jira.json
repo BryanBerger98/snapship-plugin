@@ -101,6 +101,11 @@
     "auto_mode": false,
     "save_mode": true,
     "branch_mode": true,
-    "economy_mode": false
+    "economy_mode": false,
+    "worktree": {
+      "path": "./.worktrees",
+      "default_root": "{branch_name}",
+      "destroy": "after_merge"
+    }
   }
 }

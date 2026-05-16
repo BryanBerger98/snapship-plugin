@@ -49,8 +49,8 @@ DEFAULTS=$(cat <<'JSON'
   "version": "1.0",
   "naming": {
     "story_slug_max_length": 40,
-    "branch_pattern": "{type}/{ticket_id}-{slug}",
-    "commit_pattern": "{type}({scope}): {message}"
+    "branch_pattern": "{type}/{ticket_id}",
+    "commit_pattern": "{commit_type}({scope}): {message}"
   },
   "ai": {
     "max_parallel_agents": 5,
@@ -104,7 +104,12 @@ DEFAULTS=$(cat <<'JSON'
     "auto_mode": false,
     "save_mode": true,
     "branch_mode": true,
-    "economy_mode": false
+    "economy_mode": false,
+    "worktree": {
+      "path": "./.worktrees",
+      "default_root": "{branch_name}",
+      "destroy": "after_merge"
+    }
   }
 }
 JSON
