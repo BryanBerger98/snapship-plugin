@@ -14,7 +14,7 @@ Input mirrors `/develop` and `/qa`:
 | Input          | Effect                                                       |
 |----------------|--------------------------------------------------------------|
 | `<ticket-id>`  | Mock up the single ticket.                                   |
-| `<feature-id>` | Mock up every UI ticket of the feature (batch).              |
+| `<story-id>` | Mock up every UI ticket of the feature (batch).              |
 
 The design system is **never created or modified** by `/design`. If a DS file
 is configured it may be read for component references (opt-in, see
@@ -50,10 +50,10 @@ uses the exact same helper and Desktop Bridge plugin as `/wireframe figma`.
 ## Args
 
 ```
-/design <ticket-id|feature-id> [--resume|-r] [--dry-run] [--no-wireframe-reuse]
+/design <ticket-id|story-id> [--resume|-r] [--dry-run] [--no-wireframe-reuse]
 ```
 
-- `<ticket-id|feature-id>` (required unless `--resume`): partial-match. A
+- `<ticket-id|story-id>` (required unless `--resume`): partial-match. A
   ticket id scopes to one ticket; a feature id batches all UI tickets.
 - `--dry-run`: helpers return mock descriptors; no MCP calls, no assets
   written, no docs writes.
@@ -62,13 +62,13 @@ uses the exact same helper and Desktop Bridge plugin as `/wireframe figma`.
 
 ## Outputs
 
-- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}`
+- `.snap/designs/{story_id}/{screen-id}-{state}.{fmt}`
   (local exports — helper handles platform-specific write path).
 - Remote Docs `design-gallery` page, recorded in
-  `.snap/manifests/{feature_id}.manifest.json` at `.refs.design_gallery`
+  `.snap/manifests/{story_id}.manifest.json` at `.refs.design_gallery`
   (`platform`, `url`, `page_id`, `synced_at`, `sync_status: "synced"`); staging
   `design-gallery.md` is trashed after ack.
-- Each targeted UI ticket in `.snap/tickets/{feature_id}.json` gains
+- Each targeted UI ticket in `.snap/tickets/{story_id}.json` gains
   `design_screen`, `design_url`, `design_mode` (`mockup|reused`).
 - Manifest `state` advances `wireframed` → `designed` (or `ticketed` →
   `designed` if `/wireframe` was skipped).
@@ -86,12 +86,12 @@ raises `AskUserQuestion`:
 ## Resume protocol
 
 Same pattern as `/wireframe`: `/design --resume` delegates to
-`progress.sh resume --skill=design --feature-id=…`.
+`progress.sh resume --skill=design --story-id=…`.
 
 ## Acceptance check
 
 - Every targeted UI ticket has `design_url` set in
-  `.snap/tickets/{feature_id}.json`.
+  `.snap/tickets/{story_id}.json`.
 - `manifest.refs.design_gallery.sync_status = "synced"` (or step-03 skipped if
   `documentation.platform = "none"`).
 - Manifest `state ∈ {"designed", …terminal}`.

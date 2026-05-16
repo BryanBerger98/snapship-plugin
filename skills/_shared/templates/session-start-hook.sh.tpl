@@ -82,7 +82,7 @@ emit_active_feature() {
     local prog="${SNAP_DIR}/progress.json"
     if [ -f "$prog" ]; then
       block "Progress (in-flight for ${fid})"
-      jq --arg fid "$fid" '.in_flight | map(select(.feature_id == $fid))' "$prog" 2>/dev/null || true
+      jq --arg fid "$fid" '.in_flight | map(select(.story_id == $fid))' "$prog" 2>/dev/null || true
     fi
   fi
 }

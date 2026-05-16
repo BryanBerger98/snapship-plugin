@@ -79,7 +79,7 @@ Append-only file per feature. Each line = 1 timestamped event. Line-based regex 
 **Header (created on the feature's first `/define`):**
 
 ```markdown
-# Progress — {feature_id}
+# Progress — {story_id}
 
 started: {ISO-8601 UTC}
 ```

@@ -78,8 +78,8 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
 
 8. **Progress** :
    ```bash
-   bash skills/_shared/progress.sh start --skill=upgrade --feature-id=_global
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh start --skill=upgrade --story-id=_global
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=00 --step-name=detect --status=ok
    ```
 

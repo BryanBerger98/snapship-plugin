@@ -16,7 +16,7 @@ This step has no `next_step` — it is terminal.
 
 ```bash
 gallery_url=$(jq -r '.refs.wireframes_gallery.url // ""' \
-  ".snap/manifests/${feature_id}.manifest.json")
+  ".snap/manifests/${story_id}.manifest.json")
 ```
 
 Each screen anchors to a section of the gallery via the markdown heading slug
@@ -31,17 +31,17 @@ Each screen anchors to a section of the gallery via the markdown heading slug
 
 ### B. Per-ticket update
 
-For each `local_id` in `.snap/wireframes/${feature_id}.draft.json[].ui_tickets`:
+For each `local_id` in `.snap/wireframes/${story_id}.draft.json[].ui_tickets`:
 
 1. Look up the matching screen via the `screen_hint` recorded in step-01.
-2. Patch the ticket entry in `.snap/tickets/${feature_id}.json`:
+2. Patch the ticket entry in `.snap/tickets/${story_id}.json`:
    ```bash
    tmp=$(mktemp)
    jq --arg lid "$local_id" --arg sid "$screen_id" --arg url "$gallery_url#$screen_id" \
      '(.tickets[] | select(.local_id == $lid))
        |= (.wireframe_screen = $sid | .wireframe_url = $url)' \
-     ".snap/tickets/${feature_id}.json" > "$tmp" \
-     && mv "$tmp" ".snap/tickets/${feature_id}.json"
+     ".snap/tickets/${story_id}.json" > "$tmp" \
+     && mv "$tmp" ".snap/tickets/${story_id}.json"
    ```
 
 3. If the ticket was pushed to a platform (`url` set), also update the
@@ -53,7 +53,7 @@ For each `local_id` in `.snap/wireframes/${feature_id}.draft.json[].ui_tickets`:
 
 ```bash
 ajv validate -s skills/_shared/schemas/tickets.schema.json \
-  -d ".snap/tickets/${feature_id}.json" \
+  -d ".snap/tickets/${story_id}.json" \
   --spec=draft2020 --strict=false
 ```
 
@@ -67,14 +67,14 @@ Update manifest `state` → `wireframed`:
 NOW=$(date -u +%FT%TZ)
 tmp=$(mktemp)
 jq --arg ts "$NOW" '.state = "wireframed" | .updated_at = $ts' \
-  ".snap/manifests/${feature_id}.manifest.json" > "$tmp" \
-  && mv "$tmp" ".snap/manifests/${feature_id}.manifest.json"
+  ".snap/manifests/${story_id}.manifest.json" > "$tmp" \
+  && mv "$tmp" ".snap/manifests/${story_id}.manifest.json"
 ```
 
 ### E. Cleanup + telemetry + progress
 
 ```bash
-trash ".snap/wireframes/${feature_id}.draft.json"
+trash ".snap/wireframes/${story_id}.draft.json"
 
 bash skills/_shared/telemetry.sh log \
   --project-root="$PWD" --skill=wireframe \
@@ -84,7 +84,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=wireframe \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=04 \
   --step-name=link \
   --status=ok
@@ -92,7 +92,7 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=wireframe \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --status=ok
 ```
 
@@ -104,7 +104,7 @@ expression sets the same value). Safe under `/wireframe --resume`.
 ## Acceptance check
 
 - Every UI ticket has both `wireframe_screen` and `wireframe_url` set.
-- `.snap/tickets/${feature_id}.json` validates against schema.
+- `.snap/tickets/${story_id}.json` validates against schema.
 - Manifest `state = "wireframed"`.
 - `progress.json.in_flight` no longer contains a `wireframe` entry for the
   feature.

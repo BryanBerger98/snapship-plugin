@@ -55,7 +55,7 @@ Reject any candidate story that:
 2. **Apply naming**: derive `local_id` via `apply-naming.sh`:
    ```bash
    bash skills/_shared/apply-naming.sh ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --sequence="$n"
    # → t-001, t-002, …
    ```
@@ -75,7 +75,7 @@ Reject any candidate story that:
    - "Edit the list" (loop back to A.1, with the current draft as starting point)
 
 6. **Stash** the draft tickets in
-   `.snap/tickets/${feature_id}.draft.json` (cleared by step-06 on success).
+   `.snap/tickets/${story_id}.draft.json` (cleared by step-06 on success).
    Do **not** call the platform yet.
 
 7. **Append progress**:
@@ -83,7 +83,7 @@ Reject any candidate story that:
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=02 \
      --step-name=decompose \
      --status=ok

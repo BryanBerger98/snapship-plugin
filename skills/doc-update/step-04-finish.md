@@ -27,7 +27,7 @@ Close out the run.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID" \
+     --story-id="$FEATURE_ID" \
      --step-num=04 \
      --step-name=finish \
      --status="$STATUS"
@@ -35,7 +35,7 @@ Close out the run.
    bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID" \
+     --story-id="$FEATURE_ID" \
      --status="$STATUS"
    ```
 

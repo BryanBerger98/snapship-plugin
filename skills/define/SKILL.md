@@ -43,22 +43,22 @@ reads steps in order; the model reads only the active step's body.
 ```
 
 - `--resume` / `-r` : resume from last in-flight step in `.snap/progress.json`.
-  Partial-match the feature_id (e.g. `01` matches `01-auth`). If no in-flight
+  Partial-match the story_id (e.g. `01` matches `01-auth`). If no in-flight
   run, falls through to step-00.
 - `--lang` : force PRD language (default: detect from existing or ask).
 - `--feature` : skip greenfield path, jump to per-feature PRD for an existing
-  `feature_id`.
+  `story_id`.
 
 ## Outputs
 
 Local (staging — trashed after successful push to remote in step-05) :
 
-- `.snap/PRDs/{feature_id}.md` — PRD markdown source.
+- `.snap/PRDs/{story_id}.md` — PRD markdown source.
 
 Local (persistent — references to remote) :
 
-- `.snap/manifests/{feature_id}.manifest.json` — schema_version, feature_id,
-  feature_name, state, priority, domains[], impacted_journeys[], refs.{prd,
+- `.snap/manifests/{story_id}.manifest.json` — schema_version, story_id,
+  story_name, state, priority, domains[], impacted_journeys[], refs.{prd,
   …} after publish.
 - `.snap/manifests/_taxonomy.json` — domain + journey page IDs cached
   (idempotent across re-runs and across features).

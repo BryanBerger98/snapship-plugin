@@ -12,16 +12,16 @@ demand.
 
 ## Tasks
 
-1. **Ensure PRD staging present** — if `.snap/PRDs/${feature_id}.md` is missing
+1. **Ensure PRD staging present** — if `.snap/PRDs/${story_id}.md` is missing
    (it was trashed by `sync-push.sh ack` in `/snap:define` step-05), re-pull
    from remote :
 
    ```bash
    PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
-     --feature-id="$feature_id" --kind=prd --project-root="$PWD")
+     --story-id="$story_id" --kind=prd --project-root="$PWD")
    if [ ! -f "$PRD_STAGING" ]; then
      plan_json=$(bash skills/_shared/sync-fetch.sh plan \
-       --feature-id="$feature_id" --kind=prd --project-root="$PWD")
+       --story-id="$story_id" --kind=prd --project-root="$PWD")
      rc=$?
      [ "$rc" -ne 0 ] && {
        echo "ERROR: manifest has no refs.prd — run /snap:define first" >&2
@@ -31,16 +31,16 @@ demand.
      PRD_PAGE=$(jq -r '.ref.page_id // ""' <<<"$plan_json")
      PLATFORM=$(jq -r '.ref.platform' <<<"$plan_json")
 
-     # Pull via docs-adapter (model executes MCP, writes to /tmp/prd-${feature_id}.md)
+     # Pull via docs-adapter (model executes MCP, writes to /tmp/prd-${story_id}.md)
      bash skills/_shared/docs-adapter.sh \
        --action=get-page-content \
        --platform="$PLATFORM" \
        --page-id="$PRD_PAGE" \
-       --out=/tmp/prd-"$feature_id".md
+       --out=/tmp/prd-"$story_id".md
 
      bash skills/_shared/sync-fetch.sh ack \
-       --feature-id="$feature_id" --kind=prd \
-       --content-file=/tmp/prd-"$feature_id".md \
+       --story-id="$story_id" --kind=prd \
+       --content-file=/tmp/prd-"$story_id".md \
        --platform="$PLATFORM" --url="$PRD_URL" --page-id="$PRD_PAGE" \
        --project-root="$PWD"
    fi
@@ -61,7 +61,7 @@ demand.
    write yet) :
    ```json
    {
-     "feature_id": "01-auth",
+     "story_id": "01-auth",
      "feature_title": "...",
      "problem": "...",
      "solution_overview": "...",
@@ -90,7 +90,7 @@ demand.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=01 \
      --step-name=load \
      --status=ok

@@ -38,7 +38,7 @@ Close out the import run.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=doc-import \
-     --feature-id="_global" \
+     --story-id="_global" \
      --step-num=05 \
      --step-name=finish \
      --status="$STATUS"
@@ -46,7 +46,7 @@ Close out the import run.
    bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=doc-import \
-     --feature-id="_global" \
+     --story-id="_global" \
      --status="$STATUS"
    ```
 

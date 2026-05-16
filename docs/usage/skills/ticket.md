@@ -12,7 +12,7 @@ files.
 
 ## When to use it
 
-- A `prd-feature.md` exists under `.snap/manifests/{feature_id}/`.
+- A `prd-feature.md` exists under `.snap/manifests/{story_id}/`.
 - You want dev-ready stories on the configured ticket platform.
 - To resume after an interruption (`--resume`).
 
@@ -32,8 +32,8 @@ files.
 
 | Flag                          | Effect                                                                                 |
 | ----------------------------- | -------------------------------------------------------------------------------------- |
-| `--resume` / `-r`             | Resumes at the last successful step in the feature's `progress.json` (partial-match on `feature_id`). |
-| `--feature=NN-slug`           | Targets the `feature_id` (required if multiple features are defined).                  |
+| `--resume` / `-r`             | Resumes at the last successful step in the feature's `progress.json` (partial-match on `story_id`). |
+| `--feature=NN-slug`           | Targets the `story_id` (required if multiple features are defined).                  |
 | `--platform=github\|gitlab\|jira` | Forces the platform, overrides `config.tickets.platform`.                          |
 | `--max-stories=N`             | Caps the automatic breakdown (default: 12).                                            |
 | `--dry-run`                   | Formats and logs but does not write to the platform.                                   |
@@ -42,7 +42,7 @@ files.
 
 | #  | Step                   | Role                                                              |
 | -- | ---------------------- | ----------------------------------------------------------------- |
-| 00 | `step-00-init.md`      | Parses args, resolves the `feature_id`, loads the PRD + config.   |
+| 00 | `step-00-init.md`      | Parses args, resolves the `story_id`, loads the PRD + config.   |
 | 01 | `step-01-load.md`      | Reads `prd-feature.md`, extracts acceptance criteria + scope.     |
 | 02 | `step-02-decompose.md` | Splits the feature into atomic stories (5-30 min, 1-5 files).     |
 | 03 | `step-03-enrich.md`    | Parallel agents: codebase / docs / web search per story.          |
@@ -52,12 +52,12 @@ files.
 
 ## Outputs
 
-- `.snap/manifests/{feature_id}/tickets.json` — cached ticket array
+- `.snap/manifests/{story_id}/tickets.json` — cached ticket array
   (id, title, body, labels, status, platform_url). Validated against
   `_shared/schemas/tickets.schema.json`.
-- `.snap/manifests/{feature_id}.manifest.json` — `tickets_count` updated.
+- `.snap/manifests/{story_id}.manifest.json` — `tickets_count` updated.
 - Tickets created on GitHub / GitLab / JIRA (URLs cached above).
-- `.snap/manifests/{feature_id}/progress.json` — run journal.
+- `.snap/manifests/{story_id}/progress.json` — run journal.
 
 ## GitHub native routing (v1.1+)
 

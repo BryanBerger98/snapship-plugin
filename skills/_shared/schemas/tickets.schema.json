@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/tickets.schema.json",
   "title": "feature tickets.json",
-  "description": "Cache tickets feature — .snap/tickets/{feature_id}.json. Source vérité = plateforme, cache local pour resume + offline reads.",
+  "description": "Cache tickets feature — .snap/tickets/{story_id}.json. Source vérité = plateforme, cache local pour resume + offline reads.",
   "type": "object",
-  "required": ["feature_id", "platform", "tickets"],
+  "required": ["story_id", "platform", "tickets"],
   "additionalProperties": false,
   "properties": {
-    "feature_id": {
+    "story_id": {
       "type": "string",
       "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"
     },

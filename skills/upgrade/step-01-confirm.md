@@ -71,7 +71,7 @@ Présente le plan, demande validation, collecte les décisions breaking.
 6. **Telemetry + progress** :
    ```bash
    bash skills/_shared/telemetry.sh log --skill=upgrade --step-num=01 --step-name=confirm --status=ok
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=01 --step-name=confirm --status=ok
    ```
 

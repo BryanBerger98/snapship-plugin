@@ -14,13 +14,13 @@ This step has no `next_step` — it is terminal.
 ### A. Advance feature state
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
-queue_file=".snap/queues/${feature_id}.develop.json"
+tickets_file=".snap/tickets/${story_id}.json"
+queue_file=".snap/queues/${story_id}.develop.json"
 processed=$(jq '.processed | length' "$queue_file" 2>/dev/null || echo 0)
 total=$(jq '.tickets | length' "$tickets_file")
 all_done=$( [ "$processed" -eq "$total" ] && echo true || echo false )
 
-manifest=".snap/manifests/${feature_id}.manifest.json"
+manifest=".snap/manifests/${story_id}.manifest.json"
 current_state=$(jq -r '.state' "$manifest")
 new_state="$current_state"
 [ "$all_done" = "true" ] && new_state="developed"
@@ -36,10 +36,10 @@ jq --arg s "$new_state" --arg ts "$NOW" \
 
 ```bash
 trash "$queue_file" 2>/dev/null || true
-trash .snap/queues/${feature_id}.impact-*.json 2>/dev/null || true
-trash .snap/queues/${feature_id}.sync.json 2>/dev/null || true
-trash .snap/queues/${feature_id}.pr-context.json 2>/dev/null || true
-trash .snap/queues/${feature_id}.review-context.json 2>/dev/null || true
+trash .snap/queues/${story_id}.impact-*.json 2>/dev/null || true
+trash .snap/queues/${story_id}.sync.json 2>/dev/null || true
+trash .snap/queues/${story_id}.pr-context.json 2>/dev/null || true
+trash .snap/queues/${story_id}.review-context.json 2>/dev/null || true
 ```
 
 ### C. Telemetry + progress
@@ -53,7 +53,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=05 \
   --step-name=finish \
   --status=ok
@@ -61,7 +61,7 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --status=ok
 ```
 
@@ -70,7 +70,7 @@ bash skills/_shared/progress.sh finish \
 Print to stdout:
 
 ```
-/develop done — feature ${feature_id}:
+/develop done — feature ${story_id}:
   - Tickets processed: $processed / $total
   - Branch: $branch
   - PR: $pr_url

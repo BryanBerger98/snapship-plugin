@@ -6,7 +6,7 @@
   "wireframes": {
     "platform": "figma",
     "export_format": "png",
-    "naming_pattern": "{feature_id}-{screen_name}",
+    "naming_pattern": "{story_id}-{screen_name}",
     "figma": {
       "file_key": "abc123XYZ",
       "file_name": "Project Wireframes",

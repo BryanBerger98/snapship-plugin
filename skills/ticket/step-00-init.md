@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-load
-description: Parse args, resolve feature_id, load resolved config, block if tickets.platform=none, branch on resume.
+description: Parse args, resolve story_id, load resolved config, block if tickets.platform=none, branch on resume.
 ---
 
 # step-00 — init
@@ -67,16 +67,16 @@ Bootstrap a `/snap:ticket` run for a single feature.
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="${feature_id:-_global}")
+     --story-id="${story_id:-_global}")
    ```
    - Non-empty → parse `NUM\tNAME\tSTATUS`, jump to `step-${NUM}-${NAME}.md` with
-     `feature_id` pre-loaded. Skip the rest of this step.
+     `story_id` pre-loaded. Skip the rest of this step.
    - Empty → fall through to step-00 fresh.
 
-5. **Resolve `feature_id`** : if not passed and not resumed :
+5. **Resolve `story_id`** : if not passed and not resumed :
    - Single manifest in `.snap/manifests/*.manifest.json` (excluding
      `_taxonomy.json`) → use it.
-   - Multiple → `AskUserQuestion` with the list of `feature_id` options.
+   - Multiple → `AskUserQuestion` with the list of `story_id` options.
    - Zero → abort with "Run `/snap:define` first".
 
    For partial matches (`--feature=auth`), list manifest filenames and apply :
@@ -84,10 +84,10 @@ Bootstrap a `/snap:ticket` run for a single feature.
    with the candidate list.
 
 6. **Pre-flight checks** :
-   - Manifest exists : `.snap/manifests/${feature_id}.manifest.json`.
+   - Manifest exists : `.snap/manifests/${story_id}.manifest.json`.
    - Manifest has `refs.prd.sync_status = "synced"` (PRD already published —
      prerequisite for ticketing). If not synced, abort with pointer to
-     `/snap:define --resume --feature=$feature_id`.
+     `/snap:define --resume --feature=$story_id`.
    - Tickets-adapter MCP / CLI requirements met :
      ```bash
      bash skills/_shared/check-mcp-required.sh --skill=ticket --project-root="$PWD"
@@ -98,7 +98,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=00 \
      --step-name=init \
      --status=ok
@@ -108,7 +108,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
 
 | Var | Source | Used by |
 |-----|--------|---------|
-| `feature_id`   | arg / detection | step-01..06 |
+| `story_id`   | arg / detection | step-01..06 |
 | `platform`     | config / arg | step-04 (template), step-05 (adapter) |
 | `max_stories`  | arg (default 12) | step-02 |
 | `dry_run`      | arg / env | step-05 |
@@ -116,7 +116,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
 
 ## Acceptance check
 
-- `feature_id` resolved.
+- `story_id` resolved.
 - Manifest exists with `refs.prd.sync_status = "synced"`.
 - `tickets.platform != "none"`.
 - `progress.json.in_flight` has a `ticket` entry with step `00 init ok`.

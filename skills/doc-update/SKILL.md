@@ -17,7 +17,7 @@ are the living spec; this skill keeps them current.
 - `/snap:init` already run (`snap.config.json` exists)
 - `documentation.platform` ∈ {affine, notion} (skip if `none`)
 - MCP for that platform reachable
-- Feature manifest (`.snap/manifests/${feature_id}.manifest.json`) has `state == "qa-validated"` and `refs.prd.page_id` populated
+- Feature manifest (`.snap/manifests/${story_id}.manifest.json`) has `state == "qa-validated"` and `refs.prd.page_id` populated
 - Each `impacted_journeys[]` entry has a corresponding cache entry in `_taxonomy.json`
 
 ## Trigger
@@ -43,7 +43,7 @@ are the living spec; this skill keeps them current.
 /snap:doc-update --feature=NN-slug [--mode=diff|rewrite] [--dry-run] [-a]
 ```
 
-- `--feature` (required): partial-match on `feature_id` (e.g. `01` → `01-auth`).
+- `--feature` (required): partial-match on `story_id` (e.g. `01` → `01-auth`).
 - `--mode`: override `documentation.auto_update_mode` (default: from config).
 - `--dry-run`: render proposed updates locally, do not push to AFFiNE/Notion.
 - `-a` / `--auto`: skip confirmation prompts (used by post-QA hook).

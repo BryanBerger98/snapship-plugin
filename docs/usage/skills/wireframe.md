@@ -46,7 +46,7 @@ the `$helper` variable.
 | Flag                | Effect                                                                           |
 | ------------------- | -------------------------------------------------------------------------------- |
 | `--resume` / `-r`   | Resumes via `progress.sh resume next --skill=wireframe`.                         |
-| `--feature=NN-slug` | Targets the `feature_id` (required if multiple features; partial-match).         |
+| `--feature=NN-slug` | Targets the `story_id` (required if multiple features; partial-match).         |
 | `--dry-run`         | Helpers return mock descriptors: no MCP calls, no PNG, no doc writes.            |
 
 ## Pipeline
@@ -61,13 +61,13 @@ the `$helper` variable.
 
 ## Outputs
 
-- `.snap/wireframes/{feature_id}/{screen-id}-{state}.png` (local cache
+- `.snap/wireframes/{story_id}/{screen-id}-{state}.png` (local cache
   pre-push).
 - Gallery page in the docs — ref persisted in
-  `manifests/{feature_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
-- `.snap/wireframes/{feature_id}/gallery.md` — one section per screen
+  `manifests/{story_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
+- `.snap/wireframes/{story_id}/gallery.md` — one section per screen
   (source rendered before doc push).
-- Each UI ticket in `.snap/tickets/{feature_id}.json` gains
+- Each UI ticket in `.snap/tickets/{story_id}.json` gains
   `wireframe_screen` + `wireframe_url`.
 
 ## Next step

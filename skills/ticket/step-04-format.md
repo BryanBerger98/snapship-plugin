@@ -40,15 +40,15 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
      - **user-story** (existing): `ticket_id, title, summary, user_persona,
        user_goal, user_outcome, acceptance_criteria[], in_scope, out_of_scope,
        wireframes[], technical_notes, test_unit, test_integration, test_e2e,
-       size, confidence, feature_id, epic_ref, related_refs`. Plus enriched
+       size, confidence, story_id, epic_ref, related_refs`. Plus enriched
        `context.codebase`, `context.docs`, `context.web[]`.
      - **bug**: `summary, repro_steps[], expected_behavior, actual_behavior,
        environment_version, environment_runtime, environment_user_context,
        acceptance_criteria[], root_cause, regression_surfaces, regression_tests,
-       severity, frequency, feature_id, first_seen, related_refs`.
+       severity, frequency, story_id, first_seen, related_refs`.
      - **epic**: `summary, goal, success_metrics[], in_scope, out_of_scope,
        child_stories[], acceptance_criteria[], dependencies[], risks[],
-       target_release, epic_size, feature_id, domain_pages, related_refs`.
+       target_release, epic_size, story_id, domain_pages, related_refs`.
 
      The enrichment agent (step-03) populates type-specific fields when `type`
      is set; missing fields render empty (template comment blocks document them).
@@ -63,7 +63,7 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
      style. Drop placeholder/comment prose, leave a section empty rather than
      inventing content. The result is `body_rendered`.
 
-3. **Inject the docs link**: read `.snap/manifests/${feature_id}.manifest.json`
+3. **Inject the docs link**: read `.snap/manifests/${story_id}.manifest.json`
    for `.refs.prd.url` (absent if `documentation.platform=none`); render it
    into the ticket body header (`Spec : <url>`).
 
@@ -85,7 +85,7 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=04 \
      --step-name=format \
      --status=ok

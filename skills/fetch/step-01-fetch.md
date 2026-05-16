@@ -25,11 +25,11 @@ description: Pull contenu remote via MCP (docs-adapter pour PRDs/galleries, figm
    bash skills/_shared/docs-adapter.sh --action=get --page-id="$PAGE_ID"
    # → exit 10 + descriptor JSON → orchestre MCP call → récupère content
    ```
-   Stocke la réponse dans `.snap/.fetch-cache/{feature_id}-{kind}.content`
+   Stocke la réponse dans `.snap/.fetch-cache/{story_id}-{kind}.content`
    (ephémère).
 
 4. **Sur erreur MCP** :
-   - `bash skills/_shared/sync-fetch.sh fail --feature-id=$FID --kind=$KIND --note="$ERR"`
+   - `bash skills/_shared/sync-fetch.sh fail --story-id=$FID --kind=$KIND --note="$ERR"`
    - Continue les autres targets (best-effort).
 
 5. **Refresh taxonomy** (si `--all` + workspace.root_page_id défini) :
@@ -40,7 +40,7 @@ description: Pull contenu remote via MCP (docs-adapter pour PRDs/galleries, figm
    ```bash
    bash skills/_shared/telemetry.sh log --skill=fetch --step-num=01 --step-name=fetch --status=ok \
      --extra="$(jq -nc --argjson n $N '{targets:$n}')"
-   bash skills/_shared/progress.sh step --skill=fetch --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=fetch --story-id=_global \
      --step-num=01 --step-name=fetch --status=ok
    ```
 

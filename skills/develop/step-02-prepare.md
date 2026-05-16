@@ -17,8 +17,8 @@ queue (loop) or the single ticket (standalone):
 
 ```bash
 branch=$(bash skills/_shared/apply-naming.sh \
-  --pattern="$(jq -r '.naming.branch_pattern // "feature/{feature_id}-{slug}"' <<<"$CONFIG_JSON")" \
-  --feature-id="$feature_id" \
+  --pattern="$(jq -r '.naming.branch_pattern // "feature/{story_id}-{slug}"' <<<"$CONFIG_JSON")" \
+  --story-id="$story_id" \
   --slug="$slug")
 
 if git rev-parse --verify "$branch" >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ bash skills/_shared/check-mcp-required.sh --skill=develop --project-root="$PWD" 
   --mcp=code-review-graph || true   # graph optional, not fatal
 ```
 
-Cache result under `.snap/queues/${feature_id}.impact-${local_id}.json` — read
+Cache result under `.snap/queues/${story_id}.impact-${local_id}.json` — read
 by step-03a Phase 1.
 
 ### D. Test commands
@@ -73,7 +73,7 @@ If absent, fall through to `detect-test-commands.sh` and persist in config.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=02 \
   --step-name=prepare \
   --status=ok

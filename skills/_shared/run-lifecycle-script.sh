@@ -15,7 +15,7 @@
 #
 # Environment passed to the script:
 #   SNAP_HOOK            e.g., "pre_develop"
-#   SNAP_FEATURE_ID      passed via --feature-id (may be empty)
+#   SNAP_FEATURE_ID      passed via --story-id (may be empty)
 #   SNAP_PROJECT_ROOT    project root
 #
 # Exit codes:
@@ -47,7 +47,7 @@ Required:
 
 Options:
   --project-root=PATH      Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
-  --feature-id=ID          Forwarded to the script as SNAP_FEATURE_ID
+  --story-id=ID          Forwarded to the script as SNAP_FEATURE_ID
   --continue-on-error      Treat missing/failing scripts as non-fatal (exit 0)
   --json                   After execution, emit a JSON status summary
   -h, --help               Show this help
@@ -61,7 +61,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --hook=*)               HOOK="${1#--hook=}" ;;
     --project-root=*)       PROJECT_ROOT="${1#--project-root=}" ;;
-    --feature-id=*)         FEATURE_ID="${1#--feature-id=}" ;;
+    --story-id=*)         FEATURE_ID="${1#--story-id=}" ;;
     --continue-on-error)    CONTINUE="true" ;;
     --json)                 EMIT_JSON="true" ;;
     -h|--help)              usage; exit 0 ;;

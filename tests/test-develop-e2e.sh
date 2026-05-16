@@ -28,7 +28,7 @@ DIR=$(mktemp -d -t snap-dev-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"
-bash "$SETUP" --project-root="$DIR" --feature-id="$FEATURE_ID" --feature-name="Auth" --lang=en >/dev/null
+bash "$SETUP" --project-root="$DIR" --story-id="$FEATURE_ID" --story-name="Auth" --lang=en >/dev/null
 
 MANIFEST="${DIR}/.snap/manifests/${FEATURE_ID}.manifest.json"
 TICKETS="${DIR}/.snap/tickets/${FEATURE_ID}.json"
@@ -47,7 +47,7 @@ git commit -q -m "initial"
 
 cat > "$TICKETS" <<JSON
 {
-  "feature_id": "${FEATURE_ID}",
+  "story_id": "${FEATURE_ID}",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Build signup form","status":"todo","type":"feat","files":["src/signup.ts"]},
@@ -77,7 +77,7 @@ cat > "${DIR}/snap.config.json" <<'JSON'
   "naming": {
     "branch_pattern": "feat/{slug}",
     "commit_pattern": "{type}({scope}): {message}",
-    "feature_slug_max_length": 40
+    "story_slug_max_length": 40
   }
 }
 JSON
@@ -208,15 +208,15 @@ assert_eq "03b.2 processed=1" "1" "$processed_n"
 # --- progress.json entries ------------------------------------------------
 echo ""
 echo "[progress] entries"
-bash "$PROGRESS" step --project-root="$DIR" --skill=develop --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=develop --story-id="$FEATURE_ID" \
   --step-num=00 --step-name=init --status=ok >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=develop --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=develop --story-id="$FEATURE_ID" \
   --step-num=02 --step-name=prepare --status=ok --note="branch=$branch" >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=develop --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=develop --story-id="$FEATURE_ID" \
   --step-num=03a --step-name=standalone --status=ok --note="t-001 sha=$sha" >/dev/null
 
 steps_json=$(bash "$PROGRESS" list --project-root="$DIR" \
-  | jq --arg fid "$FEATURE_ID" '.[] | select(.skill == "develop" and .feature_id == $fid) | .steps')
+  | jq --arg fid "$FEATURE_ID" '.[] | select(.skill == "develop" and .story_id == $fid) | .steps')
 for step in init prepare standalone; do
   found=$(echo "$steps_json" | jq --arg n "$step" '[.[] | select(.name == $n and .status == "ok")] | length')
   [ "$found" -ge 1 ] && ok "progress contains ${step} ok" || ko "progress ${step}" "missing"

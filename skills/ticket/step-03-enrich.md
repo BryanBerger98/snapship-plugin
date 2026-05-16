@@ -89,14 +89,14 @@ Return: <≤ 200 words, the specific format>
    right template.
 
 5. **Update draft file** in-place:
-   `.snap/tickets/${feature_id}.draft.json`.
+   `.snap/tickets/${story_id}.draft.json`.
 
 6. **Append progress**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=03 \
      --step-name=enrich \
      --status=ok

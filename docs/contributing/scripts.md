@@ -28,17 +28,17 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ```bash
 # Init .snap/ idempotently (manifests/, PRDs/, designs/, wireframes/, tickets/,
 # queues/, .doc-import/cache/). Bootstrap _taxonomy.json + progress.json.
-# --feature-id + --feature-name → also init manifests/{id}.manifest.json
+# --story-id + --story-name → also init manifests/{id}.manifest.json
 ```
 
 ## progress.sh
 
 ```bash
 # Subcommands (subcommand first, then --flags):
-#   start  --skill=X --feature-id=Y
-#   step   --skill=X --feature-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=...]
-#   finish --skill=X --feature-id=Y --status=ok|fail
-#   resume --skill=X --feature-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
+#   start  --skill=X --story-id=Y
+#   step   --skill=X --story-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=...]
+#   finish --skill=X --story-id=Y --status=ok|fail
+#   resume --skill=X --story-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
 #   list                              # stdout: in_flight[] JSON
 # Writes .snap/progress.json (gitignored).
 ```
@@ -146,10 +146,10 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ## apply-naming.sh
 
 ```bash
-# args: type (feature_id|branch|commit), context_json
+# args: type (story_id|branch|commit), context_json
 # Reads config.naming.* + renders template with context vars
 # Supported vars:
-#   - feature_id: hardcoded NN-kebab — args: {nn} (number), {name} → kebab truncated to `feature_slug_max_length`
+#   - story_id: hardcoded NN-kebab — args: {nn} (number), {name} → kebab truncated to `story_slug_max_length`
 #   - branch: {type}, {ticket_id}, {slug}
 #   - commit: {type}, {scope}, {message}
 # Automatic slugify (kebab-case, ASCII fold, truncation)

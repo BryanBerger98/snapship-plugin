@@ -68,7 +68,7 @@ while [ $# -gt 0 ]; do
     --status=*)       STATUS="${1#--status=}" ;;
     --duration-ms=*)  DURATION_MS="${1#--duration-ms=}" ;;
     --ticket=*)       TICKET="${1#--ticket=}" ;;
-    --feature=*|--feature-id=*) FEATURE="${1#*=}" ;;
+    --feature=*|--story-id=*) FEATURE="${1#*=}" ;;
     --cycle=*)        CYCLE="${1#--cycle=}" ;;
     --severity=*)     SEVERITY="${1#--severity=}" ;;
     --note=*)         NOTE="${1#--note=}" ;;

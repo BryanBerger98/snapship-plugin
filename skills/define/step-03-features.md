@@ -21,14 +21,14 @@ problem/solution/AC.
    Parse each line. Reject lines without a recognized priority — re-ask with the
    parsing error shown.
 
-2. **Assign feature_id**: starting from `01-` (or N+1 if extension mode finds existing
+2. **Assign story_id**: starting from `01-` (or N+1 if extension mode finds existing
    features). Slug is kebab-case of the title (`Sign-up with email` → `signup-email`).
    Pad sequence to 2 digits (`01-`, `02-`, …, `99-`).
 
 3. **Validate**:
    - At least 1 feature.
    - At least 1 feature has priority `must`.
-   - No duplicate `feature_id`.
+   - No duplicate `story_id`.
    - Each title is at least 3 chars.
 
 4. **Confirm** the list back to the user via `AskUserQuestion`:
@@ -82,7 +82,7 @@ Drafts skip Phase B; their PRDs are rendered with placeholder sections marked
 For each feature collected in Phase A/B:
 ```bash
 bash skills/_shared/define-state.sh add-feature '{
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "feature_title": "...",
   "feature_status": "draft",
   "priority": "must",
@@ -116,7 +116,7 @@ feature(s) flagged. Do not advance to step-04 until validation passes.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=define \
-  --feature-id=_global \
+  --story-id=_global \
   --step-num=03 \
   --step-name=features \
   --status=ok

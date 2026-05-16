@@ -76,7 +76,7 @@ pages carry the `[snap-imported]` tag and are skipped on re-run.
 - `.snap/.backup/` (if `--backup`).
 - `progress.json` entry + `doc-import` telemetry event.
 - **Not produced**: `Change Requests/*` (PRDs come from `/snap:define`),
-  feature `manifest.json` (no `feature_id` exists yet).
+  feature `manifest.json` (no `story_id` exists yet).
 
 ## Next step
 

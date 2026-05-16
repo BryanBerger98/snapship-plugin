@@ -43,11 +43,11 @@ As a **{{user_persona}}**, I want **{{user_goal}}** so that **{{user_outcome}}**
 
 ## References
 
-- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
+- Feature PRD: `.snap/PRDs/{{story_id}}.md`
 - Parent epic: {{epic_ref}}
 - Related: {{related_refs}}
 
-/label ~"feature::{{feature_id}}" ~"size::{{size}}" ~"type::story"
+/label ~"feature::{{story_id}}" ~"size::{{size}}" ~"type::story"
 /milestone {{milestone}}
 /assign {{assignee}}
 
@@ -70,7 +70,7 @@ Variables:
   {{test_e2e}}                string
   {{size}}                    enum — xs|s|m|l
   {{confidence}}              enum — high|medium|low
-  {{feature_id}}              string
+  {{story_id}}              string
   {{epic_ref}}                string — glab issue ref or "—"
   {{related_refs}}            string — comma-separated refs
   {{milestone}}               string — milestone title (use "" to omit)

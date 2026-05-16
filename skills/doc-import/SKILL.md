@@ -64,7 +64,7 @@ can lookup-or-create journey pages by slug.
 - `.snap/.backup/` archive (if `--backup`)
 - `progress.json` entry + telemetry event `doc-import`
 - **Not produced**: `Change Requests/*` (PRDs come via future `/snap:define`),
-  feature manifests (no `feature_id` exists yet)
+  feature manifests (no `story_id` exists yet)
 
 ## How to run a step
 

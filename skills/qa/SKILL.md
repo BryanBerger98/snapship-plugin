@@ -33,7 +33,7 @@ the dev phase.
 ```
 /qa                            # AskUserQuestion: which ticket / feature?
 /qa <ticket-id>                # validate one ticket
-/qa <feature-id>               # validate every in_review ticket in feature
+/qa <story-id>               # validate every in_review ticket in feature
 /qa --resume | -r              # resume via progress.sh resume
 /qa --dry-run                  # collect-only; no fix loop, no amend
 /qa --no-wireframe-check       # skip wireframe diff even if config enables it
@@ -73,7 +73,7 @@ the dev phase.
 ## Outputs
 
 - Each validated ticket: `status="qa-validated"`, `qa_validated_at` set in
-  `.snap/tickets/${feature_id}.json`.
+  `.snap/tickets/${story_id}.json`.
 - Feature manifest state advanced to `qa-validated` when all targeted tickets
   pass.
 - Ticket platform body amended with QA verdict (per-platform template).

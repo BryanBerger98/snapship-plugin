@@ -10,7 +10,7 @@ description: Écrit le contenu pull dans le staging local approprié (.snap/PRDs
 
 1. **Pour chaque target ok** dans `.snap/.fetch-cache/` :
    - Détermine staging path via `bash skills/_shared/sync-push.sh staging-path
-     --feature-id=$FID --kind=$KIND`.
+     --story-id=$FID --kind=$KIND`.
    - Crée parent dirs si absents.
    - `cp` du fichier cache vers staging.
 
@@ -30,7 +30,7 @@ description: Écrit le contenu pull dans le staging local approprié (.snap/PRDs
 7. **Telemetry + progress** :
    ```bash
    bash skills/_shared/telemetry.sh log --skill=fetch --step-num=02 --step-name=write --status=ok
-   bash skills/_shared/progress.sh step --skill=fetch --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=fetch --story-id=_global \
      --step-num=02 --step-name=write --status=ok
    ```
 

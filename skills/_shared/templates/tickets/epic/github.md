@@ -51,7 +51,7 @@
 
 ## References
 
-- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
+- Feature PRD: `.snap/PRDs/{{story_id}}.md`
 - Domain pages: {{domain_pages}}
 - Related: {{related_refs}}
 
@@ -68,7 +68,7 @@ Variables:
   {{risks}}                   list — {risk_label, risk_mitigation}
   {{target_release}}          string
   {{epic_size}}               enum — s|m|l|xl
-  {{feature_id}}              string
+  {{story_id}}              string
   {{domain_pages}}            string — comma-separated AFFiNE/Notion URLs
   {{related_refs}}            comma-separated refs
 -->

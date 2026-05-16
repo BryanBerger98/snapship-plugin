@@ -41,7 +41,7 @@ description: Parse args, enumère features + kinds à fetch, lit chaque manifest
      "mode": "fetch" | "check",
      "dry_run": false,
      "targets": [
-       { "feature_id": "01-auth", "kind": "prd",
+       { "story_id": "01-auth", "kind": "prd",
          "ref": { "platform":"notion", "page_id":"abc", "synced_at":"..." } },
        ...
      ],
@@ -62,8 +62,8 @@ description: Parse args, enumère features + kinds à fetch, lit chaque manifest
 
 7. **Telemetry + progress** :
    ```bash
-   bash skills/_shared/progress.sh start --skill=fetch --feature-id=_global
-   bash skills/_shared/progress.sh step --skill=fetch --feature-id=_global \
+   bash skills/_shared/progress.sh start --skill=fetch --story-id=_global
+   bash skills/_shared/progress.sh step --skill=fetch --story-id=_global \
      --step-num=00 --step-name=resolve --status=ok
    ```
 

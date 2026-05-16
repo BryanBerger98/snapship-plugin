@@ -16,7 +16,7 @@ Terminal — no `next_step`.
 
 ```bash
 gallery_url=$(jq -r '.refs.design_gallery.url // ""' \
-  ".snap/manifests/${feature_id}.manifest.json")
+  ".snap/manifests/${story_id}.manifest.json")
 ```
 
 Each screen anchors via markdown heading slug (`#signup-screen`):
@@ -30,14 +30,14 @@ Each screen anchors via markdown heading slug (`#signup-screen`):
 
 ### B. Per-ticket update
 
-For each `local_id` in `.snap/designs/${feature_id}.draft.json[].ui_tickets`:
+For each `local_id` in `.snap/designs/${story_id}.draft.json[].ui_tickets`:
 
 1. Look up screen via `screen_hint`.
 2. Determine `design_mode` for the ticket:
    - `"mockup"` — new hi-fi asset produced in step-03.
    - `"reused"` — step-02 decided to reuse the wireframe artifact verbatim
      (no new asset).
-3. Patch the entry in `.snap/tickets/${feature_id}.json`:
+3. Patch the entry in `.snap/tickets/${story_id}.json`:
    ```bash
    tmp=$(mktemp)
    jq --arg lid "$local_id" --arg sid "$screen_id" \
@@ -47,8 +47,8 @@ For each `local_id` in `.snap/designs/${feature_id}.draft.json[].ui_tickets`:
        |= (.design_screen = $sid
          | .design_url = $url
          | .design_mode = $mode)' \
-     ".snap/tickets/${feature_id}.json" > "$tmp" \
-     && mv "$tmp" ".snap/tickets/${feature_id}.json"
+     ".snap/tickets/${story_id}.json" > "$tmp" \
+     && mv "$tmp" ".snap/tickets/${story_id}.json"
    ```
 4. If the ticket was pushed to a platform (`url` set), re-render body via
    `tickets-adapter.sh --action=update` so the design link surfaces in the
@@ -59,7 +59,7 @@ For each `local_id` in `.snap/designs/${feature_id}.draft.json[].ui_tickets`:
 
 ```bash
 ajv validate -s skills/_shared/schemas/tickets.schema.json \
-  -d ".snap/tickets/${feature_id}.json" \
+  -d ".snap/tickets/${story_id}.json" \
   --spec=draft2020 --strict=false
 ```
 
@@ -73,14 +73,14 @@ Update manifest `state` → `designed`:
 NOW=$(date -u +%FT%TZ)
 tmp=$(mktemp)
 jq --arg ts "$NOW" '.state = "designed" | .updated_at = $ts' \
-  ".snap/manifests/${feature_id}.manifest.json" > "$tmp" \
-  && mv "$tmp" ".snap/manifests/${feature_id}.manifest.json"
+  ".snap/manifests/${story_id}.manifest.json" > "$tmp" \
+  && mv "$tmp" ".snap/manifests/${story_id}.manifest.json"
 ```
 
 ### E. Cleanup + telemetry + progress
 
 ```bash
-trash ".snap/designs/${feature_id}.draft.json"
+trash ".snap/designs/${story_id}.draft.json"
 
 bash skills/_shared/telemetry.sh log \
   --project-root="$PWD" --skill=design \
@@ -90,7 +90,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=design \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=04 \
   --step-name=link \
   --status=ok
@@ -98,7 +98,7 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=design \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --status=ok
 ```
 
@@ -110,7 +110,7 @@ value). Safe under `/design --resume`.
 ## Acceptance check
 
 - Every UI ticket has `design_screen`, `design_url`, and `design_mode` set.
-- `.snap/tickets/${feature_id}.json` validates against schema.
+- `.snap/tickets/${story_id}.json` validates against schema.
 - Manifest `state = "designed"`.
 - `progress.json.in_flight` no longer contains a `design` entry for the
   feature.

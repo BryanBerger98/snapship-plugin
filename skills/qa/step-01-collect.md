@@ -32,10 +32,10 @@ test_files=$(echo "$flows_json" | jq -r '.flows[].files[]' \
 test_cmd=$(jq -r '.testing.test_command' <<<"$CONFIG_JSON")
 
 if [ -n "$test_files" ]; then
-  $test_cmd $test_files > .snap/queues/${feature_id}.qa-regression-${run_id}.log 2>&1
+  $test_cmd $test_files > .snap/queues/${story_id}.qa-regression-${run_id}.log 2>&1
   rc=$?
 else
-  echo "no impacted tests" > .snap/queues/${feature_id}.qa-regression-${run_id}.log
+  echo "no impacted tests" > .snap/queues/${story_id}.qa-regression-${run_id}.log
   rc=0
 fi
 ```
@@ -45,7 +45,7 @@ Graph unavailable → fall through to `tests-only`.
 ### `full`
 
 ```bash
-$test_cmd > .snap/queues/${feature_id}.qa-regression-${run_id}.log 2>&1
+$test_cmd > .snap/queues/${story_id}.qa-regression-${run_id}.log 2>&1
 rc=$?
 ```
 
@@ -54,12 +54,12 @@ rc=$?
 ```bash
 # Heuristic: every test file that imports any changed file (transitively, depth=2).
 test_files=$(grep -lE 'from.*\b(signup|login)' src/**/*.test.* 2>/dev/null || true)
-$test_cmd $test_files > .snap/queues/${feature_id}.qa-regression-${run_id}.log 2>&1
+$test_cmd $test_files > .snap/queues/${story_id}.qa-regression-${run_id}.log 2>&1
 rc=$?
 ```
 
 Persist `regression: {scope, exit_code, log_path, retried_for_flake}` per
-ticket in `.snap/queues/${feature_id}.qa-collect-${run_id}.json`.
+ticket in `.snap/queues/${story_id}.qa-collect-${run_id}.json`.
 
 ## B. Wireframe diff (Playwright)
 
@@ -77,7 +77,7 @@ route=$(echo "$files" | grep -E '^(src/)?(pages|app|routes)/' | head -1 | \
 ```
 
 Compare the screenshots to the cached Frame0 PNGs at
-`.snap/wireframes/${feature_id}/${screen_id}-${state}.png`:
+`.snap/wireframes/${story_id}/${screen_id}-${state}.png`:
 
 ```bash
 # structural-diff: pixel-diff after edge detection (resilient to colour drift).
@@ -93,7 +93,7 @@ If `regression.exit_code != 0` AND failures are limited to <=3 tests, retry
 **once**:
 
 ```bash
-$test_cmd $failed_tests > .snap/queues/${feature_id}.qa-regression-${run_id}-retry.log 2>&1
+$test_cmd $failed_tests > .snap/queues/${story_id}.qa-regression-${run_id}-retry.log 2>&1
 ```
 
 If retry passes → mark `retried_for_flake=true` and treat overall regression
@@ -101,7 +101,7 @@ as `pass` (the reviewer in step-02 sees both runs and rules on flake-vs-real).
 
 ## D. Aggregate evidence
 
-Final `.snap/queues/${feature_id}.qa-collect-${run_id}.json`:
+Final `.snap/queues/${story_id}.qa-collect-${run_id}.json`:
 
 ```json
 {
@@ -119,14 +119,14 @@ bash skills/_shared/telemetry.sh log \
   --step-num=01 --step-name=collect --status=ok
 
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --step-num=01 --step-name=collect --status=ok \
   --note="regression=$verdict wireframe_diff=${diff_pct:-skip}"
 ```
 
 ## Acceptance check
 
-- One `.snap/queues/${feature_id}.qa-collect-${run_id}.json` per targeted ticket.
+- One `.snap/queues/${story_id}.qa-collect-${run_id}.json` per targeted ticket.
 - regression log file exists.
 - wireframe block present (even if `enabled=false` so step-02 knows to ignore).
 

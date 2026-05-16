@@ -48,7 +48,7 @@ DEFAULTS=$(cat <<'JSON'
 {
   "version": "1.0",
   "naming": {
-    "feature_slug_max_length": 40,
+    "story_slug_max_length": 40,
     "branch_pattern": "{type}/{ticket_id}-{slug}",
     "commit_pattern": "{type}({scope}): {message}"
   },
@@ -84,7 +84,7 @@ DEFAULTS=$(cat <<'JSON'
     "platform": "frame0",
     "export_format": "png",
     "export_scale": 2,
-    "naming_pattern": "{feature_id}-{screen_name}",
+    "naming_pattern": "{story_id}-{screen_name}",
     "frame0": { "api_port": 58320 }
   },
   "lifecycle_scripts": {},
@@ -216,7 +216,7 @@ RESOLVED=$(echo "$MERGED" | jq '
   # design defaults — résolus seulement si bloc design présent (skill opt-in)
   | (if (.design // null) != null then
       (if (.design | has("export_format")) | not then .design.export_format = "png" else . end)
-      | (if (.design | has("naming_pattern")) | not then .design.naming_pattern = "{feature_id}-{screen_name}-design" else . end)
+      | (if (.design | has("naming_pattern")) | not then .design.naming_pattern = "{story_id}-{screen_name}-design" else . end)
       | .design.mode_defaults = (
           (.design.mode_defaults // {})
           | (if has("mockup_canvas") | not then .mockup_canvas = "mobile-portrait" else . end)

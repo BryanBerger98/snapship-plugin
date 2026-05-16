@@ -129,7 +129,7 @@ echo "[8] env vars"
 TMP=$(mktemp -d)
 mk_project "$TMP" "post_ticket" "scripts/env.sh"
 mk_hook_script "$TMP/scripts/env.sh" 'echo "$SNAP_HOOK|$SNAP_FEATURE_ID|$SNAP_PROJECT_ROOT"'
-out=$(bash "$SCRIPT" --hook=post_ticket --project-root="$TMP" --feature-id=05-bar)
+out=$(bash "$SCRIPT" --hook=post_ticket --project-root="$TMP" --story-id=05-bar)
 [ "$out" = "post_ticket|05-bar|$TMP" ] && ok "8.1 env correct" || ko "8.1 got '$out'"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 

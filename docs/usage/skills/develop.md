@@ -23,7 +23,7 @@ ship one atomic commit per ticket.
 ```
 /snap:develop                              # AskUserQuestion → pick ticket or feature
 /snap:develop <ticket-id>                  # standalone (e.g. AUTH-12, #42, t-001)
-/snap:develop <feature-id>                 # session loop (iterates in the same Claude session)
+/snap:develop <story-id>                 # session loop (iterates in the same Claude session)
 /snap:develop --resume | -r
 /snap:develop --dry-run
 /snap:develop --allow-dirty
@@ -35,7 +35,7 @@ ship one atomic commit per ticket.
 | Flag                                       | Effect                                                                                 |
 | ------------------------------------------ | -------------------------------------------------------------------------------------- |
 | `<ticket-id>`                              | Standalone mode: a single ticket.                                                      |
-| `<feature-id>`                             | Session loop: iterates over the feature's tickets in the same Claude session.          |
+| `<story-id>`                             | Session loop: iterates over the feature's tickets in the same Claude session.          |
 | `--resume` / `-r`                          | Resumes via `progress.sh resume next --skill=develop`.                                 |
 | `--dry-run`                                | No writes: no commit, no push; reviewers run on the staged diff.                       |
 | `--allow-dirty`                            | Tolerates uncommitted changes before the run.                                          |
@@ -45,7 +45,7 @@ ship one atomic commit per ticket.
 
 | #   | Step                       | Role                                                                                  |
 | --- | -------------------------- | ------------------------------------------------------------------------------------- |
-| 00  | `step-00-init.md`          | Parses args, resolves the target (ticket-id or feature-id), loads config, preflight.  |
+| 00  | `step-00-init.md`          | Parses args, resolves the target (ticket-id or story-id), loads config, preflight.  |
 | 01  | `step-01-fetch.md`         | Hydrates ticket(s) from cache → fallback to platform fetch.                           |
 | 02  | `step-02-prepare.md`       | Idempotent branch, loads conventions (CLAUDE.md, CONTRIBUTING.md), impact radius.     |
 | 03a | `step-03a-standalone.md`   | Single ticket: Phase 1 (analyze / plan / execute / validate) + Phase 2 (3 reviewers in parallel + dev fix loop). |
@@ -93,5 +93,5 @@ ship one atomic commit per ticket.
 
 ## Next step
 
-`/snap:qa <ticket-id>` (standalone) or `/snap:qa <feature-id>` (loop) for
+`/snap:qa <ticket-id>` (standalone) or `/snap:qa <story-id>` (loop) for
 runtime validation.

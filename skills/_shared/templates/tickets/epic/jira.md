@@ -56,7 +56,7 @@ h2. References
 * Related: {{related_refs}}
 
 ----
-snap-feature: {{feature_id}}
+snap-feature: {{story_id}}
 snap-platform: jira
 snap-template-version: 1
 snap-ticket-type: epic

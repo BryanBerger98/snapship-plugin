@@ -22,7 +22,7 @@ parallel reviewers, applies aggregated feedback, and produces atomic commits.
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`            | Parse args, resolve target (ticket-id or feature_id), load config, pre-flight |
+| 00 | `step-00-init.md`            | Parse args, resolve target (ticket-id or story_id), load config, pre-flight |
 | 01 | `step-01-fetch.md`           | Hydrate ticket(s) from cache → fall back to platform fetch |
 | 02 | `step-02-prepare.md`         | Branch idempotent, conventions load (CLAUDE.md, CONTRIBUTING.md), impact_radius |
 | 03a | `step-03a-standalone.md`    | One ticket: Phase 1 (analyze/plan/execute/validate) + Phase 2 (3 reviewers parallel + dev fix loop) |
@@ -35,7 +35,7 @@ parallel reviewers, applies aggregated feedback, and produces atomic commits.
 ```
 /develop                              # AskUserQuestion → choose ticket or feature
 /develop <ticket-id>                  # standalone (e.g. AUTH-12, #42, t-001)
-/develop <feature-id>                 # loop session (iterate in same Claude session)
+/develop <story-id>                 # loop session (iterate in same Claude session)
 /develop --resume | -r                # resume via progress.sh resume
 /develop --dry-run                    # skip writes (no commit/push, reviewers run on staged diff)
 /develop --allow-dirty                # tolerate uncommitted changes pre-run
@@ -78,7 +78,7 @@ Daemon mode is removed in v1.0.0 — one-shot session loop only.
 - One git commit per ticket (`{type}({scope}): {title} ({local_id})`),
   amended on cycle-fix iterations.
 - Branch pushed; PR opened (idempotent — re-run updates body, not duplicate).
-- `.snap/tickets/{feature_id}.json` updated: `commit_sha`, `developed_at`,
+- `.snap/tickets/{story_id}.json` updated: `commit_sha`, `developed_at`,
   `status="in_review"`.
 - `progress.json` step entries for every ticket.
 - Manifest `state` advances `designed|wireframed|ticketed` → `developed` once
@@ -86,7 +86,7 @@ Daemon mode is removed in v1.0.0 — one-shot session loop only.
 
 ## Resume protocol
 
-`/develop --resume` → `progress.sh resume --skill=develop --feature-id=…`.
+`/develop --resume` → `progress.sh resume --skill=develop --story-id=…`.
 Resumes either a single in-progress ticket (Phase 1 or Phase 2) or the next
 unfinished ticket in the session loop.
 
@@ -95,7 +95,7 @@ unfinished ticket in the session loop.
 - Each targeted ticket has `commit_sha` set + an entry in `progress.json`.
 - `git rev-parse --verify <branch>` succeeds.
 - For loops: every processed ticket has `status` advanced in
-  `.snap/tickets/{feature_id}.json`.
+  `.snap/tickets/{story_id}.json`.
 
 ## Failure handling
 

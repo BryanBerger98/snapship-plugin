@@ -23,7 +23,7 @@ sans remote refs).
 For each story in dependency-sorted order :
 
 1. **Skip if already pushed** : check
-   `.snap/tickets/${feature_id}.draft.json[].url` — non-null means a prior
+   `.snap/tickets/${story_id}.draft.json[].url` — non-null means a prior
    run created it; keep the cached `platform_id` / `url` and continue.
 
 2. **Call the adapter** to create the issue. On `platform=github`, omit the
@@ -78,7 +78,7 @@ For each story in dependency-sorted order :
    fi
    ```
 
-5. **Cache result** in `.snap/tickets/${feature_id}.draft.json` :
+5. **Cache result** in `.snap/tickets/${story_id}.draft.json` :
    ```json
    {
      "local_id": "t-001",
@@ -116,7 +116,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=ticket \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=05 \
   --step-name=push \
   --status=ok

@@ -40,7 +40,7 @@ Keep the functional docs **alive** and up to date after shipping.
 
 | Flag                  | Effect                                                                           |
 | --------------------- | -------------------------------------------------------------------------------- |
-| `--feature=NN-slug`   | **Required.** Partial-match on `feature_id` (e.g. `01` → `01-auth`).             |
+| `--feature=NN-slug`   | **Required.** Partial-match on `story_id` (e.g. `01` → `01-auth`).             |
 | `--mode=diff\|rewrite`| Overrides `documentation.auto_update_mode`. `diff` = AI patch, `rewrite` = full rewrite. |
 | `--dry-run`           | Renders the proposed updates locally, does not push to AFFiNE / Notion.          |
 | `-a` / `--auto`       | Skips confirmations (used by the post-QA hook).                                  |

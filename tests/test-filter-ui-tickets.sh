@@ -36,7 +36,7 @@ set -e
 [ "$RC" = "1" ] && ok "1.2 missing file → rc=1" || ko "1.2" "rc=$RC"
 
 set +e
-echo '{"feature_id":"01-x","platform":"github"}' > "$DIR/no-tickets.json"
+echo '{"story_id":"01-x","platform":"github"}' > "$DIR/no-tickets.json"
 bash "$SCRIPT" --tickets-file="$DIR/no-tickets.json" 2>/dev/null
 RC=$?
 set -e
@@ -47,7 +47,7 @@ echo ""
 echo "[2] file extensions"
 cat > "$DIR/ext.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Build A","status":"todo","files":["src/A.tsx"]},
@@ -76,7 +76,7 @@ echo ""
 echo "[3] path tokens"
 cat > "$DIR/path.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"x","status":"todo","files":["components/Foo.ts"]},
@@ -105,7 +105,7 @@ echo ""
 echo "[4] keyword matches"
 cat > "$DIR/kw.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Signup screen","status":"todo","files":[]},
@@ -139,7 +139,7 @@ echo ""
 echo "[5] wireframe_screen pre-set"
 cat > "$DIR/pre.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Already linked","status":"todo","wireframe_screen":"existing-screen","files":["src/utils.ts"]}
@@ -157,7 +157,7 @@ echo ""
 echo "[6] empty result"
 cat > "$DIR/empty.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"DB migration","status":"todo","files":["db/init.sql"]},
@@ -172,7 +172,7 @@ assert_eq "6.1 zero UI → empty array" "0" "$count"
 echo ""
 echo "[7] zero tickets"
 cat > "$DIR/zero.json" <<'JSON'
-{"feature_id":"01-x","platform":"github","tickets":[]}
+{"story_id":"01-x","platform":"github","tickets":[]}
 JSON
 out=$(bash "$SCRIPT" --tickets-file="$DIR/zero.json")
 count=$(echo "$out" | jq 'length')
@@ -183,7 +183,7 @@ echo ""
 echo "[8] case insensitive"
 cat > "$DIR/case.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"SIGNUP FORM","status":"todo","files":[]},
@@ -200,7 +200,7 @@ echo ""
 echo "[9] output schema"
 cat > "$DIR/schema.json" <<'JSON'
 {
-  "feature_id": "01-x",
+  "story_id": "01-x",
   "platform": "github",
   "tickets": [
     {"local_id":"t-001","title":"Signup screen","status":"todo","files":["src/A.tsx"],"description":"long text","priority":"P1"}

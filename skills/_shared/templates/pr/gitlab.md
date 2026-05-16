@@ -57,7 +57,7 @@ _What changed and why, in 2-4 sentences. The "why" matters more than the "what" 
 
 ---
 
-/label ~"feature::{{feature_id}}" ~"type::pr"
+/label ~"feature::{{story_id}}" ~"type::pr"
 /milestone {{milestone}}
 /assign {{assignee}}
 

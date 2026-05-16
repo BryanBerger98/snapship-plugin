@@ -56,7 +56,7 @@ injects defaults).
 For each manifest in `.snap/manifests/*.manifest.json` (skip `_taxonomy.json`) :
 
 ```bash
-fid=$(jq -r '.feature_id' "$MANIFEST")
+fid=$(jq -r '.story_id' "$MANIFEST")
 ```
 
 1. **Skip if already synced** (idempotent re-run) :
@@ -84,15 +84,15 @@ fid=$(jq -r '.feature_id' "$MANIFEST")
    ```
    Maps to MCP — model executes, captures leaf `page_id` as `$MONTH_PARENT_ID`.
 
-4. **Create the PRD page** (always new — `feature_id` is unique) :
+4. **Create the PRD page** (always new — `story_id` is unique) :
    ```bash
    PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
-     --feature-id="$fid" --kind=prd --project-root="$PWD")
+     --story-id="$fid" --kind=prd --project-root="$PWD")
    bash skills/_shared/docs-adapter.sh \
      --action=create \
      --platform="$PLATFORM" \
      --parent-id="$MONTH_PARENT_ID" \
-     --title="$(jq -r .feature_name "$MANIFEST")" \
+     --title="$(jq -r .story_name "$MANIFEST")" \
      --content-file="$PRD_STAGING"
    ```
    Capture `page_id` + `url` from MCP response → `$PRD_PAGE_ID`, `$PRD_URL`.
@@ -119,7 +119,7 @@ fid=$(jq -r '.feature_id' "$MANIFEST")
        --project-root="$PWD")
      if [ -z "$existing" ]; then
        DOMAIN_TITLE=$(jq -r --arg fid "$fid" --arg d "$domain" '
-         .features[] | select(.feature_id == $fid)
+         .features[] | select(.story_id == $fid)
          | .impacted_journeys[] | select(.domain == $d)
          | .domain_title // $d
        ' .snap/.define-state.json | head -1)
@@ -143,7 +143,7 @@ fid=$(jq -r '.feature_id' "$MANIFEST")
      domain=$(echo "$entry" | jq -r '.domain')
      jslug=$(echo "$entry"  | jq -r '.journey_slug')
      jtitle=$(jq -r --arg fid "$fid" --arg d "$domain" --arg s "$jslug" '
-       .features[] | select(.feature_id == $fid)
+       .features[] | select(.story_id == $fid)
        | .impacted_journeys[] | select(.domain == $d and .journey_slug == $s)
        | .journey_title // $s
      ' .snap/.define-state.json | head -1)
@@ -176,7 +176,7 @@ fid=$(jq -r '.feature_id' "$MANIFEST")
    ```bash
    bash skills/_shared/sync-push.sh ack \
      --project-root="$PWD" \
-     --feature-id="$fid" \
+     --story-id="$fid" \
      --kind=prd \
      --platform="$PLATFORM" \
      --url="$PRD_URL" \
@@ -214,7 +214,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=define \
-  --feature-id=_global \
+  --story-id=_global \
   --step-num=05 \
   --step-name=publish \
   --status=ok
@@ -222,7 +222,7 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=define \
-  --feature-id=_global \
+  --story-id=_global \
   --status=ok
 ```
 
@@ -237,7 +237,7 @@ bash skills/_shared/define-state.sh wipe --project-root="$PWD"
 ## Failure handling
 
 - **MCP error mid-loop** (auth, rate limit, conflict) : retry once with backoff.
-  On second failure, call `sync-push.sh fail --kind=prd --feature-id="$fid"`
+  On second failure, call `sync-push.sh fail --kind=prd --story-id="$fid"`
   (sets `refs.prd.sync_status=error`, keeps staging), then `progress.sh step
   --status=fail`. Re-run skips features whose `refs.prd.sync_status=synced` and
   retries the failed one.

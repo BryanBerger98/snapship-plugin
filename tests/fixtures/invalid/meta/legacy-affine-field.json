@@ -1,6 +1,6 @@
 {
-  "feature_id": "01-auth",
-  "feature_name": "Auth",
+  "story_id": "01-auth",
+  "story_name": "Auth",
   "state": "defined",
   "created_at": "2026-05-09T10:00:00Z",
   "affine_page_id": "page-xyz"

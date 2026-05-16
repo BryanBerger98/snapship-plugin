@@ -61,7 +61,7 @@ fi
 # step-00: init state, log progress
 bash "$STATE" init --lang=en --mode=greenfield --project-root="$DIR" >/dev/null
 [ -f "$DIR/.snap/.define-state.json" ] && ok "1.3 state file created" || ko "1.3"
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=00 --step-name=init --status=ok >/dev/null
 
 # step-01: vision + north star
@@ -70,7 +70,7 @@ bash "$STATE" set north_star_metric "weekly_active_designers" --project-root="$D
 bash "$STATE" set north_star_current "0" --project-root="$DIR"
 bash "$STATE" set north_star_target "100" --project-root="$DIR"
 bash "$STATE" set target_horizon "Q3 2026" --project-root="$DIR"
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=01 --step-name=vision --status=ok >/dev/null
 
 # step-02: persona
@@ -81,12 +81,12 @@ bash "$STATE" add-persona '{
   "persona_pains": "Manual ticket-by-ticket wireframe descriptions",
   "persona_tools": "Figma, Notion"
 }' --project-root="$DIR"
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=02 --step-name=personas --status=ok >/dev/null
 
 # step-03: feature
 bash "$STATE" add-feature '{
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "feature_title": "Email signup",
   "feature_status": "refined",
   "priority": "must",
@@ -97,7 +97,7 @@ bash "$STATE" add-feature '{
   "out_of_scope": "OAuth, SSO, MFA",
   "wireframes": []
 }' --project-root="$DIR"
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=03 --step-name=features --status=ok >/dev/null
 
 # step-03 validate
@@ -116,7 +116,7 @@ fcount=$(bash "$STATE" list-features --project-root="$DIR" | wc -l | tr -d ' ')
 # step-05 publish: platform=none → skip
 platform=$(jq -r '.documentation.platform' "$DIR/snap.config.json")
 if [ "$platform" = "none" ]; then
-  bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+  bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
     --step-num=05 --step-name=publish --status=skip --note="documentation.platform=none" >/dev/null
   ok "1.7 step-05 skipped on platform=none"
 else
@@ -124,10 +124,10 @@ else
 fi
 
 # Finish run → entry purged from in_flight.
-bash "$PROGRESS" finish --project-root="$DIR" --skill=define --feature-id=_global --status=ok >/dev/null
+bash "$PROGRESS" finish --project-root="$DIR" --skill=define --story-id=_global --status=ok >/dev/null
 
 # resume after terminal: skill purged from in_flight → empty stdout
-out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --feature-id=_global)
+out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --story-id=_global)
 if [ -z "$out" ]; then
   ok "1.8 resume after terminal returns empty (purged)"
 else
@@ -137,13 +137,13 @@ fi
 # progress.json captures the full happy-path (steps inspected before finish purge: list returns []
 # after finish ok; assert steps were appended during run via a second probe scenario).
 # Cross-check: list a fresh skill run after init to confirm steps land in the JSON.
-bash "$PROGRESS" start --project-root="$DIR" --skill=define --feature-id=_global >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" start --project-root="$DIR" --skill=define --story-id=_global >/dev/null
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=00 --step-name=init --status=ok >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=_global \
   --step-num=03 --step-name=features --status=ok >/dev/null
 steps_json=$(bash "$PROGRESS" list --project-root="$DIR" \
-  | jq '.[] | select(.skill == "define" and .feature_id == "_global") | .steps')
+  | jq '.[] | select(.skill == "define" and .story_id == "_global") | .steps')
 init_ok=$(echo "$steps_json" | jq '[.[] | select(.name == "init" and .status == "ok")] | length')
 feat_ok=$(echo "$steps_json" | jq '[.[] | select(.name == "features" and .status == "ok")] | length')
 if [ "$init_ok" -ge 1 ] && [ "$feat_ok" -ge 1 ]; then
@@ -151,7 +151,7 @@ if [ "$init_ok" -ge 1 ] && [ "$feat_ok" -ge 1 ]; then
 else
   ko "1.9 progress.json missing entries (init=$init_ok features=$feat_ok)"
 fi
-bash "$PROGRESS" finish --project-root="$DIR" --skill=define --feature-id=_global --status=ok >/dev/null
+bash "$PROGRESS" finish --project-root="$DIR" --skill=define --story-id=_global --status=ok >/dev/null
 
 trash "$DIR" 2>/dev/null || true
 
@@ -181,7 +181,7 @@ hc=$(echo "$verdict" | jq -r '.has_codebase')
 [ "$hc" = "true" ] && ok "2.1 has_codebase=true on existing project" || ko "2.1 got $hc"
 
 # Scaffold v1.0 workspace + per-feature manifest (extension uses --feature)
-bash "$SETUP" --project-root="$DIR" --feature-id=02-billing --feature-name="Billing" --lang=en >/dev/null
+bash "$SETUP" --project-root="$DIR" --story-id=02-billing --story-name="Billing" --lang=en >/dev/null
 [ -f "$DIR/.snap/manifests/02-billing.manifest.json" ] \
   && ok "2.1b extension manifest created" \
   || ko "2.1b manifest missing"
@@ -194,7 +194,7 @@ bash "$STATE" set north_star_target "200" --project-root="$DIR"
 bash "$STATE" set target_horizon "2026-Q4" --project-root="$DIR"
 bash "$STATE" add-persona '{"persona_name":"X","persona_role":"r","persona_goals":"g","persona_pains":"p","persona_tools":"t"}' --project-root="$DIR"
 bash "$STATE" add-feature '{
-  "feature_id":"02-billing","feature_title":"Billing","feature_status":"refined","priority":"must",
+  "story_id":"02-billing","feature_title":"Billing","feature_status":"refined","priority":"must",
   "problem_statement":"Users cannot pay for the service yet, blocking monetisation.",
   "solution_overview":"Stripe checkout integration.",
   "acceptance_criteria":[{"ac_id":"1","ac_text":"Stripe checkout works"}],
@@ -202,11 +202,11 @@ bash "$STATE" add-feature '{
 }' --project-root="$DIR"
 
 # Per-feature progress: log step-03 fail (so resume has something to surface)
-bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=02-billing \
+bash "$PROGRESS" step --project-root="$DIR" --skill=define --story-id=02-billing \
   --step-num=03 --step-name=features --status=fail --note="simulated mid-run interrupt" >/dev/null
 
-# Resume with exact feature_id → tab-separated NUM\tNAME\tSTATUS (progress.sh contract)
-out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --feature-id=02-billing)
+# Resume with exact story_id → tab-separated NUM\tNAME\tSTATUS (progress.sh contract)
+out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=define --story-id=02-billing)
 if [ -n "$out" ]; then
   num=$(echo "$out" | awk -F'\t' '{print $1}')
   name=$(echo "$out" | awk -F'\t' '{print $2}')

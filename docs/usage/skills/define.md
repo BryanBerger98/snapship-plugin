@@ -35,7 +35,7 @@ distinguishes two paths:
 
 | Flag                  | Effect                                                                                                      |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--resume` / `-r`     | Resumes at the last successful step recorded in `progress.json`. Partial-match on `feature_id` (`01` → `01-auth`). With no run in progress, restarts at step-00. |
+| `--resume` / `-r`     | Resumes at the last successful step recorded in `progress.json`. Partial-match on `story_id` (`01` → `01-auth`). With no run in progress, restarts at step-00. |
 | `--lang=fr\|en`       | Forces the PRD language (default: detected from an existing PRD, otherwise prompted).                       |
 | `--feature=NN-slug`   | Skips the greenfield path, jumps straight to the PRD of an existing feature.                                |
 
@@ -54,8 +54,8 @@ Steps are **idempotent**: re-running a step with the same inputs produces the sa
 
 ## Outputs
 
-- `.snap/manifests/{feature_id}/prd-feature.md` — one per feature.
-- `.snap/manifests/{feature_id}.manifest.json` — `state=defined`,
+- `.snap/manifests/{story_id}/prd-feature.md` — one per feature.
+- `.snap/manifests/{story_id}.manifest.json` — `state=defined`,
   `domains[]`, `impacted_journeys[]`, `prd.{page_id,url,path}` after publication.
 - `.snap/manifests/_taxonomy.json` — domain + journey page IDs (idempotent).
 - `.snap/progress.json` — run journal.

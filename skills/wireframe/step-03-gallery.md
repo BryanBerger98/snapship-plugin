@@ -36,14 +36,14 @@ against `templates/docs-defaults/wireframes-gallery.md`:
 ```bash
 STAGING=$(bash skills/_shared/sync-push.sh staging-path \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=wireframes-gallery)
 
 ctx=$(jq -n \
-  --arg fid "$feature_id" \
+  --arg fid "$story_id" \
   --arg ftitle "$feature_title" \
-  --argjson screens "$(jq '.screens' .snap/wireframes/${feature_id}.draft.json)" \
-  '{feature_id:$fid, feature_title:$ftitle, screens:$screens}')
+  --argjson screens "$(jq '.screens' .snap/wireframes/${story_id}.draft.json)" \
+  '{story_id:$fid, feature_title:$ftitle, screens:$screens}')
 
 bash skills/_shared/render-template.sh \
   --template=skills/_shared/templates/docs-defaults/wireframes-gallery.md \
@@ -69,11 +69,11 @@ bash skills/_shared/docs-adapter.sh \
 ### D. Push the gallery page
 
 Parent page = the feature PRD page recorded in
-`.snap/manifests/${feature_id}.manifest.json` at `.refs.prd.page_id`:
+`.snap/manifests/${story_id}.manifest.json` at `.refs.prd.page_id`:
 
 ```bash
 PRD_PAGE_ID=$(jq -r '.refs.prd.page_id // ""' \
-  ".snap/manifests/${feature_id}.manifest.json")
+  ".snap/manifests/${story_id}.manifest.json")
 
 create_out=$(bash skills/_shared/docs-adapter.sh \
   --action=create \
@@ -91,7 +91,7 @@ GALLERY_URL=$(jq -r '.url' <<<"$create_out")
 ```bash
 bash skills/_shared/sync-push.sh ack \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=wireframes-gallery \
   --platform="$PLATFORM" \
   --url="$GALLERY_URL" \
@@ -112,7 +112,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=wireframe \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=03 \
   --step-name=gallery \
   --status=ok

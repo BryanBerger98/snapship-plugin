@@ -45,9 +45,9 @@
 
 **Why:** cross-install portability — once installed via marketplace the schema file lives in the CC cache, not in the project, so a relative path would break IDE validation. Runtime `load-config.sh` always reads the schema from the plugin bundle (not via the `$schema` field), so ajv validation is unaffected.
 
-### feature_id_pattern
+### story_id_pattern
 
-**Choice:** `feature_id` always `NN-kebab` (decoupled from tickets). `ticket_id` separate, used only in `branch_pattern`/`commit_pattern`.
+**Choice:** `story_id` always `NN-kebab` (decoupled from tickets). `ticket_id` separate, used only in `branch_pattern`/`commit_pattern`.
 
 **Why:** simple, platform-independent. Decouples feature ↔ tickets (a feature is created before tickets exist).
 
@@ -116,7 +116,7 @@ Configurable update mode: `diff` (default — patch impacted sections) or `rewri
 
 ### `/design` scope — mockups only
 
-**Choice:** `/design` does **one thing only** — hi-fi mockups. Takes a `<ticket-id|feature-id>` as input (like `/develop` and `/qa`) and builds mockups based on what the ticket requires. `/design figma` uses the **same** `figma-helper.sh` and the **same** Desktop Bridge plugin as `/wireframe figma`.
+**Choice:** `/design` does **one thing only** — hi-fi mockups. Takes a `<ticket-id|story-id>` as input (like `/develop` and `/qa`) and builds mockups based on what the ticket requires. `/design figma` uses the **same** `figma-helper.sh` and the **same** Desktop Bridge plugin as `/wireframe figma`.
 
 **Why:** one skill = one responsibility. Design system management belongs to a dedicated tool, not a mode grafted onto the mockup skill. `/design` and `/wireframe` share exactly the same Figma surface — a single helper to maintain.
 

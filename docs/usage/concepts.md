@@ -28,7 +28,7 @@ by tag + date).
 {prd_root}/                     e.g. "Change Requests"
 └── {YYYY}/
     └── {MM-YYYY}/
-        └── {NN-feature_slug}   ← PRD page (tags: impacted domains)
+        └── {NN-story_slug}   ← PRD page (tags: impacted domains)
 ```
 
 PRD path example: `Change Requests/2026/05-2026/01-simple-login-button`.
@@ -94,8 +94,8 @@ every skill run, suggests existing values at the next `/snap:define`.
 
 ```json
 {
-  "feature_id": "01-simple-login-button",
-  "feature_name": "Simple login button",
+  "story_id": "01-simple-login-button",
+  "story_name": "Simple login button",
   "state": "defined | in-progress | qa-validated",
   "domains": ["auth", "dashboard"],
   "impacted_journeys": [
@@ -151,8 +151,8 @@ For each feature:
    ```
 
 2. **Create PRD page** (always new, no idempotence — unique feature per
-   feature_id):
-   - Title: feature_name
+   story_id):
+   - Title: story_name
    - Tags: list of impacted domains
    - Body: rendered `prd-feature.md`
    - Parent: lookup-or-create `{prd_root}/{YYYY}/{MM-YYYY}` (recursive if absent)
@@ -313,7 +313,7 @@ skills/doc-import/
 - ✅ `Product Docs/` populated (domains + journeys)
 - ✅ `_taxonomy.json` filled
 - ❌ `Change Requests/` empty (PRDs come via future `/snap:define`)
-- ❌ feature `manifest.json` absent (no feature_id yet — will come with PRDs)
+- ❌ feature `manifest.json` absent (no story_id yet — will come with PRDs)
 
 ### User workflow
 

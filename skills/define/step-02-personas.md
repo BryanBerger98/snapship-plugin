@@ -50,7 +50,7 @@ Build the persona list that anchors every feature decision.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=define \
-     --feature-id=_global \
+     --story-id=_global \
      --step-num=02 \
      --step-name=personas \
      --status=ok

@@ -65,7 +65,7 @@ Collect the product's vision and its single tracked metric.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=define \
-     --feature-id=_global \
+     --story-id=_global \
      --step-num=01 \
      --step-name=vision \
      --status=ok

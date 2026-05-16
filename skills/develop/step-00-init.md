@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-fetch
-description: Parse args, resolve target (ticket-id or feature_id), load config, pre-flight git + reviewers.
+description: Parse args, resolve target (ticket-id or story_id), load config, pre-flight git + reviewers.
 ---
 
 # step-00 — init
@@ -20,7 +20,7 @@ feature (session loop).
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=develop \
-     --feature-id="${feature_id:-_global}")
+     --story-id="${story_id:-_global}")
    ```
 
    Same rc=0/1/2 contract as the other skills.
@@ -30,7 +30,7 @@ feature (session loop).
      with `status in (todo, in_progress)`.
    - **Ticket-shaped** (regex: `^[A-Z]+-[0-9]+$|^#[0-9]+$|^t-[0-9]+$`) → standalone
      mode. Cross-reference `.snap/tickets/*.json` files to locate the parent
-     feature_id.
+     story_id.
    - **Feature-shaped** (`^[0-9]{2}-[a-z0-9-]+$`) → session loop.
 
 4. **Require config + load**:
@@ -60,11 +60,11 @@ feature (session loop).
      in step-03a; here we only confirm the files are present).
 
 6. **Design handoff hint**. After feature is resolved, scan
-   `.snap/tickets/${feature_id}.json` for any ticket carrying `design_url`
+   `.snap/tickets/${story_id}.json` for any ticket carrying `design_url`
    (or `wireframe_url`). If at least one is present, surface a one-liner:
 
    ```bash
-   tickets_file=".snap/tickets/${feature_id}.json"
+   tickets_file=".snap/tickets/${story_id}.json"
    handoff=$(jq -r '
      [.tickets[] | select((.design_url // "") != "" or (.wireframe_url // "") != "")
                  | {id:(.platform_id // .local_id),
@@ -87,7 +87,7 @@ feature (session loop).
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=develop \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=00 \
      --step-name=init \
      --status=ok
@@ -96,7 +96,7 @@ feature (session loop).
 ## Acceptance check
 
 - `target_kind` set to `ticket | feature`.
-- `feature_id` resolved (always — even in standalone mode, parent feature is
+- `story_id` resolved (always — even in standalone mode, parent feature is
   known).
 - Config loaded; `review_cycles_max` and `fail_strategy` materialised.
 

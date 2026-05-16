@@ -12,7 +12,7 @@ Branch is shared (the feature branch, set in step-02).
 ## Tasks
 
 ```
-queue=$(jq -r '.queue[]' .snap/queues/${feature_id}.develop.json)
+queue=$(jq -r '.queue[]' .snap/queues/${story_id}.develop.json)
 
 for local_id in $queue; do
   # 1. Hydrate one ticket from cache.
@@ -45,7 +45,7 @@ for local_id in $queue; do
   fi
 
   # 3. Update queue state.
-  queue_file=".snap/queues/${feature_id}.develop.json"
+  queue_file=".snap/queues/${story_id}.develop.json"
   tmp=$(mktemp)
   jq --arg lid "$local_id" \
     '.processed += [$lid] | .queue |= map(select(. != $lid))' \
@@ -56,7 +56,7 @@ done
 ## Resume
 
 If interrupted, `/develop --resume`:
-1. Reads `.snap/queues/${feature_id}.develop.json` — `processed[]` is the catch-up state.
+1. Reads `.snap/queues/${story_id}.develop.json` — `processed[]` is the catch-up state.
 2. Resumes at the first ticket in `queue[]` not in `processed[]`.
 3. If the last `processed` ticket has no `commit_sha` in tickets.json, treat it
    as half-done — re-run step-03a for it (Phase 1 + 2 are idempotent under amend).
@@ -76,7 +76,7 @@ summary:
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=03b \
   --step-name=loop-session \
   --status=ok
@@ -84,7 +84,7 @@ bash skills/_shared/progress.sh step \
 
 ## Acceptance check
 
-- `.snap/queues/${feature_id}.develop.json` `queue` is empty (or only contains items skipped under
+- `.snap/queues/${story_id}.develop.json` `queue` is empty (or only contains items skipped under
   `next-ticket`).
 - Each processed ticket has a `commit_sha`.
 

@@ -1,4 +1,4 @@
-# PRD — {{feature_id}} · {{feature_title}}
+# PRD — {{story_id}} · {{feature_title}}
 
 > Per-feature product requirements document.
 > Parent: [global PRD](../../prd-global.md)
@@ -95,7 +95,7 @@ See [wireframes gallery](../../wireframes-gallery.md) for the full set.
 
 <!--
 Variables:
-  {{feature_id}}              string  — slug (e.g. 01-auth)
+  {{story_id}}              string  — slug (e.g. 01-auth)
   {{feature_title}}           string  — display title
   {{feature_status}}          enum    — draft|refined|sliced|shipping|shipped|abandoned
   {{owner}}                   string  — DRI handle

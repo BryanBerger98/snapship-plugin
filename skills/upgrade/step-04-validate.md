@@ -27,7 +27,7 @@ Sanity check post-migration.
    - `.snap/manifests/` existe
    - `.snap/manifests/_taxonomy.json` existe
    - `.snap/progress.json` existe
-   - Pour chaque manifest : `feature_id` matche le nom de fichier (`{slug}.manifest.json`).
+   - Pour chaque manifest : `story_id` matche le nom de fichier (`{slug}.manifest.json`).
 
 4. **Vérifie absence legacy** :
    - `.claude/product/` doit être absent (sauf decision `keep`).
@@ -47,7 +47,7 @@ Sanity check post-migration.
 6. **Telemetry + progress** :
    ```bash
    bash skills/_shared/telemetry.sh log --skill=upgrade --step-num=04 --step-name=validate --status=ok
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=04 --step-name=validate --status=ok
    ```
 

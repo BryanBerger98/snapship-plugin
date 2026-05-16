@@ -22,7 +22,7 @@ need to break the PRD into atomic tickets ready for `/snap:develop`.
   is honest about the gap.)
 
 - `/snap:define` produced the feature manifest at
-  `.snap/manifests/{feature_id}.manifest.json` with `refs.prd.sync_status =
+  `.snap/manifests/{story_id}.manifest.json` with `refs.prd.sync_status =
   "synced"`. The PRD body is fetched from remote in step-01 if the local
   staging file is missing.
 
@@ -37,7 +37,7 @@ need to break the PRD into atomic tickets ready for `/snap:develop`.
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`     | Parse args, resolve `feature_id`, load config, block if `tickets.platform=none` |
+| 00 | `step-00-init.md`     | Parse args, resolve `story_id`, load config, block if `tickets.platform=none` |
 | 01 | `step-01-load.md`     | Ensure PRD staging present (fetch from remote if needed), extract AC + scope to context |
 | 02 | `step-02-decompose.md`| Break feature into atomic stories (5-30 min, 1-5 files) |
 | 03 | `step-03-enrich.md`   | Parallel agents : codebase / docs / web search per story |
@@ -53,7 +53,7 @@ need to break the PRD into atomic tickets ready for `/snap:develop`.
              [--max-stories=N] [--dry-run]
 ```
 
-- `--feature` (required if multiple manifests): target `feature_id`
+- `--feature` (required if multiple manifests): target `story_id`
   (partial-match supported).
 - `--platform`: override `config.tickets.platform`.
 - `--max-stories`: cap auto-decomposition (default 12).
@@ -63,9 +63,9 @@ need to break the PRD into atomic tickets ready for `/snap:develop`.
 
 Local (persistent — references to remote) :
 
-- `.snap/tickets/{feature_id}.json` — cached tickets array (local_id,
+- `.snap/tickets/{story_id}.json` — cached tickets array (local_id,
   platform_id, url, title, status, …) — schema `tickets.schema.json`.
-- `.snap/manifests/{feature_id}.manifest.json` — `refs.tickets` populated by
+- `.snap/manifests/{story_id}.manifest.json` — `refs.tickets` populated by
   `sync-push.sh ack` (platform, url, synced_at, sync_status).
 
 Remote (single source of truth) :
@@ -80,13 +80,13 @@ Local (runtime — gitignored) :
 ## Resume protocol
 
 `/snap:ticket --resume --feature=01` reads `.snap/progress.json` via
-`progress.sh resume --skill=ticket --feature-id=<resolved>` — jumps to the
+`progress.sh resume --skill=ticket --story-id=<resolved>` — jumps to the
 returned step.
 
 ## Acceptance check (whole skill)
 
 - Manifest has `refs.tickets.sync_status = "synced"` after step-06.
-- `.snap/tickets/{feature_id}.json` validates against
+- `.snap/tickets/{story_id}.json` validates against
   `_shared/schemas/tickets.schema.json` and contains ≥ 1 ticket.
 - `progress.json.in_flight` no longer contains a `ticket` entry for the
   feature (purged by `progress.sh finish --status=ok`).

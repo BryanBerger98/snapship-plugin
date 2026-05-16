@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-filter
-description: Parse args, resolve feature_id, load tickets.json + config, resolve wireframe MCP platform.
+description: Parse args, resolve story_id, load tickets.json + config, resolve wireframe MCP platform.
 ---
 
 # step-00 — init
@@ -24,11 +24,11 @@ once and downstream steps pass values explicitly.
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=wireframe \
-     --feature-id="${feature:-_global}")
+     --story-id="${feature:-_global}")
    ```
    Same rc=0/1/2 handling as `/define`.
 
-3. **Resolve `feature_id`**: same precedence as `/ticket` (single → use it; multi →
+3. **Resolve `story_id`**: same precedence as `/ticket` (single → use it; multi →
    AskUserQuestion; zero → abort with "Run `/define` first").
 
 4. **Require config + load + resolve platform**:
@@ -174,8 +174,8 @@ export "$figma_token_env=$figma_token"
    context-agnostic helpers.
 
 7. **Validate inputs**:
-   - `.snap/tickets/${feature_id}.json` exists (run `/ticket` first if not).
-   - PRD (`.snap/PRDs/${feature_id}.md` or rehydrated from `manifest.refs.prd`)
+   - `.snap/tickets/${story_id}.json` exists (run `/ticket` first if not).
+   - PRD (`.snap/PRDs/${story_id}.md` or rehydrated from `manifest.refs.prd`)
      mentions ≥ 1 wireframe screen ID (otherwise skip — feature is non-UI).
 
 8. **Append progress**:
@@ -183,7 +183,7 @@ export "$figma_token_env=$figma_token"
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=wireframe \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=00 \
      --step-name=init \
      --status=ok
@@ -191,8 +191,8 @@ export "$figma_token_env=$figma_token"
 
 ## Acceptance check
 
-- `feature_id` resolved.
-- `.snap/tickets/${feature_id}.json` exists.
+- `story_id` resolved.
+- `.snap/tickets/${story_id}.json` exists.
 - `wf_platform` resolved (or `none` → skip).
 - MCP for resolved platform reachable.
 - Platform-specific binding verified:

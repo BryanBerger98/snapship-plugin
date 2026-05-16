@@ -21,15 +21,15 @@
     "skill_run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["skill", "feature_id", "started_at", "steps"],
+      "required": ["skill", "story_id", "started_at", "steps"],
       "properties": {
         "skill": {
           "type": "string",
           "description": "Slug skill (define, ticket, wireframe, design, develop, qa, init, fetch, upgrade...)"
         },
-        "feature_id": {
+        "story_id": {
           "type": "string",
-          "description": "feature_id (NN-kebab) ou _global pour skills hors-feature (init, upgrade, fetch --all)"
+          "description": "story_id (NN-kebab) ou _global pour skills hors-feature (init, upgrade, fetch --all)"
         },
         "started_at": {
           "type": "string",

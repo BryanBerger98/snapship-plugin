@@ -6,11 +6,11 @@
 #
 # Usage:
 #   setup-snap-dir.sh                                              # init root only
-#   setup-snap-dir.sh --feature-id=01-auth --feature-name="Auth"   # also init manifest
+#   setup-snap-dir.sh --story-id=01-auth --story-name="Auth"   # also init manifest
 #
 # Exit codes:
 #   0 = success
-#   1 = invalid arg / feature_id format / write error
+#   1 = invalid arg / story_id format / write error
 
 set -euo pipefail
 
@@ -29,8 +29,8 @@ Idempotently creates .snap/ scaffolding (v1.0).
 
 Options:
   --project-root=PATH       Project root (default: \$PWD)
-  --feature-id=NN-kebab     Also init manifests/{id}.manifest.json
-  --feature-name=TEXT       Required with --feature-id
+  --story-id=NN-kebab     Also init manifests/{id}.manifest.json
+  --story-name=TEXT       Required with --story-id
   --lang=fr|en              Optional, written to manifest
   --green-field=true|false  Optional, written to manifest
   -h, --help                Show this help
@@ -40,8 +40,8 @@ EOF
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-root=*)  PROJECT_ROOT="${1#--project-root=}" ;;
-    --feature-id=*)    FEATURE_ID="${1#--feature-id=}" ;;
-    --feature-name=*)  FEATURE_NAME="${1#--feature-name=}" ;;
+    --story-id=*)    FEATURE_ID="${1#--story-id=}" ;;
+    --story-name=*)  FEATURE_NAME="${1#--story-name=}" ;;
     --lang=*)          LANG_DEFAULT="${1#--lang=}" ;;
     --green-field=*)   GREEN_FIELD="${1#--green-field=}" ;;
     -h|--help)         usage; exit 0 ;;
@@ -83,12 +83,12 @@ fi
 # --- Per-feature manifest (optional) ---
 if [ -n "$FEATURE_ID" ]; then
   if ! [[ "$FEATURE_ID" =~ ^[0-9]{2}-[a-z0-9][a-z0-9-]*$ ]]; then
-    echo "ERROR: feature_id must match NN-kebab (e.g., 01-auth), got: ${FEATURE_ID}" >&2
+    echo "ERROR: story_id must match NN-kebab (e.g., 01-auth), got: ${FEATURE_ID}" >&2
     exit 1
   fi
 
   if [ -z "$FEATURE_NAME" ]; then
-    echo "ERROR: --feature-name required with --feature-id" >&2
+    echo "ERROR: --story-name required with --story-id" >&2
     exit 1
   fi
 
@@ -104,8 +104,8 @@ if [ -n "$FEATURE_ID" ]; then
       --arg gf "$GREEN_FIELD" '
       {
         schema_version: $v,
-        feature_id: $fid,
-        feature_name: $fname,
+        story_id: $fid,
+        story_name: $fname,
         state: "defined",
         created_at: $now,
         refs: {}

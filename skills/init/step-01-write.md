@@ -31,7 +31,7 @@ Terminal step. Persist config + scaffold local workspace.
    - `2` → existing config + no `--force`. Should never reach here (step-00
      guards it), but fail clean with the same message.
 
-2. **Scaffold `.snap/`** (idempotent — no feature_id at init time) :
+2. **Scaffold `.snap/`** (idempotent — no story_id at init time) :
    ```bash
    bash skills/_shared/setup-snap-dir.sh --project-root="$PWD"
    ```
@@ -59,14 +59,14 @@ Terminal step. Persist config + scaffold local workspace.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=init \
-     --feature-id=_global \
+     --story-id=_global \
      --step-num=01 \
      --step-name=write \
      --status=ok
    bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=init \
-     --feature-id=_global \
+     --story-id=_global \
      --status=ok
    ```
 

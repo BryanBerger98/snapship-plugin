@@ -31,7 +31,7 @@ drifts introduced after the dev phase.
 ```
 /snap:qa                            # AskUserQuestion: which ticket / feature?
 /snap:qa <ticket-id>                # validates one ticket
-/snap:qa <feature-id>               # validates every in_review ticket of the feature
+/snap:qa <story-id>               # validates every in_review ticket of the feature
 /snap:qa --resume | -r
 /snap:qa --dry-run
 /snap:qa --no-wireframe-check
@@ -43,7 +43,7 @@ drifts introduced after the dev phase.
 | Flag                    | Effect                                                                               |
 | ----------------------- | ------------------------------------------------------------------------------------ |
 | `<ticket-id>`           | Validates a single ticket.                                                           |
-| `<feature-id>`          | Validates every `in_review` ticket of the feature.                                   |
+| `<story-id>`          | Validates every `in_review` ticket of the feature.                                   |
 | `--resume` / `-r`       | Resumes via `progress.sh resume next --skill=qa`.                                    |
 | `--dry-run`             | Collect only: no fix loop, no amend.                                                 |
 | `--no-wireframe-check`  | Skips the wireframe diff even if the config enables it.                              |

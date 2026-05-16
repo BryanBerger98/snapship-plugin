@@ -10,7 +10,7 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
 
 ## Tasks
 
-1. **Parse args**: `--resume`/`-r`, positional `<ticket-id|feature-id>`,
+1. **Parse args**: `--resume`/`-r`, positional `<ticket-id|story-id>`,
    `--dry-run`, `--no-wireframe-reuse`.
 
 2. **Resume short-circuit**: delegate to `progress.sh resume`:
@@ -18,14 +18,14 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=design \
-     --feature-id="${feature_id:-_global}")
+     --story-id="${story_id:-_global}")
    ```
    Same rc=0/1/2 handling as `/wireframe`.
 
 3. **Resolve target**: same precedence as `/qa`.
    - **Empty positional** → `AskUserQuestion` enumerating UI tickets not yet
      flagged with `design_url`.
-   - **Ticket-shaped** → single-ticket mode. Resolve the owning `feature_id`
+   - **Ticket-shaped** → single-ticket mode. Resolve the owning `story_id`
      from the ticket's `tickets.json`.
    - **Feature-shaped** → multi-ticket mode (every UI ticket of the feature).
 
@@ -60,7 +60,7 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
      none)
        echo "design.platform = none → skipping /design"
        bash skills/_shared/progress.sh step --project-root="$PWD" \
-         --skill=design --feature-id="${feature_id:-_global}" \
+         --skill=design --story-id="${story_id:-_global}" \
          --step-num=00 --step-name=init --status=skip
        exit 0
        ;;
@@ -147,13 +147,13 @@ opened file in browser/Desktop), same UX as `/wireframe` step-00.
 ## 7. Persist platform state
 
 Write `ds_platform`, resolved `$helper` path, `target_tickets[]`,
-`feature_id`, and all resolved nested values (`ds_file_id`, `ds_file_key`,
+`story_id`, and all resolved nested values (`ds_file_id`, `ds_file_key`,
 `ds_components_page`, `ds_source`, `export_format`, …) to the skill state
 file. Later steps read from state — they do NOT re-resolve config.
 
 ## 8. Validate inputs
 
-- `.snap/tickets/${feature_id}.json` exists (run `/ticket` first if not).
+- `.snap/tickets/${story_id}.json` exists (run `/ticket` first if not).
 - At least one targeted ticket is a UI ticket (per
   `filter-ui-tickets.sh`) — otherwise mark progress `skip` with note
   `no UI tickets`.
@@ -166,7 +166,7 @@ file. Later steps read from state — they do NOT re-resolve config.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=design \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=00 \
   --step-name=init \
   --status=ok
@@ -176,7 +176,7 @@ bash skills/_shared/progress.sh step \
 
 - `ds_platform` resolved (or `none` → skip).
 - MCP for `ds_platform` reachable.
-- `feature_id` + `target_tickets[]` resolved.
+- `story_id` + `target_tickets[]` resolved.
 - Platform binding verified (file_id or file_key match, or auto-link applied).
 - At least one targeted UI ticket (else skip).
 

@@ -16,7 +16,7 @@ Load the ticket(s) the run will work on. Cache-first to avoid platform calls.
    ```bash
    ticket_json=$(jq --arg id "$ticket_id" \
      '.tickets[] | select(.platform_id == $id or .local_id == $id)' \
-     ".snap/tickets/${feature_id}.json")
+     ".snap/tickets/${story_id}.json")
    ```
 2. Cache miss → platform fetch:
    ```bash
@@ -32,10 +32,10 @@ Load the ticket(s) the run will work on. Cache-first to avoid platform calls.
 ### B. Loop mode (target_kind=feature)
 
 1. Read all tickets where `status in (todo, in_progress)` from
-   `.snap/tickets/${feature_id}.json`.
+   `.snap/tickets/${story_id}.json`.
 2. Order by `priority` (P0→P3), then `local_id` ascending.
 3. Optionally filter by `--label=` if user passed it.
-4. Stash queue in `.snap/queues/${feature_id}.develop.json`:
+4. Stash queue in `.snap/queues/${story_id}.develop.json`:
    ```json
    {
      "queue": ["t-001", "t-002", "t-003"],
@@ -52,8 +52,8 @@ Mark tickets we plan to touch as `in_progress` locally + remote (best-effort):
 tmp=$(mktemp)
 jq --arg lid "$lid" \
   '(.tickets[] | select(.local_id == $lid)).status = "in_progress"' \
-  ".snap/tickets/${feature_id}.json" > "$tmp" \
-  && mv "$tmp" ".snap/tickets/${feature_id}.json"
+  ".snap/tickets/${story_id}.json" > "$tmp" \
+  && mv "$tmp" ".snap/tickets/${story_id}.json"
 
 bash skills/_shared/tickets-adapter.sh \
   --action=update --platform="$platform" --id="$platform_id" \
@@ -68,7 +68,7 @@ Remote update failures are non-fatal — local cache still drives behaviour.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=01 \
   --step-name=fetch \
   --status=ok
@@ -77,7 +77,7 @@ bash skills/_shared/progress.sh step \
 ## Acceptance check
 
 - Standalone: `ticket_json` materialised.
-- Loop: `.snap/queues/${feature_id}.develop.json` written with non-empty
+- Loop: `.snap/queues/${story_id}.develop.json` written with non-empty
   `queue[]`.
 
 ## Next step

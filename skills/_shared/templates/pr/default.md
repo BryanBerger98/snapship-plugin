@@ -84,7 +84,7 @@ Variables:
   {{review_security_summary}}        string
   {{review_qa_severity}}             enum
   {{review_qa_summary}}              string
-  {{feature_id}}                     string
+  {{story_id}}                     string
   {{run_id}}                         string — review run identifier
   {{screenshots}}                    list — {screen_label, screen_path}
 -->

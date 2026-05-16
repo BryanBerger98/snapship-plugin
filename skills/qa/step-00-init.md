@@ -55,7 +55,7 @@ feature.
 
 6. **Compute diff scope** for each target ticket:
    ```bash
-   tickets_file=".snap/tickets/${feature_id}.json"
+   tickets_file=".snap/tickets/${story_id}.json"
    sha=$(jq -r --arg lid "$lid" \
      '.tickets[] | select(.local_id == $lid).commit_sha' \
      "$tickets_file")
@@ -71,7 +71,7 @@ feature.
      --step-num=00 --step-name=init --status=ok
 
    bash skills/_shared/progress.sh step \
-     --project-root="$PWD" --feature-id="$feature_id" \
+     --project-root="$PWD" --story-id="$story_id" \
      --skill=qa --step-num=00 --step-name=init --status=ok \
      --note="targets=$count regression=$regression_scope wireframe=$wireframe_enabled"
    ```

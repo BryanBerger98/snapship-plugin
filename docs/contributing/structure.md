@@ -84,7 +84,7 @@ snapship-plugin/  (plugin repo)
 │       ├── frame0-helper.sh                # Frame0 MCP wrapper
 │       ├── run-lifecycle-script.sh         # exec custom lifecycle_scripts (pre_/post_) — ≠ native CC hooks
 │       ├── ask-or-default.sh               # AskUserQuestion wrapper: short-circuit in -a mode to explicit default
-│       ├── apply-naming.sh                 # render branch/commit/feature_id based on naming.*
+│       ├── apply-naming.sh                 # render branch/commit/story_id based on naming.*
 │       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) at startup
 │       ├── telemetry.sh                    # append _shared/telemetry.log NDJSON (duration_ms, status, ticket_id)
 │       ├── setup-snap-dir.sh
@@ -138,7 +138,7 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
     ├── index.md                    # Track features (state + page IDs)
     ├── _taxonomy.json                # cache domain + journey → page IDs (persistent)
     └── features/
-        └── 01-feature-name/
+        └── 01-story-name/
             ├── manifest.json           # prd.{page_id,url,path}, domains[], impacted_journeys[]
             ├── tickets.json        # Tickets cache (platform id, AC, status)
             ├── prd-feature.md      # Locally rendered PRD (before push to archive {prd_root}/{YYYY}/{MM-YYYY}/)
@@ -151,7 +151,7 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
 ## 3. State (centralized via `manifests/_taxonomy.json` + per-feature manifests)
 
 Progression lives in:
-- `.snap/manifests/{feature_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
+- `.snap/manifests/{story_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
 - `.snap/manifests/_taxonomy.json` — workspace, domains, journeys
 - `.snap/progress.json` — in-flight runs (gitignored)
 

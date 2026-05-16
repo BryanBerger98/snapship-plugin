@@ -106,7 +106,7 @@ per-platform bundled file remains the fallback when no override is set).
 
 ### Tickets — common
 
-`ticket_id`, `title`, `summary`, `feature_id`, `feature_title`, `epic_ref`,
+`ticket_id`, `title`, `summary`, `story_id`, `feature_title`, `epic_ref`,
 `related_refs`, `labels`, `confidence`, `size`, enrichment context
 (`context.codebase`, `context.docs`, `context.web[]`).
 
@@ -131,7 +131,7 @@ per-platform bundled file remains the fallback when no override is set).
 
 ### PR
 
-`feature_id`, `feature_title`, `branch`, `tickets[]` (list of pushed tickets),
+`story_id`, `feature_title`, `branch`, `tickets[]` (list of pushed tickets),
 `summary`, `test_plan`, `breaking_changes`, `linked_prs[]`.
 
 ### Review thread (comment posted on PR/MR/JIRA ticket)

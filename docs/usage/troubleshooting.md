@@ -117,7 +117,7 @@ Checklist:
 
 `progress.sh resume next --skill=<name>` reads `.snap/progress.json`
 `in_flight[]`. If several features are in progress in parallel, add
-`--feature-id=` explicitly.
+`--story-id=` explicitly.
 
 Inspect the state:
 
@@ -128,11 +128,11 @@ jq '.in_flight, .steps' .snap/progress.json
 Restart from scratch on a feature:
 
 ```bash
-jq 'del(.in_flight[] | select(.feature_id == "01-auth-email"))' \
+jq 'del(.in_flight[] | select(.story_id == "01-auth-email"))' \
    .snap/progress.json > .snap/progress.tmp && mv .snap/progress.tmp .snap/progress.json
 ```
 
-### Partial-match feature_id returns multiple candidates
+### Partial-match story_id returns multiple candidates
 
 Partial-match isn't in the helper (`progress.sh resume` requires an exact
 id). It's each skill's `step-00-init.md` that performs matching. Typical
@@ -142,7 +142,7 @@ error:
 Multiple features match 'auth': 01-auth-email, 02-auth-sso. Be more specific.
 ```
 
-→ use the full `feature_id`.
+→ use the full `story_id`.
 
 ## Platform sync
 
@@ -157,14 +157,14 @@ not duplicate the resource.
 Inspect:
 
 ```bash
-jq '.refs' .snap/manifests/<feature_id>.manifest.json
+jq '.refs' .snap/manifests/<story_id>.manifest.json
 ```
 
 `pending` = not yet pushed (offline first run, or silent failure).
 Replay:
 
 ```text
-/snap:fetch <feature_id>       # re-sync from remote (read)
+/snap:fetch <story_id>       # re-sync from remote (read)
 ```
 
 For forced repush: re-run the skill that produced the ref

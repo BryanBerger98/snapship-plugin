@@ -93,7 +93,7 @@ After Phase 2 OK:
 
 ```bash
 type=$(jq -r '.type // "feat"' <<<"$ticket_json")
-scope=$(jq -r '.feature_id' <<<"$ticket_json" | sed 's/^[0-9]*-//')
+scope=$(jq -r '.story_id' <<<"$ticket_json" | sed 's/^[0-9]*-//')
 title=$(jq -r '.title' <<<"$ticket_json")
 local_id=$(jq -r '.local_id' <<<"$ticket_json")
 
@@ -101,7 +101,7 @@ git add -A   # restricted to files Phase 1 touched (skill tracks file set)
 git commit -m "$(printf "%s(%s): %s (%s)\n" "$type" "$scope" "$title" "$local_id")"
 sha=$(git rev-parse HEAD)
 
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 tmp=$(mktemp)
 jq --arg lid "$local_id" --arg sha "$sha" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '(.tickets[] | select(.local_id == $lid))
@@ -122,7 +122,7 @@ git add -A && git commit --amend --no-edit
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=03a \
   --step-name=standalone \
   --status=ok
@@ -132,7 +132,7 @@ bash skills/_shared/progress.sh step \
 
 - Phase 1 validate green.
 - Phase 2 aggregated severity below thresholds (or fail_strategy resolved).
-- `commit_sha` set in `.snap/tickets/${feature_id}.json`.
+- `commit_sha` set in `.snap/tickets/${story_id}.json`.
 
 ## Next step
 

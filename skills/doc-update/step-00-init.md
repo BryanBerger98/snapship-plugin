@@ -19,7 +19,7 @@ Validate prerequisites. Fail loud, fail early.
    ```
 
 2. **Parse args** from `/snap:doc-update`:
-   - `--feature=NN-slug` (required; partial-match on `feature_id`)
+   - `--feature=NN-slug` (required; partial-match on `story_id`)
    - `--mode=diff|rewrite` (optional; overrides `documentation.auto_update_mode`)
    - `--dry-run` (default false)
    - `-a` / `--auto` (default false)
@@ -45,7 +45,7 @@ Validate prerequisites. Fail loud, fail early.
    bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID"
+     --story-id="$FEATURE_ID"
    ```
 
 5. **Validate feature state**:
@@ -123,7 +123,7 @@ Validate prerequisites. Fail loud, fail early.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID" \
+     --story-id="$FEATURE_ID" \
      --step-num=00 \
      --step-name=init \
      --status=ok

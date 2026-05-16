@@ -32,7 +32,7 @@ jour `manifests/{slug}.manifest.json.refs.*.synced_at` + `sync_status=synced`.
 /snap:fetch [--feature=SLUG] [--kind=prd|design|wireframe|tickets|all] [--all] [--check] [--dry-run]
 ```
 
-- `--feature=SLUG` : feature_id ciblée (ex: `01-auth`). Sans, dépend de `--all`.
+- `--feature=SLUG` : story_id ciblée (ex: `01-auth`). Sans, dépend de `--all`.
 - `--kind=K` : type de ressource (défaut `all` si feature passée).
 - `--all` : toutes les features du workspace.
 - `--check` : **opt-in désync detection**. Ne télécharge rien.

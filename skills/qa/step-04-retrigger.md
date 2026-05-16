@@ -22,7 +22,7 @@ post-QA diff.
 ### A. Compute post-QA diff
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 sha=$(jq -r --arg lid "$lid" \
   '.tickets[] | select(.local_id == $lid).commit_sha' \
   "$tickets_file")
@@ -75,7 +75,7 @@ if [ "$dc_enabled" = "true" ]; then
     '.tickets[] | select(.local_id==$lid)
      | (.design_screen // "")' "$tickets_file")
   if [ -n "$asset" ]; then
-    design_dir=".snap/designs/${feature_id}"
+    design_dir=".snap/designs/${story_id}"
     case "$dc_mode" in
       asset-presence)
         if ! find "$design_dir" -maxdepth 1 -name "${asset}*" -print -quit 2>/dev/null | grep -q .; then
@@ -100,7 +100,7 @@ If `design_check_fail` set, surface it in the ticket's blocked feedback.
 ### E. Persist
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 tmp=$(mktemp)
 jq --arg lid "$lid" --arg sev "$overall" --argjson v "$verdicts_json" \
   '(.tickets[] | select(.local_id == $lid))
@@ -128,7 +128,7 @@ bash skills/_shared/telemetry.sh log \
   --step-num=04 --step-name=retrigger --status=$status
 
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --step-num=04 --step-name=retrigger --status=$status \
   --note="$lid overall=$overall"
 ```

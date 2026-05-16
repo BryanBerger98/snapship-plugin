@@ -271,7 +271,7 @@
         },
         "naming_pattern": {
           "type": "string",
-          "default": "{feature_id}-{screen_name}"
+          "default": "{story_id}-{screen_name}"
         },
         "frame0": {
           "type": "object",
@@ -298,7 +298,7 @@
           "properties": {
             "export_dir": {
               "type": "string",
-              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.snap/wireframes/{feature_id}/` résolu runtime."
+              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.snap/wireframes/{story_id}/` résolu runtime."
             },
             "file_id": {
               "type": "string",
@@ -349,7 +349,7 @@
         },
         "naming_pattern": {
           "type": "string",
-          "default": "{feature_id}-{screen_name}-design"
+          "default": "{story_id}-{screen_name}-design"
         },
         "mode_defaults": {
           "type": "object",
@@ -412,7 +412,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "feature_slug_max_length": {
+        "story_slug_max_length": {
           "type": "integer",
           "minimum": 10,
           "maximum": 100,

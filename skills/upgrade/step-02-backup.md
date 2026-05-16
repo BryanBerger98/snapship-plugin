@@ -36,7 +36,7 @@ Snapshot complet du workspace courant pour rollback en cas d'échec.
    ```bash
    bash skills/_shared/telemetry.sh log --skill=upgrade --step-num=02 --step-name=backup --status=ok \
      --extra="$(jq -nc --arg p "$BACKUP_DIR" '{backup_path:$p}')"
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=02 --step-name=backup --status=ok
    ```
 

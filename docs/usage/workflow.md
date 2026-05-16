@@ -123,7 +123,7 @@ Any failed MCP/CLI call (timeout, auth, API error):
   3. Displays clear message:
      - Likely cause (expired auth, MCP server down, rate limit)
      - Required user action (re-auth, restart MCP, wait)
-     - Resume command: `/<skill> -r {feature_id}`
+     - Resume command: `/<skill> -r {story_id}`
   4. Non-zero exit → workflow stops cleanly
 ```
 

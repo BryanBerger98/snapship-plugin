@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# apply-naming.sh — render feature_id / branch / commit names from config.naming.*
+# apply-naming.sh — render story_id / branch / commit names from config.naming.*
 # Reads config via load-config.sh, applies template + slug rules.
 #
 # Usage:
-#   apply-naming.sh --type=feature_id --context='{"nn":"01","name":"User Authentication"}'
+#   apply-naming.sh --type=story_id --context='{"nn":"01","name":"User Authentication"}'
 #       → 01-user-authentication
 #   apply-naming.sh --type=branch --context='{"type":"feat","ticket_id":"AUTH-3","slug":"login-form"}'
 #       → feat/AUTH-3-login-form
@@ -26,18 +26,18 @@ Usage: apply-naming.sh --type=TYPE --context=JSON [OPTIONS]
 Renders names according to config.naming templates.
 
 Required:
-  --type=feature_id|branch|commit  Naming type
+  --type=story_id|branch|commit  Naming type
   --context=JSON                    Variables for template substitution
 
 Vars per type:
-  feature_id  {nn} (zero-padded number) {name} (slugified, truncated)
+  story_id  {nn} (zero-padded number) {name} (slugified, truncated)
               Format hardcoded: NN-kebab
   branch      {type} {ticket_id} {slug} (template = config.naming.branch_pattern)
   commit      {type} {scope} {message} (template = config.naming.commit_pattern)
 
 Options:
   --project-root=PATH      Project root for config (default: \$PWD)
-  --slug-max-length=N      Override config.naming.feature_slug_max_length
+  --slug-max-length=N      Override config.naming.story_slug_max_length
   --branch-pattern=TPL     Override branch template
   --commit-pattern=TPL     Override commit template
   -h, --help               Show this help
@@ -66,8 +66,8 @@ done
 [ -z "$CONTEXT" ] && { echo "ERROR: --context required" >&2; exit 1; }
 
 case "$TYPE" in
-  feature_id|branch|commit) ;;
-  *) echo "ERROR: --type must be feature_id|branch|commit" >&2; exit 1 ;;
+  story_id|branch|commit) ;;
+  *) echo "ERROR: --type must be story_id|branch|commit" >&2; exit 1 ;;
 esac
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
@@ -105,7 +105,7 @@ slugify() {
 # Resolve config (only if needed)
 needs_config=false
 case "$TYPE" in
-  feature_id) [ -z "$SLUG_MAX_OVERRIDE" ] && needs_config=true ;;
+  story_id) [ -z "$SLUG_MAX_OVERRIDE" ] && needs_config=true ;;
   branch)     [ -z "$BRANCH_PATTERN_OVERRIDE" ] && needs_config=true ;;
   commit)     [ -z "$COMMIT_PATTERN_OVERRIDE" ] && needs_config=true ;;
 esac
@@ -118,11 +118,11 @@ if [ "$needs_config" = true ]; then
 fi
 
 case "$TYPE" in
-  feature_id)
+  story_id)
     nn=$(echo "$CONTEXT" | jq -r '.nn // ""')
     name=$(echo "$CONTEXT" | jq -r '.name // ""')
-    [ -z "$nn" ]   && { echo "ERROR: context.nn required for feature_id" >&2; exit 1; }
-    [ -z "$name" ] && { echo "ERROR: context.name required for feature_id" >&2; exit 1; }
+    [ -z "$nn" ]   && { echo "ERROR: context.nn required for story_id" >&2; exit 1; }
+    [ -z "$name" ] && { echo "ERROR: context.name required for story_id" >&2; exit 1; }
     if ! [[ "$nn" =~ ^[0-9]+$ ]]; then
       echo "ERROR: context.nn must be integer" >&2
       exit 1
@@ -132,7 +132,7 @@ case "$TYPE" in
     if [ -n "$SLUG_MAX_OVERRIDE" ]; then
       maxlen="$SLUG_MAX_OVERRIDE"
     else
-      maxlen=$(echo "$CONFIG" | jq -r '.naming.feature_slug_max_length // 40')
+      maxlen=$(echo "$CONFIG" | jq -r '.naming.story_slug_max_length // 40')
     fi
     slug=$(slugify "$name" "$maxlen")
     [ -z "$slug" ] && { echo "ERROR: name produced empty slug" >&2; exit 1; }

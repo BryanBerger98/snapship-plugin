@@ -124,7 +124,7 @@ echo "[12] real prd-feature.md template"
 DIR=$(mktemp -d -t snap-rdr-XXXXXX)
 cat > "$DIR/ctx.json" <<'JSON'
 {
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "feature_title": "Auth",
   "feature_status": "refined",
   "priority": "must",

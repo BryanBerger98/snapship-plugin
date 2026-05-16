@@ -6,7 +6,7 @@ description: Promote draft → .snap/tickets/{fid}.json, ack manifest.refs.ticke
 # step-06 — index
 
 Final step. Promote the draft to the canonical
-`.snap/tickets/${feature_id}.json` (cache pointing at remote tickets), ack the
+`.snap/tickets/${story_id}.json` (cache pointing at remote tickets), ack the
 batch into `manifest.refs.tickets` via `sync-push.sh ack`, validate, drop the
 draft.
 
@@ -17,15 +17,15 @@ This step has no `next_step` — it is terminal.
 ### A. Promote draft → tickets.json
 
 ```bash
-src=".snap/tickets/${feature_id}.draft.json"
-dst=".snap/tickets/${feature_id}.json"
+src=".snap/tickets/${story_id}.draft.json"
+dst=".snap/tickets/${story_id}.json"
 NOW=$(date -u +%FT%TZ)
 
-jq --arg fid "$feature_id" \
+jq --arg fid "$story_id" \
    --arg plat "$platform" \
    --arg ts "$NOW" '
   {
-    feature_id: $fid,
+    story_id: $fid,
     platform: $plat,
     synced_at: $ts,
     tickets: [
@@ -59,7 +59,7 @@ jq --arg fid "$feature_id" \
 
 ```bash
 ajv validate -s skills/_shared/schemas/tickets.schema.json \
-  -d ".snap/tickets/${feature_id}.json" \
+  -d ".snap/tickets/${story_id}.json" \
   --spec=draft2020 --strict=false
 ```
 
@@ -75,7 +75,7 @@ ANCHOR_URL=$(jq -r '.tickets[0].url // ""' "$dst")
 
 bash skills/_shared/sync-push.sh ack \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=tickets \
   --platform="$platform" \
   --url="$ANCHOR_URL" \
@@ -90,7 +90,7 @@ in place (it is the persistent reference cache, not transient staging — unlike
 Re-validate manifest :
 ```bash
 ajv validate -s skills/_shared/schemas/manifest.schema.json \
-  -d ".snap/manifests/${feature_id}.manifest.json" \
+  -d ".snap/manifests/${story_id}.manifest.json" \
   --spec=draft2020 --strict=false
 ```
 
@@ -101,14 +101,14 @@ Update manifest `state` from `defined` → `ticketed` :
 ```bash
 tmp=$(mktemp)
 jq --arg ts "$NOW" '.state = "ticketed" | .updated_at = $ts' \
-  ".snap/manifests/${feature_id}.manifest.json" > "$tmp" \
-  && mv "$tmp" ".snap/manifests/${feature_id}.manifest.json"
+  ".snap/manifests/${story_id}.manifest.json" > "$tmp" \
+  && mv "$tmp" ".snap/manifests/${story_id}.manifest.json"
 ```
 
 ### E. Cleanup
 
 ```bash
-trash ".snap/tickets/${feature_id}.draft.json"
+trash ".snap/tickets/${story_id}.draft.json"
 ```
 
 (Use `trash` per global rule, not `rm`.)
@@ -127,7 +127,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=ticket \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=06 \
   --step-name=index \
   --status=ok
@@ -135,16 +135,16 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=ticket \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --status=ok
 ```
 
 ## Acceptance check
 
-- `.snap/tickets/${feature_id}.json` exists, validates, has ≥ 1 entry.
+- `.snap/tickets/${story_id}.json` exists, validates, has ≥ 1 entry.
 - `manifest.refs.tickets.sync_status = "synced"`.
 - Manifest `state = "ticketed"`.
-- `.snap/tickets/${feature_id}.draft.json` removed.
+- `.snap/tickets/${story_id}.draft.json` removed.
 - `progress.json.in_flight` no longer contains a `ticket` entry for the
   feature.
 

@@ -10,7 +10,7 @@
 #                         Create empty state file with frontmatter.
 #   set KEY VALUE         Set a top-level scalar key (vision, north_star_metric,
 #                         north_star_current, north_star_target, target_horizon,
-#                         lang, mode, active_feature_id).
+#                         lang, mode, active_story_id).
 #   get KEY               Print scalar value (empty if unset).
 #   add-persona JSON      Append a persona object {persona_name, persona_role,
 #                         persona_goals, persona_pains, persona_tools}.
@@ -27,7 +27,7 @@
 #     ending in -s/-es/-ed/-ing/-ize/-ise OR a known small verb list)
 #   - north_star_metric, current, target, horizon all non-empty
 #   - personas array non-empty; each has role + goals + pains
-#   - features array non-empty; ≥1 has priority=must; no duplicate feature_id
+#   - features array non-empty; ≥1 has priority=must; no duplicate story_id
 #   - For each "refined" feature: problem_statement ≥30 chars, ≥1 AC,
 #     in_scope/out_of_scope non-empty, solution_overview non-empty
 #
@@ -108,7 +108,7 @@ cmd_init() {
       created_at: $created,
       lang: $lang,
       mode: $mode,
-      active_feature_id: $feature,
+      active_story_id: $feature,
       vision: "",
       north_star_metric: "",
       north_star_current: "",
@@ -125,7 +125,7 @@ cmd_set() {
   local key="$1" val="$2"
   case "$key" in
     vision|north_star_metric|north_star_current|north_star_target|target_horizon|\
-lang|mode|active_feature_id) ;;
+lang|mode|active_story_id) ;;
     *) echo "ERROR: unsupported key: $key" >&2; return 2 ;;
   esac
   local f tmp
@@ -231,13 +231,13 @@ cmd_validate() {
     [ "$must_count" -ge 1 ] || errs+=("features: no must-priority feature")
 
     local dup
-    dup=$(jq -r '[.features[].feature_id] | group_by(.) | map(select(length > 1) | .[0]) | join(",")' "$f")
-    [ -z "$dup" ] || errs+=("features: duplicate feature_id(s): $dup")
+    dup=$(jq -r '[.features[].story_id] | group_by(.) | map(select(length > 1) | .[0]) | join(",")' "$f")
+    [ -z "$dup" ] || errs+=("features: duplicate story_id(s): $dup")
 
     while IFS= read -r feat; do
       local status fid
       status=$(echo "$feat" | jq -r '.feature_status // "draft"')
-      fid=$(echo "$feat" | jq -r '.feature_id // "_anon_"')
+      fid=$(echo "$feat" | jq -r '.story_id // "_anon_"')
       if [ "$status" = "refined" ]; then
         local ps so isc oos ac
         ps=$(echo "$feat"  | jq -r '.problem_statement // ""')
