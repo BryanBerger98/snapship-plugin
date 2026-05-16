@@ -11,7 +11,15 @@ Bootstrap a `/snap:ticket` run for a single feature.
 ## Tasks
 
 1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--platform=…`,
-   `--max-stories=N`, `--dry-run`.
+   `--max-stories=N`, `--dry-run`, `--standalone`, `--auto`,
+   `--keep-runtime` (debug — skip purge at step-06).
+
+   - `--standalone` (v1.2) — opt-in mode: skip PRD load (step-01 short-circuit),
+     forbid `story_type=epic` in drafts (decision #5). Use when ticket flow is
+     run outside of a `/snap:define` context (ad-hoc bug, isolated task, etc).
+   - `--auto` (v1.2) — bulk mode: hierarchy clustering + metadata assignment
+     decided by inline LLM with explicit warn ; user confirms en bloc post-format.
+     Requires TTY for the final confirm, else falls back to fail-clean error.
 
 2. **Require config + load** :
    ```bash
@@ -73,7 +81,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
      `story_id` pre-loaded. Skip the rest of this step.
    - Empty → fall through to step-00 fresh.
 
-5. **Resolve `story_id`** : if not passed and not resumed :
+5. **Resolve `story_id`** (skipped if `--standalone`) : if not passed and not resumed :
    - Single manifest in `.snap/manifests/*.manifest.json` (excluding
      `_taxonomy.json`) → use it.
    - Multiple → `AskUserQuestion` with the list of `story_id` options.
@@ -84,16 +92,42 @@ Bootstrap a `/snap:ticket` run for a single feature.
    with the candidate list.
 
 6. **Pre-flight checks** :
-   - Manifest exists : `.snap/manifests/${story_id}.manifest.json`.
-   - Manifest has `refs.prd.sync_status = "synced"` (PRD already published —
-     prerequisite for ticketing). If not synced, abort with pointer to
-     `/snap:define --resume --feature=$story_id`.
+   - `--standalone` mode: skip manifest + PRD checks. `story_id` defaults to
+     `_standalone` for progress.sh bookkeeping. Forbid `story_type=epic` on
+     drafts produced downstream (decision #5 — Epic always implies a structured
+     PRD parent).
+   - Normal mode:
+     - Manifest exists : `.snap/manifests/${story_id}.manifest.json`.
+     - Manifest has `refs.prd.sync_status = "synced"` (PRD already published —
+       prerequisite for ticketing). If not synced, abort with pointer to
+       `/snap:define --resume --feature=$story_id`.
    - Tickets-adapter MCP / CLI requirements met :
      ```bash
      bash skills/_shared/check-mcp-required.sh --skill=ticket --project-root="$PWD"
      ```
 
-7. **Register skill run + first step** :
+7. **Initialize ephemeral runtime cache** (v1.2 — decision #2) :
+
+   Skill-scoped subject directory under `.snap/.runtime/<subject-id>/` holds
+   draft tickets, tracker context, and bulk decision artefacts. Purged at
+   step-06 (success or failure) unless `--keep-runtime` debug flag set.
+
+   ```bash
+   SUBJECT_ID=$(bash skills/_shared/cache-runtime.sh id-gen --prefix=ticket)
+   bash skills/_shared/cache-runtime.sh init "$SUBJECT_ID" --project-root="$PWD"
+
+   # Trap purge — every exit path (success, failure, signal) cleans up
+   # the subject directory. --keep-runtime opts out (debug only).
+   if [ "${KEEP_RUNTIME:-false}" != "true" ]; then
+     trap 'bash skills/_shared/cache-runtime.sh purge "$SUBJECT_ID" --project-root="$PWD" >/dev/null 2>&1 || true' EXIT
+   fi
+   ```
+
+   Record `SUBJECT_ID` in context — all subsequent steps reference it for
+   read/write of ephemeral state. Persistent artefacts (`.snap/tickets/`,
+   manifests, progress.json) are NOT in this cache.
+
+8. **Register skill run + first step** :
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
@@ -112,13 +146,19 @@ Bootstrap a `/snap:ticket` run for a single feature.
 | `platform`     | config / arg | step-04 (template), step-05 (adapter) |
 | `max_stories`  | arg (default 12) | step-02 |
 | `dry_run`      | arg / env | step-05 |
+| `standalone`   | `--standalone` arg | step-01 (skip PRD), step-04 (refuse epic), step-05 |
+| `auto_mode`    | `--auto` arg | step-03b, step-03c (clustering / metadata) |
+| `keep_runtime` | `--keep-runtime` arg | step-06 (skip purge) |
+| `SUBJECT_ID`   | `cache-runtime.sh id-gen` | step-01..06 (ephemeral state) |
 | `CONFIG_JSON`  | `load-config.sh` stdout | step-04 (templates config), step-05 |
 
 ## Acceptance check
 
-- `story_id` resolved.
-- Manifest exists with `refs.prd.sync_status = "synced"`.
+- `story_id` resolved (skipped when `--standalone`).
+- Manifest exists with `refs.prd.sync_status = "synced"` (skipped when `--standalone`).
 - `tickets.platform != "none"`.
+- `SUBJECT_ID` generated and `.snap/.runtime/<SUBJECT_ID>/` exists.
+- EXIT trap registered for purge (unless `--keep-runtime`).
 - `progress.json.in_flight` has a `ticket` entry with step `00 init ok`.
 
 ## Next step
