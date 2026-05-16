@@ -1,6 +1,6 @@
 {
   "name": "snap",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Workflow produit Claude Code: 6 skills enchaînables (define → ticket → wireframe → design → develop → qa). Adaptatif plateformes tickets (GitHub/GitLab/JIRA), docs (AFFiNE/Notion), wireframes (Frame0/Penpot/Figma) et maquettes hi-fi (Penpot/Figma).",
   "author": {
     "name": "Bryan Berger",
