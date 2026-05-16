@@ -127,7 +127,7 @@ ajv validate \
   --spec=draft2020 --strict=false
 ```
 
-### H. Telemetry + progress + cleanup
+### H. Telemetry + step progress
 
 ```bash
 bash skills/_shared/telemetry.sh log \
@@ -145,15 +145,34 @@ bash skills/_shared/progress.sh step \
   --step-num=00 \
   --step-name=journey-edit \
   --status=ok
-
-bash skills/_shared/progress.sh finish \
-  --project-root="$PWD" \
-  --skill=define \
-  --story-id=_global \
-  --status=ok
-
-bash skills/_shared/define-state.sh wipe --project-root="$PWD"
 ```
+
+### I. Chain to next mode (or finish)
+
+Frontmatter is terminal by default. Runtime branches dynamically based on
+the user's intent — avoids re-invoking `/snap:define`, re-loading SKILL.md
+and re-running the routeur.
+
+`AskUserQuestion` (multiSelect: false) :
+
+> "Parcours saisi. Continuer ?"
+> - "Mode vision — édit workspace produit"
+> - "Mode story — générer un PRD livrable"
+> - "Terminé"
+
+- **Terminé** : call `progress.sh finish --status=ok` then
+  `define-state.sh wipe`. Stop.
+- **Mode vision** : do NOT call `finish` or `wipe`. Patch the state mode
+  and re-enter the vision handler in the same session :
+  ```bash
+  bash skills/_shared/define-state.sh init \
+    --project-root="$PWD" --define-mode=vision
+  ```
+  Then jump to `step-00-vision-edit.md` (skip the routeur confirmation
+  prompt — the user already confirmed by picking this option).
+- **Mode story** : same idea, swap `--define-mode=story` and jump to
+  `step-00-story-init.md`. The current `progress` skill-run entry stays
+  open and accumulates the story steps.
 
 ## What this step does NOT do
 
@@ -170,4 +189,6 @@ bash skills/_shared/define-state.sh wipe --project-root="$PWD"
 
 ## Next step
 
-_None — terminal step._
+_Terminal by default — runtime branching in Task I may chain to
+`step-00-vision-edit.md` or `step-00-story-init.md` without exiting
+the session._
