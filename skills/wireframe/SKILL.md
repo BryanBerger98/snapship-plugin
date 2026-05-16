@@ -1,7 +1,7 @@
 ---
 name: wireframe
 description: Generate low-fi wireframes for UI tickets through a configured wireframe MCP platform (Frame0, Penpot, or Figma), build a Docs Gallery page, and back-link wireframe URLs into the tickets.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
 # /wireframe — UI ticket → wireframes skill

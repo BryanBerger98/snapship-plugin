@@ -1,7 +1,7 @@
 ---
 name: qa
 description: Validate one developed ticket — fetch ticket live (tracker = source), apply story_type filters (task/bug skip UI checks, Epic refused), run regression (scope=impacted via code-review-graph), wireframe diff (Playwright vs Frame0), spawn code-reviewer-qa, cycle dev fixes via amend, optional retrigger of /develop reviewers.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Task
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
 # /qa — validate developed ticket skill (v1.2)

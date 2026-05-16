@@ -121,7 +121,32 @@ no `.snap/tickets/` reads.
    Cache `$files` in `.snap/.runtime/${subject_id}/files.txt` — drives step-01
    regression scoping and step-04 reviewer fan-out.
 
-8. **Telemetry + progress**:
+8. **Spawn `snap-ticket-digest` (consumer=qa)** :
+
+   Issue a single `Agent` call so step-01-collect + step-04-retrigger reuse a
+   single condensed brief instead of re-reading `ticket.json` each time :
+
+   ```
+   subagent_type: snap-ticket-digest
+   prompt: |
+     {ticket_id}: <PLATFORM_ID>
+     {raw_payload}: <merged JSON: {ticket: <ticket.json>, parent: <parent fetch when applicable>}>
+     {linked_docs}: ""
+     {consumer}: "qa"
+   ```
+
+   Parse the last ` ```json ` fence and persist :
+
+   ```bash
+   printf '%s' "$digest_json" \
+     | bash skills/_shared/cache-runtime.sh write "$subject_id" digest.json \
+         --project-root="$PWD"
+   ```
+
+   On parse failure, log a `digest_error` event via `progress.sh step
+   --status=warn` and continue using the raw ticket.
+
+9. **Telemetry + progress**:
    ```bash
    bash skills/_shared/telemetry.sh log \
      --project-root="$PWD" --skill=qa \

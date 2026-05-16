@@ -1,7 +1,7 @@
 ---
 name: design
 description: Generate hi-fi mockups for a ticket (or every UI ticket of a feature) through a configured design platform (Penpot or Figma). Optional, parallel or sequential to /wireframe.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
 # /design — hi-fi mockup skill

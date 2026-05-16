@@ -144,6 +144,25 @@ If `wireframes.platform != design.platform` or the wireframes binding is also
 empty → plain `AskUserQuestion` asking for the design file binding (current
 opened file in browser/Desktop), same UX as `/wireframe` step-00.
 
+## 6b. Spawn `snap-ticket-digest` (consumer=designer)
+
+For each entry in `target_tickets[]`, spawn `snap-ticket-digest` with
+`consumer="designer"` so step-02-mockup reads the designer-tailored brief
+from cache instead of the raw tracker payload :
+
+```
+subagent_type: snap-ticket-digest
+prompt: |
+  {ticket_id}: <platform_id>
+  {raw_payload}: <merged JSON: {ticket: <ticket fetched from tracker>, parent: <parent_story / parent_epic fetched from tracker>}>
+  {linked_docs}: <inlined content of wireframe_url body when present>
+  {consumer}: "designer"
+```
+
+Persist one `digest-<platform_id>.json` per ticket under the runtime
+cache. On parse failure, log a `digest_error` event and fall back to the
+raw ticket payload.
+
 ## 7. Persist platform state
 
 Write `ds_platform`, resolved `$helper` path, `target_tickets[]`,

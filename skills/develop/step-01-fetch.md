@@ -92,21 +92,36 @@ handoff=$(jq -r '
 [ -n "$handoff" ] && echo "$handoff"
 ```
 
-### E. Plug-in point — `snap-ticket-digest`
+### E. Spawn `snap-ticket-digest` (consumer=developer)
 
-Phase H will introduce a `snap-ticket-digest` subagent that distills
-`ticket.json + parent.json + refs.json` into a compact developer brief. Until
-then, the raw cache files are passed downstream. Plug-in point :
+Condense the raw cache into a developer-tailored brief. The skill spawns
+the subagent **once** here ; downstream steps (prepare / sync) consume
+`digest.json` from the cache instead of re-reading the full payload.
+
+Issue a single `Agent` call :
+
+```
+subagent_type: snap-ticket-digest
+prompt: |
+  {ticket_id}: <jq -r '.platform_id' ticket.json>
+  {raw_payload}: <merged JSON: {ticket: <ticket.json>, parent: <parent.json>, refs: <refs.json>}>
+  {linked_docs}: <inlined content of doc_url body if fetched in step-00, else empty>
+  {consumer}: "developer"
+```
+
+Parse the **last** ` ```json ` fence from the response. Persist the
+`brief_md` payload to the cache so step-02-prepare reads it instead of the
+raw ticket :
 
 ```bash
-# Phase H wire (placeholder)
-# digest_json=$(bash skills/_shared/spawn-agent.sh snap-ticket-digest \
-#   --ticket="$SUBJECT_ID/ticket.json" \
-#   --parent="$SUBJECT_ID/parent.json" \
-#   --refs="$SUBJECT_ID/refs.json")
-# printf '%s' "$digest_json" \
-#   | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" digest.json
+printf '%s' "$digest_json" \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" digest.json \
+      --project-root="$PWD"
 ```
+
+If the subagent fails (unparseable JSON / empty response), fall back to
+passing the raw cache files downstream and log a `digest_error` event via
+`progress.sh step --status=warn`. The skill does not abort.
 
 ### F. Sync ticket status (idempotent)
 

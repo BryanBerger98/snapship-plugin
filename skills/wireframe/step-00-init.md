@@ -178,7 +178,26 @@ export "$figma_token_env=$figma_token"
    - PRD (`.snap/PRDs/${story_id}.md` or rehydrated from `manifest.refs.prd`)
      mentions ≥ 1 wireframe screen ID (otherwise skip — feature is non-UI).
 
-8. **Append progress**:
+8. **Spawn `snap-ticket-digest` (consumer=designer, conditional)** :
+
+   When the run targets a refactor of an existing ticket (positional
+   `<platform_id>` passed instead of a feature `story_id`), spawn the
+   digest once so step-02-design has a designer-tailored brief instead of
+   re-reading the full tracker payload :
+
+   ```
+   subagent_type: snap-ticket-digest
+   prompt: |
+     {ticket_id}: <PLATFORM_ID>
+     {raw_payload}: <merged JSON: {ticket: <fetched ticket>, parent: <parent_story / parent_epic>}>
+     {linked_docs}: ""
+     {consumer}: "designer"
+   ```
+
+   Persist to `.snap/.runtime/<subject>/digest.json`. Skip entirely when
+   the run targets a fresh feature (no existing ticket to condense).
+
+9. **Append progress**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
@@ -188,6 +207,8 @@ export "$figma_token_env=$figma_token"
      --step-name=init \
      --status=ok
    ```
+
+
 
 ## Acceptance check
 
