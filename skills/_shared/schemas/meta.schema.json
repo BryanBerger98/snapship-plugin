@@ -102,9 +102,14 @@
       "enum": ["github", "gitlab", "jira"],
       "description": "Plateforme tickets pour cette feature (cache pour résolution rapide)"
     },
-    "epic_link": {
+    "parent_epic_id": {
+      "type": ["string", "null"],
+      "description": "Tracker ID de l'Epic parent de la User Story (cache local du lookup tracker). null = pas d'Epic parent."
+    },
+    "target_version": {
       "type": "string",
-      "description": "Optionnel — lien parent epic (JIRA epic key, GH milestone, etc.)"
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Version release cible (semver). Optionnel, miroir du champ ticket — utile aux skills (/develop, /qa) pour résoudre la version sans relookup tracker."
     },
     "tags": {
       "type": "array",
