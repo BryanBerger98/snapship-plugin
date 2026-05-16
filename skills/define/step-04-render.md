@@ -92,16 +92,31 @@ JOURNEYS_JSON=$(jq -c --arg fid "$fid" \
 PRIORITY=$(jq -r --arg fid "$fid" \
   '.features[] | select(.story_id == $fid) | .priority' \
   .snap/.define-state.json)
+PARENT_EPIC_ID=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_id // ""' \
+  .snap/.define-state.json)
+PARENT_EPIC_TITLE=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_title // ""' \
+  .snap/.define-state.json)
+PARENT_EPIC_PENDING=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_pending // false' \
+  .snap/.define-state.json)
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 tmp=$(mktemp)
 jq --arg prio "$PRIORITY" \
    --argjson domains "$DOMAINS_JSON" \
    --argjson journeys "$JOURNEYS_JSON" \
+   --arg pepic "$PARENT_EPIC_ID" \
+   --arg petitle "$PARENT_EPIC_TITLE" \
+   --argjson ppending "$PARENT_EPIC_PENDING" \
    --arg ts "$NOW" '
   .priority = $prio
   | .domains = $domains
   | .impacted_journeys = $journeys
+  | (if $pepic != "" then .parent_epic_id = $pepic else . end)
+  | (if $petitle != "" then .parent_epic_title = $petitle else . end)
+  | (if $ppending == true then .parent_epic_pending = true else . end)
   | .updated_at = $ts
 ' "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
 ```

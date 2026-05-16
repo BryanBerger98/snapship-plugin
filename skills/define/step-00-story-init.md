@@ -1,10 +1,10 @@
 ---
-step: 00-init
+step: 00-story-init
 next_step: 01-vision
-description: Parse args, require snap.config.json, detect codebase, branch greenfield vs extension.
+description: Mode story — parse args, require snap.config.json, detect codebase, branch greenfield vs extension. Entry when define_mode=story (selected by step-00-detect-mode).
 ---
 
-# step-00 — init
+# step-00 — story init (mode story entry)
 
 Validate that the workspace was bootstrapped (`/snap:init`) and decide which
 path to follow. **Config bootstrap is not handled here** — if
