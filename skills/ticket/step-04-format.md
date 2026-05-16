@@ -84,9 +84,10 @@ For non-Epic drafts, suggest `commit_type` based on `story_type` :
 | `task` | `refactor` if title contains `refactor`/`rework` ; `chore` else | Tech work without user value. |
 | `epic` | *(omitted — Epics carry no branch/commit)* | Schema forbids `commit_sha` on epic. |
 
-User overrides remain possible at confirmation prompt. Inline LLM is the
-default — plug-in point for `snap-ticket-classifier` subagent in Phase H
-(see `.claude/plan/ticket-hierarchy-redesign/02-subagents-design.md`).
+Drafts produced by `snap-ticket-classifier` (step-02 standalone, step-03
+classify, step-03b auto-cluster) already carry `commit_type` +
+`branch_name_suggested` — reuse those values verbatim and skip the heuristic
+above. User overrides remain possible at the confirmation prompt.
 
 The chosen `commit_type` must remain in the enum :
 `feat | fix | chore | refactor | docs | test | perf | build | ci`.

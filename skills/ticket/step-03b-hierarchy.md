@@ -71,14 +71,31 @@ forbidden.
 
 ### `--auto` (bulk)
 
-1. Inline LLM proposes a full clustering in one shot — plug-in point for
-   `snap-ticket-classifier` subagent in Phase H.
+1. Spawn `snap-ticket-classifier` in `auto` mode (sub-task `cluster`) :
+
+   ```
+   subagent_type: snap-ticket-classifier
+   prompt: |
+     {raw_input}: <JSON dump of current drafts.json>
+     {tracker_context}: <contents of .snap/.runtime/<SUBJECT_ID>/tracker-context.json>
+     {conventions}: <relevant CLAUDE.md excerpts>
+     {mode}: "auto"
+     {parent_hint}: <story_id if normal mode, else null>
+   ```
+
+   Parse the last ` ```json ` fence. Each returned ticket carries
+   `parent_epic_id` / `parent_story_id` filled per the parent-child matrix
+   the classifier enforces internally.
+
 2. Surface the proposed mapping as a single table to the user with one
    `AskUserQuestion` :
    - « Clustering proposé OK pour les N tickets ? »
    - « Éditer (retomber en mode interactif) »
-3. Warn explicitly when the heuristic is low-confidence (no clear parent
-   noun match, no shared module).
+
+3. Warn explicitly when `confidence < 0.7` per ticket — surface the
+   classifier `rationale` + `warnings[]` to justify each parent guess.
+   If the user falls back to interactive, drop the classifier output and
+   re-run the interactive path on the original drafts.
 
 ## Tasks
 

@@ -74,22 +74,28 @@ Return: <≤ 200 words, the specific format>
    }
    ```
 
-4. **Classify `story_type`** — for each draft, set
-   `story_type ∈ {epic, user-story, task, bug}` based on title + AC + scope.
-   Default `user-story`. Heuristic (plug-in point for the
-   `snap-ticket-classifier` subagent in Phase H — see
-   [02-subagents-design](../../../.claude/plan/ticket-hierarchy-redesign/02-subagents-design.md)):
+4. **Classify `story_type`** — drafts arriving from step-02 already carry
+   `story_type` when produced by `snap-ticket-classifier` (`--standalone`
+   mode). For drafts without one (normal mode), spawn the classifier in
+   `interactive-prep` mode passing the existing drafts as `raw_input` :
 
-   - **epic** — aggregates ≥ 3 child stories explicitly listed ; spans ≥ 2
-     domains ; `files` empty or extremely broad. **Forbidden in `--standalone`
-     mode** (decision #5) — surface a fail-clean error and abort.
-   - **bug** — title contains "fix"/"bug"/"regression"/"crash"/"broken" ; AC
-     reads like "should no longer …" / "stops failing when …" ; story restores
-     prior behavior rather than adding capability.
-   - **task** — technical work without direct user value (build, CI tweak,
-     dependency bump, refactor that does not change behavior). Often a child
-     of a User Story or an Epic, but standalone tasks are allowed.
-   - **user-story** — anything else (default). Adds user-facing capability.
+   ```
+   subagent_type: snap-ticket-classifier
+   prompt: |
+     {raw_input}: <JSON dump of current drafts.json>
+     {tracker_context}: <contents of .snap/.runtime/<SUBJECT_ID>/tracker-context.json>
+     {conventions}: <relevant CLAUDE.md excerpts>
+     {mode}: "interactive-prep"
+     {parent_hint}: <story_id if normal mode, else null>
+   ```
+
+   Parse the last ` ```json ` fence, merge each returned ticket's
+   `story_type` + `confidence` + `rationale` into the matching draft by
+   `local_id`. Surface `warnings[]` to the user.
+
+   `--standalone` mode hard guard : drop any draft returned with
+   `story_type=epic` (decision #5) and surface a fail-clean error before
+   continuing.
 
 5. **Active challenge** : for every draft classified as `task` that has no
    `parent_story_id` and no `parent_epic_id`, emit an explicit warning in the
