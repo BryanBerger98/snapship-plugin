@@ -5,6 +5,96 @@ All notable changes to snapship-plugin documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-05-DD
+
+**Product rename `snapship` → `snap`.** Config file, env file, manifest
+directory, schema fields, and command namespace migrate in one breaking
+release. Downstream projects must run `/snap:upgrade` to migrate.
+
+The release also redesigns ticket hierarchy around four story types
+(Epic / User Story / Task / Bug), moves persistence to the tracker as
+single source of truth, introduces an ephemeral intra-run cache, and
+ships two Haiku-backed subagents (classifier + digest) plus orchestrator
+plumbing for the four existing reviewers.
+
+### Breaking changes
+
+- **Product rename** — `snapship.config.json` → `snap.config.json`,
+  `.env.snapship` → `.env.snap`, `.snap/features/` → `.snap/stories/`.
+  Migration handled idempotently by
+  `skills/_shared/migrations/v1.1.0_to_v1.2.0.sh`.
+- **Manifest field rename** — `feature_id` → `story_id` in every
+  `meta.json`. `epic_link` dropped; replaced by `parent_epic_id` (null
+  for standalone stories).
+- **Tracker is the single source of truth** — `.snap/tickets/*.json`
+  persistent cache **removed**. `/develop`, `/qa`, `/doc-update`, and
+  `/fetch` now fetch ticket payloads live and use the ephemeral intra-run
+  cache at `.snap/.runtime/<subject-id>/` (purged on EXIT).
+- **`/develop --ticket=<platform_id>` mandatory** — drops the v1.1
+  `--feature-id=` flag. Invocation is one-ticket-per-call; the skill
+  fetches its payload from the tracker.
+- **Schema `tickets.schema.json`** — `story_type` required, enum
+  `{epic | user-story | task | bug}`. allOf rules: epic forbids
+  `branch_name` and `commit_sha`; bug forbids a `bug` parent;
+  user-story with `parent_epic_id` is the standard hierarchy edge.
+  `target_version` accepts the new degenerate-version pattern.
+- **Naming token rename** — `naming.commit_pattern` `{type}` →
+  `{commit_type}`. The original `{type}` token shadowed `story_type`
+  semantics ; `{commit_type}` makes the conventional-commit prefix
+  explicit.
+
+### Added
+
+- **Ticket hierarchy** — Epic / User Story / Task / Bug story types with
+  a strict parent-child matrix. Epic standalone forbidden; Bug→Bug
+  forbidden; Task may attach to a User Story or Epic; Bug may attach to
+  Task / User Story / Epic. See `docs/usage/concepts.md` for the matrix
+  and examples.
+- **Ephemeral runtime cache** — new helper
+  `skills/_shared/cache-runtime.sh` (read / write / list / purge).
+  Subject-id derived per skill (`story_id` for `/develop`+`/qa`,
+  `prd_slug` for `/define`). Files: `ticket.json`, `parent.json`,
+  `refs.json`, `digest.json`. Purged on shell EXIT trap.
+- **Strict hierarchical push** — `/snap:ticket` now pushes in topological
+  order: Epic → User Story → Task / Bug → Milestone → Version. Re-runs
+  are idempotent: already-pushed nodes are detected via tracker probe.
+- **Subagents** — two new Haiku-backed agents:
+  - `snap-ticket-classifier` — decompose raw input → classify
+    `story_type` → cluster into a hierarchy (auto mode) → format with
+    `commit_type` + `branch_name_suggested`. Enforces parent-child
+    matrix and returns a confidence score per ticket.
+  - `snap-ticket-digest` — produces a consumer-aware brief
+    (`developer` / `reviewer` / `designer` / `qa` profiles) from a
+    tracker payload. Read-only. Lives at the orchestrator layer so
+    parallel reviewers reuse a single brief (subagents do not nest).
+  The four existing reviewers (`snap-code-reviewer-*`) now consume the
+  digest's `brief_md` instead of a raw ticket payload.
+- **`/define` modes** — `vision` / `journey` / `story`. Auto-detected
+  from context, opt-in via `--mode=`. Vision and journey stay local;
+  story emits a PRD.
+- **Epic auto-close post-merge** — `/snap:develop` capability-gated
+  step-99 closes the parent Epic on the tracker when every child
+  User Story is `done` / `closed`. Disable per run with
+  `--no-epic-close`; capability auto-detected per platform.
+- **`/snap:upgrade` v1.1 → v1.2 migration** — idempotent, dry-run safe.
+  Backs up `.snap/` to `.snap.bak-<timestamp>/`. Honours
+  `SNAP_DECISIONS_JSON.drop_tickets_cache` (default `confirm`) and
+  `rename_env` (default `auto`).
+
+### Migration guide
+
+1. `claude /snap:upgrade --check` — dry-run; previews every move,
+   rename, and field change without writing.
+2. `claude /snap:upgrade` — runs the v1.1 → v1.2 migration. Backup
+   written to `.snap.bak-<timestamp>/`.
+3. Review the residual sweep printed by `step-04-validate`: any leftover
+   `snapship` / `feature_id` / `epic_link` references in non-snap files
+   are surfaced as warnings (e.g. CI scripts, READMEs) for manual
+   cleanup.
+4. Re-run `/snap:init` if `snap.config.json.tickets` lacks the
+   `story_type` mapping — the lazy self-heal in `step-00-init` will
+   prompt for the missing block on the next `/snap:ticket`.
+
 ## [1.1.0] — 2026-05-15
 
 ### Added — native GitHub routing (Issue Type + Projects v2)
