@@ -44,20 +44,22 @@ to `/snap:init`.
    ```
    Do not scaffold, do not write progress. Just exit.
 
-4. **Project root detection**: confirm `$PWD` is the project root (presence of
-   `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, or
-   `.git`). If not found, ask the user to confirm the path before proceeding.
-
-5. **Codebase detection**: run `detect-codebase.sh` and parse the verdict :
+4. **Project root + codebase detection**: run `detect-codebase.sh` and parse
+   the verdict. The helper is the **single source of truth** for both « is
+   `$PWD` a project root ? » and « is there an existing codebase ? » — its
+   `signals[]` array enumerates every manifest / `.git` marker found.
    ```bash
    verdict=$(bash skills/_shared/detect-codebase.sh --project-root="$PWD")
    has_codebase=$(echo "$verdict" | jq -r '.has_codebase')
    signals=$(echo "$verdict" | jq -r '.signals | join(", ")')
    ```
-   Show `signals` to the user when announcing the chosen path so they can override
-   the heuristic if needed (e.g., "Detected codebase via: package.json, .git").
+   Show `signals` to the user when announcing the chosen path so they can
+   override the heuristic if needed (e.g., "Detected codebase via:
+   package.json, .git"). If `signals` is empty AND `has_codebase=false`, ask
+   the user to confirm `$PWD` before proceeding — legit greenfield directory
+   but no signal to anchor against.
 
-6. **Update transient state file** (merge-update — the routeur step-00 already
+5. **Update transient state file** (merge-update — the routeur step-00 already
    created the file with `define_mode`. We only patch the keys this step
    owns: `codebase_mode`, `lang`, optional `active_story_id`):
    ```bash
@@ -69,7 +71,7 @@ to `/snap:init`.
    ```
 
    `codebase_mode` ∈ `{greenfield, extension}` (issu de `detect-codebase.sh`,
-   task 5 ci-dessus). Ne pas confondre avec `define_mode` ∈ `{vision, journey,
+   task 4 ci-dessus). Ne pas confondre avec `define_mode` ∈ `{vision, journey,
    story}` qui appartient au routeur.
 
    If `--epic=PARENT_EPIC_ID` was passed in Task 1, persist it now :
@@ -81,7 +83,7 @@ to `/snap:init`.
    ```
    Consumed by `step-03-features.md` Task 7 to skip the Parent Epic question.
 
-7. **Capture resolved config** into a shell variable (load-config writes nothing
+6. **Capture resolved config** into a shell variable (load-config writes nothing
    to disk in v1.0 — stdout only):
    ```bash
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
@@ -89,7 +91,7 @@ to `/snap:init`.
    Fail loud on non-zero exit. `.snap/` already exists (scaffolded by
    `/snap:init`). Subsequent steps read fields via `jq -r '...' <<<"$CONFIG_JSON"`.
 
-8. **Mode branch**:
+7. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough
      (steps 01 → 02 → 03 → 04 → 05).
    - `has_codebase = true` AND `--story` not set → **extension** path: ask the
@@ -99,7 +101,7 @@ to `/snap:init`.
    - `--story=NN-slug` set → jump straight to `step-03-features.md` and
      pre-fill `story_id`.
 
-9. **Register skill run in progress.json**:
+8. **Register skill run in progress.json**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
