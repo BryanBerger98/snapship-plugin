@@ -1,7 +1,7 @@
 ---
 name: wireframe
 description: Generate low-fi wireframes for UI tickets through a configured wireframe MCP platform (Frame0, Penpot, or Figma), build a Docs Gallery page, and back-link wireframe URLs into the tickets.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
 # /wireframe — UI ticket → wireframes skill
@@ -50,32 +50,32 @@ for the platform-specific blocks.
 /wireframe [--resume|-r] [--feature=NN-slug] [--dry-run]
 ```
 
-- `--feature` (required if multiple): target feature_id (partial-match).
+- `--feature` (required if multiple): target story_id (partial-match).
 - `--dry-run`: helpers return mock descriptors; no MCP calls, no PNGs written,
   no docs writes.
 
 ## Outputs
 
-- `.snap/wireframes/{feature_id}/{screen-id}-{state}.{png|svg|…}`
+- `.snap/wireframes/{story_id}/{screen-id}-{state}.{png|svg|…}`
   (local exports — the resolved helper handles platform-specific write path;
   format from `config.wireframes.export_format`).
 - Remote Docs Gallery page, recorded in
-  `.snap/manifests/{feature_id}.manifest.json` at `.refs.wireframes_gallery`
+  `.snap/manifests/{story_id}.manifest.json` at `.refs.wireframes_gallery`
   (`platform`, `url`, `page_id`, `synced_at`, `sync_status: "synced"`); staging
   `wireframes-gallery.md` is trashed after ack.
-- Each UI ticket in `.snap/tickets/{feature_id}.json` gains `wireframe_screen`
+- Each UI ticket in `.snap/tickets/{story_id}.json` gains `wireframe_screen`
   + `wireframe_url`.
 - Manifest `state` advances `ticketed` → `wireframed`.
 
 ## Resume protocol
 
 Same pattern as `/define` and `/ticket`: `/wireframe --resume` delegates to
-`progress.sh resume --skill=wireframe --feature-id=…`.
+`progress.sh resume --skill=wireframe --story-id=…`.
 
 ## Acceptance check
 
 - Every UI ticket flagged in step-01 has a `wireframe_url` populated in
-  `.snap/tickets/{feature_id}.json`.
+  `.snap/tickets/{story_id}.json`.
 - `manifest.refs.wireframes_gallery.sync_status = "synced"` (or step-03 skipped
   if `documentation.platform = "none"`).
 - Manifest `state = "wireframed"`.

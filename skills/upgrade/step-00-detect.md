@@ -27,8 +27,13 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
    if [ -z "$CUR" ] && ls .snap/manifests/*.manifest.json >/dev/null 2>&1; then
      CUR=$(jq -r '.schema_version // ""' .snap/manifests/*.manifest.json | head -1)
    fi
+   if [ -z "$CUR" ] && [ -f snap.config.json ]; then
+     CUR=$(jq -r '.version // ""' snap.config.json)
+   fi
    if [ -z "$CUR" ] && [ -f snapship.config.json ]; then
+     # Pré-v1.2 — ancien nom de config
      CUR=$(jq -r '.version // ""' snapship.config.json)
+     [ -z "$CUR" ] && CUR="1.1.0"
    fi
    if [ -z "$CUR" ] && [ -d .claude/product ]; then
      CUR="0.6.0"   # presumé
@@ -50,10 +55,16 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
      `$CUR` vers `$TARGET`. Versions disponibles : ...".
 
 5. **Détecte conditions** activant décisions optionnelles :
-   - `tickets_platform_missing` : `jq -r '.tickets.platform // ""' snapship.config.json`
+   - `tickets_platform_missing` : `jq -r '.tickets.platform // ""' snap.config.json`
      vide ou `inherit` non résolu.
    - `daemon_referenced` : grep `--loop=daemon` ou `daemon.sh` dans `.claude/`,
      `scripts/`, `*.sh`, `Makefile`, `package.json`.
+   - `tickets_cache_present` (v1.2) : `[ -d .snap/tickets ]` — détecte le cache
+     local v1.1 supprimé en v1.2.
+   - `legacy_env_present` (v1.2) : `[ -f .env.snapship ]` — détecte l'ancien nom
+     d'env file renommé en `.env.snap`.
+   - `tickets_platform_github` (v1.1) : `tickets.platform == "github"`.
+   - `github_projects_available` (v1.1) : `gh project list` retourne ≥ 1 projet.
 
 6. **Build plan JSON** (passe à step-01) :
    ```json
@@ -78,8 +89,8 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
 
 8. **Progress** :
    ```bash
-   bash skills/_shared/progress.sh start --skill=upgrade --feature-id=_global
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh start --skill=upgrade --story-id=_global
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=00 --step-name=detect --status=ok
    ```
 

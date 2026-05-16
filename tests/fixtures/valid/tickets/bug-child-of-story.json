@@ -1,0 +1,18 @@
+{
+  "story_id": "11-invoice-pdf",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-010",
+      "platform_id": "#150",
+      "title": "PDF tronqué sur montants > 6 chiffres",
+      "story_type": "bug",
+      "commit_type": "fix",
+      "parent_story_id": "#101",
+      "parent_epic_id": null,
+      "priority": "P1",
+      "status": "todo",
+      "branch_name": "fix/repo-150-pdf-truncated"
+    }
+  ]
+}

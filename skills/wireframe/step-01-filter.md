@@ -25,7 +25,7 @@ A ticket is "UI" if **any** of:
 1. **Run filter** via the helper (added in this phase):
    ```bash
    ui_tickets=$(bash skills/_shared/filter-ui-tickets.sh \
-     --tickets-file=".snap/tickets/${feature_id}.json")
+     --tickets-file=".snap/tickets/${story_id}.json")
    ```
    Output: array of `{local_id, title, screen_hint}` where `screen_hint` is the
    first matching keyword/path token (used to seed step-02 screen names).
@@ -43,7 +43,7 @@ A ticket is "UI" if **any** of:
    - "Proceed with these N screens"
    - "Edit list" (drop screens, rename, add states)
 
-4. **Stash** in `.snap/wireframes/${feature_id}.draft.json`:
+4. **Stash** in `.snap/wireframes/${story_id}.draft.json`:
    ```json
    {
      "ui_tickets": [...],
@@ -56,7 +56,7 @@ A ticket is "UI" if **any** of:
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=wireframe \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=01 \
      --step-name=filter \
      --status=ok

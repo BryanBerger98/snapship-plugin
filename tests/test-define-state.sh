@@ -70,7 +70,7 @@ echo ""
 echo "[5] add-feature"
 DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR"
-FT='{"feature_id":"01-auth","feature_title":"Sign-up","feature_status":"refined","priority":"must","problem_statement":"Users cannot create accounts and they are blocked from using the product.","solution_overview":"Add email signup.","acceptance_criteria":[{"ac_id":"1","ac_text":"User can sign up with email"}],"in_scope":"email","out_of_scope":"OAuth"}'
+FT='{"story_id":"01-auth","feature_title":"Sign-up","feature_status":"refined","priority":"must","problem_statement":"Users cannot create accounts and they are blocked from using the product.","solution_overview":"Add email signup.","acceptance_criteria":[{"ac_id":"1","ac_text":"User can sign up with email"}],"in_scope":"email","out_of_scope":"OAuth"}'
 bash "$SCRIPT" add-feature "$FT" --project-root="$DIR"
 F="${DIR}/.snap/.define-state.json"
 n=$(jq '.features | length' "$F")
@@ -111,7 +111,7 @@ bash "$SCRIPT" set north_star_current "0"          --project-root="$DIR"
 bash "$SCRIPT" set north_star_target "1000"        --project-root="$DIR"
 bash "$SCRIPT" set target_horizon "Q4 2026"        --project-root="$DIR"
 bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
-bash "$SCRIPT" add-feature '{"feature_id":"01-x","feature_title":"X","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"a","out_of_scope":"b"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"refined","priority":"must","problem_statement":"This is a real problem statement that is long enough.","solution_overview":"Do X.","acceptance_criteria":[{"ac_id":"1","ac_text":"AC1"}],"in_scope":"a","out_of_scope":"b"}' --project-root="$DIR"
 if bash "$SCRIPT" validate --project-root="$DIR" 2>/dev/null; then
   ok "8.1 validate happy path"
 else
@@ -132,9 +132,9 @@ else
 fi
 trash "$DIR" 2>/dev/null || true
 
-# 10. validate — duplicate feature_id
+# 10. validate — duplicate story_id
 echo ""
-echo "[10] validate — duplicate feature_id"
+echo "[10] validate — duplicate story_id"
 DIR=$(setup_dir)
 bash "$SCRIPT" init --project-root="$DIR"
 bash "$SCRIPT" set vision "$VALID_VISION"   --project-root="$DIR"
@@ -143,8 +143,8 @@ bash "$SCRIPT" set north_star_current "0"   --project-root="$DIR"
 bash "$SCRIPT" set north_star_target "1000" --project-root="$DIR"
 bash "$SCRIPT" set target_horizon "Q4 2026" --project-root="$DIR"
 bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
-bash "$SCRIPT" add-feature '{"feature_id":"01-x","feature_title":"X","feature_status":"draft","priority":"must"}' --project-root="$DIR"
-bash "$SCRIPT" add-feature '{"feature_id":"01-x","feature_title":"Y","feature_status":"draft","priority":"should"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"draft","priority":"must"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"Y","feature_status":"draft","priority":"should"}' --project-root="$DIR"
 out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1)
 echo "$out" | grep -q "duplicate" && ok "10.1 duplicate detected" || ko "10.1: $out"
 trash "$DIR" 2>/dev/null || true
@@ -160,7 +160,7 @@ bash "$SCRIPT" set north_star_current "0"   --project-root="$DIR"
 bash "$SCRIPT" set north_star_target "1000" --project-root="$DIR"
 bash "$SCRIPT" set target_horizon "Q4 2026" --project-root="$DIR"
 bash "$SCRIPT" add-persona '{"persona_name":"A","persona_role":"r","persona_goals":"g","persona_pains":"p"}' --project-root="$DIR"
-bash "$SCRIPT" add-feature '{"feature_id":"01-x","feature_title":"X","feature_status":"draft","priority":"should"}' --project-root="$DIR"
+bash "$SCRIPT" add-feature '{"story_id":"01-x","feature_title":"X","feature_status":"draft","priority":"should"}' --project-root="$DIR"
 out=$(bash "$SCRIPT" validate --project-root="$DIR" 2>&1)
 echo "$out" | grep -q "no must-priority" && ok "11.1 no-must detected" || ko "11.1: $out"
 trash "$DIR" 2>/dev/null || true

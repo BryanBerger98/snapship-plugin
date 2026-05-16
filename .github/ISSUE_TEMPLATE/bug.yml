@@ -70,7 +70,7 @@ body:
     id: env
     attributes:
       label: Environnement
-      description: OS, shell, plateformes configurées (`jq -r '.tickets.platform,.documentation.platform,.wireframes.platform,.design.platform' snapship.config.json`).
+      description: OS, shell, plateformes configurées (`jq -r '.tickets.platform,.documentation.platform,.wireframes.platform,.design.platform' snap.config.json`).
       placeholder: |
         - OS: macOS 14.5
         - Shell: zsh 5.9

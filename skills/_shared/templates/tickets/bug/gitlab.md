@@ -44,11 +44,11 @@
 
 ## References
 
-- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
+- Feature PRD: `.snap/PRDs/{{story_id}}.md`
 - First seen: {{first_seen}}
 - Related: {{related_refs}}
 
-/label ~"feature::{{feature_id}}" ~"type::bug" ~"severity::{{severity}}"
+/label ~"feature::{{story_id}}" ~"type::bug" ~"severity::{{severity}}"
 /milestone {{milestone}}
 /assign {{assignee}}
 

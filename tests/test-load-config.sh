@@ -63,7 +63,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[2] Minimal config (version only)"
 DIR=$(setup_dir)
-cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
+cp "${FIXTURES}/minimal.json" "${DIR}/snap.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "2.1 version" "1.0" "$(echo "$out" | jq -r '.version')"
 assert_eq "2.2 default qa_cycles_max" "2" "$(echo "$out" | jq -r '.qa.qa_cycles_max')"
@@ -74,7 +74,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[3] github-only fixture (inherit, user overrides)"
 DIR=$(setup_dir)
-cp "${FIXTURES}/github-only.json" "${DIR}/snapship.config.json"
+cp "${FIXTURES}/github-only.json" "${DIR}/snap.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "3.1 inherit resolved → github" "github" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "3.2 ticket_id_regex github" "#[0-9]+" "$(echo "$out" | jq -r '.naming.ticket_id_regex')"
@@ -89,7 +89,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[4] full-jira fixture"
 DIR=$(setup_dir)
-cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
+cp "${FIXTURES}/full-jira.json" "${DIR}/snap.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "4.1 jira platform" "jira" "$(echo "$out" | jq -r '.tickets.platform')"
 assert_eq "4.2 jira project_key" "PROJ" "$(echo "$out" | jq -r '.tickets.jira.project_key')"
@@ -101,11 +101,11 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[5] Invalid config rejected"
 DIR=$(setup_dir)
-cp "${INVALID}/bad-platform.json" "${DIR}/snapship.config.json"
+cp "${INVALID}/bad-platform.json" "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "5.1 bad-platform exit 1" 1 $?
 
-cp "${INVALID}/extra-field.json" "${DIR}/snapship.config.json"
+cp "${INVALID}/extra-field.json" "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "5.2 extra-field exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
@@ -114,7 +114,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[6] Unsupported version"
 DIR=$(setup_dir)
-echo '{"version":"2.0"}' > "${DIR}/snapship.config.json"
+echo '{"version":"2.0"}' > "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-validate >/dev/null 2>&1
 assert_exit "6.1 version 2.0 exit 2" 2 $?
 trash "$DIR" 2>/dev/null || true
@@ -123,7 +123,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[7] inherit without repository"
 DIR=$(setup_dir)
-echo '{"version":"1.0","tickets":{"platform":"inherit"}}' > "${DIR}/snapship.config.json"
+echo '{"version":"1.0","tickets":{"platform":"inherit"}}' > "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" --no-validate >/dev/null 2>&1
 assert_exit "7.1 unresolved inherit exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
@@ -132,7 +132,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[8] Stdout determinism (no cache file in v1.0.0)"
 DIR=$(setup_dir)
-cp "${FIXTURES}/full-jira.json" "${DIR}/snapship.config.json"
+cp "${FIXTURES}/full-jira.json" "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 if [ ! -f "${DIR}/.snap/.config-resolved.json" ]; then
   echo "  PASS  8.1 no cache file written (v1.0.0 stdout-only)"
@@ -150,7 +150,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[9] Warning: tickets.jira on non-jira platform"
 DIR=$(setup_dir)
-cat > "${DIR}/snapship.config.json" <<'EOF'
+cat > "${DIR}/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "tickets": {
@@ -174,7 +174,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[10] v0.2 documentation paths defaults"
 DIR=$(setup_dir)
-cat > "${DIR}/snapship.config.json" <<'EOF'
+cat > "${DIR}/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "documentation": { "platform": "affine", "workspace": { "id": "ws-1" } }
@@ -191,7 +191,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[11] v0.2 paths skip when platform=none"
 DIR=$(setup_dir)
-cat > "${DIR}/snapship.config.json" <<'EOF'
+cat > "${DIR}/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "documentation": { "platform": "none" }
@@ -208,7 +208,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[12] v0.2 user paths preserved"
 DIR=$(setup_dir)
-cat > "${DIR}/snapship.config.json" <<'EOF'
+cat > "${DIR}/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "documentation": {
@@ -231,7 +231,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[13] templates defaults injection"
 DIR=$(setup_dir)
-cp "${FIXTURES}/minimal.json" "${DIR}/snapship.config.json"
+cp "${FIXTURES}/minimal.json" "${DIR}/snap.config.json"
 out=$(bash "$SCRIPT" --project-root="$DIR" 2>/dev/null)
 assert_eq "13.1 templates.tickets.user_story default null" "null" "$(echo "$out" | jq '.templates.tickets.user_story')"
 assert_eq "13.2 templates.tickets.bug default null"        "null" "$(echo "$out" | jq '.templates.tickets.bug')"
@@ -245,7 +245,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[14] templates user override preserved"
 DIR=$(setup_dir)
-cat > "${DIR}/snapship.config.json" <<'EOF'
+cat > "${DIR}/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "templates": {
@@ -266,7 +266,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[15] invalid templates rejected"
 DIR=$(setup_dir)
-cp "${INVALID}/bad-templates.json" "${DIR}/snapship.config.json"
+cp "${INVALID}/bad-templates.json" "${DIR}/snap.config.json"
 bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "15.1 bad-templates exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true

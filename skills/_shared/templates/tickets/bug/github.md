@@ -44,7 +44,7 @@
 
 ## References
 
-- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
+- Feature PRD: `.snap/PRDs/{{story_id}}.md`
 - First seen: {{first_seen}}
 - Related: {{related_refs}}
 
@@ -63,7 +63,7 @@ Variables:
   {{regression_tests}}        string
   {{severity}}                enum — low|medium|high|critical
   {{frequency}}               enum — rare|sometimes|always
-  {{feature_id}}              string
+  {{story_id}}              string
   {{first_seen}}              ISO date or commit SHA
   {{related_refs}}            comma-separated refs
 -->

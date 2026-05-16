@@ -1,13 +1,33 @@
 ---
 step: 02-decompose
 next_step: 03-enrich
-description: Break feature into atomic stories (5-30min, 1-5 files) with one AC per story.
+description: Break feature PRD (or raw `--standalone` input) into atomic ticket candidates ; detect implicit multi-ticket inputs.
 ---
 
 # step-02 — decompose
 
-Convert the feature PRD into a list of atomic stories sized for `/develop` to land
-each in a single commit.
+Convert the feature PRD (normal mode) **or** the raw user input
+(`--standalone`) into a list of atomic ticket candidates sized for `/develop`
+to land each in a single commit.
+
+Drafts are written into the **ephemeral subject cache** at
+`.snap/.runtime/<SUBJECT_ID>/drafts.json` — purged at step-06 regardless of
+outcome (decision #2). No persistent draft file under `.snap/tickets/` is
+created until promotion at step-06.
+
+## Input source (v1.2)
+
+| Mode | Source |
+|---|---|
+| Normal | `acceptance_criteria` array from step-01 PRD extraction |
+| `--standalone` | Raw user input string (verbatim, `$USER_INPUT` in context) — handed to `snap-ticket-classifier` (sub-task `decompose`) which splits into candidate tickets and applies story_type heuristics |
+
+For `--standalone`, decomposition + classification are delegated to the
+`snap-ticket-classifier` subagent (output JSON `tickets[]`). The subagent
+already implements the implicit-multi-ticket heuristic (bullets, conjunctions,
+numbered lists) and yields each candidate's `story_type` + `confidence` +
+`rationale`. Always offer the user a chance to merge/split via
+`AskUserQuestion` before writing drafts.
 
 ## Atomic-story heuristic
 
@@ -25,8 +45,30 @@ Reject any candidate story that:
 
 ## Tasks
 
-1. **Map AC → stories**: for each `acceptance_criteria` entry from step-01,
-   draft a story (shape aligned with `tickets.schema.json` `local_id` field) :
+1. **Spawn `snap-ticket-classifier` (`--standalone` mode only)** — single
+   `Agent` call with these inputs :
+
+   ```
+   subagent_type: snap-ticket-classifier
+   prompt: |
+     {raw_input}: <USER_INPUT verbatim>
+     {tracker_context}: <contents of .snap/.runtime/<SUBJECT_ID>/tracker-context.json>
+     {conventions}: <relevant CLAUDE.md excerpts — naming.branch_pattern, naming.commit_pattern>
+     {mode}: "interactive-prep"  # decompose + classify, no cluster yet (step-03b owns cluster)
+     {parent_hint}: null
+   ```
+
+   Parse the **last** ` ```json ` fence from the response into a `tickets[]`
+   array. Each item already carries `local_id`, `story_type`, `title`,
+   `description`, `acceptance_criteria`, `commit_type`, `branch_name_suggested`,
+   `confidence`, `rationale`. Promote `tickets[]` directly into the draft
+   shape below (skip steps 2–3 below for these drafts ; the classifier
+   already produces them). Surface `warnings[]` and `unresolved[]` to the
+   user before continuing.
+
+2. **Map AC → stories (normal mode only)** : for each `acceptance_criteria`
+   entry from step-01, draft a story (shape aligned with
+   `tickets.schema.json` `local_id` field) :
    ```json
    {
      "local_id": "t-001",
@@ -52,38 +94,43 @@ Reject any candidate story that:
    `story.type` is set in step-03 (enrich/classify); it must NOT be inlined as a
    `type:<value>` label here.
 
-2. **Apply naming**: derive `local_id` via `apply-naming.sh`:
+3. **Apply naming**: derive `local_id` via `apply-naming.sh`:
    ```bash
    bash skills/_shared/apply-naming.sh ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --sequence="$n"
    # → t-001, t-002, …
    ```
 
-3. **Detect dependencies**: scan story bodies for cross-story references; populate
+4. **Detect dependencies**: scan story bodies for cross-story references; populate
    `depends_on` with prior `local_id`s. The order in `tickets.json` determines
    dev order — sort topologically (must come before should before could; respect
    `depends_on`).
 
-4. **Cap on `--max-stories`**: if the candidate list exceeds the cap, surface the
+5. **Cap on `--max-stories`**: if the candidate list exceeds the cap, surface the
    overflow via `AskUserQuestion`:
    - "Split feature into a follow-up `/define --resume --feature=…` (recommended)"
    - "Continue and let me trim manually"
 
-5. **Confirm with user** via `AskUserQuestion` (table preview, multiSelect false):
+6. **Confirm with user** via `AskUserQuestion` (table preview, multiSelect false):
    - "Looks right — proceed to enrichment"
    - "Edit the list" (loop back to A.1, with the current draft as starting point)
 
-6. **Stash** the draft tickets in
-   `.snap/tickets/${feature_id}.draft.json` (cleared by step-06 on success).
-   Do **not** call the platform yet.
+7. **Stash drafts in ephemeral cache** :
+   ```bash
+   echo "$drafts_json" | bash skills/_shared/cache-runtime.sh write \
+     "$SUBJECT_ID" drafts.json --project-root="$PWD"
+   ```
+   Drafts live ONLY in `.snap/.runtime/<SUBJECT_ID>/drafts.json` ; auto-purged
+   by the step-00 trap. Do **not** call the platform yet, and do **not** write
+   any persistent file under `.snap/tickets/`.
 
-7. **Append progress**:
+8. **Append progress**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=02 \
      --step-name=decompose \
      --status=ok
@@ -93,11 +140,18 @@ Reject any candidate story that:
 
 - AC has no obvious story → ask user to clarify, do not synthesize.
 - All stories estimated > 30 min → surface and re-prompt for sub-decomposition.
+- `snap-ticket-classifier` returns no fenced JSON / unparseable JSON →
+  fail-clean, surface the raw response, prompt user to retry or fall back to
+  manual draft entry.
 
 ## Acceptance check
 
-- ≥ 1 story per AC.
-- Every story has `local_id`, `title`, `ac_id`, `files`.
+- `.snap/.runtime/<SUBJECT_ID>/drafts.json` exists with ≥ 1 candidate.
+- Normal mode : ≥ 1 candidate per AC ; every entry has `local_id`, `title`,
+  `ac_id`, `files`.
+- `--standalone` mode : every candidate has `local_id`, `title`,
+  `story_type`, `confidence` (from classifier) ; `ac_id` may be absent
+  (no PRD).
 
 ## Next step
 

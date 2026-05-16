@@ -79,7 +79,7 @@ Append-only file per feature. Each line = 1 timestamped event. Line-based regex 
 **Header (created on the feature's first `/define`):**
 
 ```markdown
-# Progress — {feature_id}
+# Progress — {story_id}
 
 started: {ISO-8601 UTC}
 ```
@@ -200,7 +200,7 @@ chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
 ```bash
 #!/usr/bin/env bash
 # Pre-load snap context if current project has config
-CONFIG=".snap/snapship.config.json"
+CONFIG=".snap/snap.config.json"
 [ -f "$CONFIG" ] || exit 0
 
 # Output additionalContext via JSON output (CC SessionStart format)

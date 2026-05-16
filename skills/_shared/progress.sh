@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # progress.sh — JSON machine state for in-flight skills (.snap/progress.json).
 # Subcommands:
-#   start  --skill=X --feature-id=Y               # register skill run (idempotent)
-#   step   --skill=X --feature-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=TEXT] [--extra=JSON]
-#   finish --skill=X --feature-id=Y --status=ok|fail
+#   start  --skill=X --story-id=Y               # register skill run (idempotent)
+#   step   --skill=X --story-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=TEXT] [--extra=JSON]
+#   finish --skill=X --story-id=Y --status=ok|fail
 #           # status=ok → purge skill run from in_flight[]
 #           # status=fail → keep entry (resume possible)
-#   resume --skill=X --feature-id=Y               # stdout: last step status (started|fail|retry) or empty
+#   resume --skill=X --story-id=Y               # stdout: last step status (started|fail|retry) or empty
 #   list                                          # stdout: JSON in_flight[]
 #
 # Exit codes: 0=ok, 1=invalid arg, 2=jq/file error.
@@ -23,10 +23,10 @@ usage() {
 Usage: progress.sh <subcommand> [OPTIONS]
 
 Subcommands:
-  start  --skill=X --feature-id=Y
-  step   --skill=X --feature-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=TEXT] [--extra=JSON]
-  finish --skill=X --feature-id=Y --status=ok|fail
-  resume --skill=X --feature-id=Y
+  start  --skill=X --story-id=Y
+  step   --skill=X --story-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=TEXT] [--extra=JSON]
+  finish --skill=X --story-id=Y --status=ok|fail
+  resume --skill=X --story-id=Y
   list
 
 Common:
@@ -37,7 +37,7 @@ Status values:
   step:   started | ok | fail | skip | retry
   finish: ok | fail
 
-feature-id: NN-kebab or "_global" (init, upgrade, fetch --all).
+story-id: NN-kebab or "_global" (init, upgrade, fetch --all).
 EOF
 }
 
@@ -56,7 +56,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --project-root=*) PROJECT_ROOT="${1#--project-root=}" ;;
     --skill=*)        SKILL="${1#--skill=}" ;;
-    --feature-id=*)   FEATURE_ID="${1#--feature-id=}" ;;
+    --story-id=*)   FEATURE_ID="${1#--story-id=}" ;;
     --step-num=*)     STEP_NUM="${1#--step-num=}" ;;
     --step-name=*)    STEP_NAME="${1#--step-name=}" ;;
     --status=*)       STATUS="${1#--status=}" ;;
@@ -71,10 +71,10 @@ done
 SNAP_DIR="${PROJECT_ROOT}/.snap"
 PROGRESS_FILE="${SNAP_DIR}/progress.json"
 
-validate_feature_id() {
+validate_story_id() {
   if [ "$FEATURE_ID" != "_global" ]; then
     [[ "$FEATURE_ID" =~ ^[0-9]{2}-[a-z0-9][a-z0-9-]*$ ]] || {
-      echo "ERROR: --feature-id must be _global or match NN-kebab" >&2
+      echo "ERROR: --story-id must be _global or match NN-kebab" >&2
       exit 1
     }
   fi
@@ -98,17 +98,17 @@ write_atomic() {
 case "$CMD" in
   start)
     [ -z "$SKILL" ] && { echo "ERROR: --skill required" >&2; exit 1; }
-    [ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
-    validate_feature_id
+    [ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
+    validate_story_id
     ensure_file
     NOW=$(now)
     jq --arg skill "$SKILL" --arg fid "$FEATURE_ID" --arg ts "$NOW" '
-      if (.in_flight | map(select(.skill == $skill and .feature_id == $fid)) | length) > 0 then
+      if (.in_flight | map(select(.skill == $skill and .story_id == $fid)) | length) > 0 then
         .
       else
         .in_flight += [{
           skill: $skill,
-          feature_id: $fid,
+          story_id: $fid,
           started_at: $ts,
           steps: []
         }]
@@ -118,24 +118,24 @@ case "$CMD" in
 
   step)
     [ -z "$SKILL" ] && { echo "ERROR: --skill required" >&2; exit 1; }
-    [ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
+    [ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
     [ -z "$STEP_NAME" ] && { echo "ERROR: --step-name required" >&2; exit 1; }
     [ -z "$STATUS" ] && { echo "ERROR: --status required" >&2; exit 1; }
     case "$STATUS" in
       started|ok|fail|skip|retry) ;;
       *) echo "ERROR: --status must be started|ok|fail|skip|retry" >&2; exit 1 ;;
     esac
-    validate_feature_id
+    validate_story_id
     ensure_file
     # Auto-start if skill run missing.
     NOW=$(now)
     jq --arg skill "$SKILL" --arg fid "$FEATURE_ID" --arg ts "$NOW" '
-      if (.in_flight | map(select(.skill == $skill and .feature_id == $fid)) | length) > 0 then
+      if (.in_flight | map(select(.skill == $skill and .story_id == $fid)) | length) > 0 then
         .
       else
         .in_flight += [{
           skill: $skill,
-          feature_id: $fid,
+          story_id: $fid,
           started_at: $ts,
           steps: []
         }]
@@ -158,7 +158,7 @@ case "$CMD" in
     # Replace last "started" step with same name if exists, else append.
     jq --arg skill "$SKILL" --arg fid "$FEATURE_ID" --argjson step "$STEP_JSON" '
       .in_flight |= map(
-        if .skill == $skill and .feature_id == $fid then
+        if .skill == $skill and .story_id == $fid then
           .steps as $s
           | ($s | map(.name == $step.name and .status == "started") | index(true)) as $idx
           | if $idx != null and $step.status != "started" then
@@ -173,18 +173,18 @@ case "$CMD" in
 
   finish)
     [ -z "$SKILL" ] && { echo "ERROR: --skill required" >&2; exit 1; }
-    [ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
+    [ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
     [ -z "$STATUS" ] && { echo "ERROR: --status required (ok|fail)" >&2; exit 1; }
     case "$STATUS" in
       ok|fail) ;;
       *) echo "ERROR: --status must be ok|fail" >&2; exit 1 ;;
     esac
-    validate_feature_id
+    validate_story_id
     ensure_file
     if [ "$STATUS" = "ok" ]; then
       # Purge entry — skill ran to terminal step OK.
       jq --arg skill "$SKILL" --arg fid "$FEATURE_ID" '
-        .in_flight |= map(select(.skill != $skill or .feature_id != $fid))
+        .in_flight |= map(select(.skill != $skill or .story_id != $fid))
       ' "$PROGRESS_FILE" | write_atomic
     fi
     # fail → keep entry as-is for --resume
@@ -192,12 +192,12 @@ case "$CMD" in
 
   resume)
     [ -z "$SKILL" ] && { echo "ERROR: --skill required" >&2; exit 1; }
-    [ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
-    validate_feature_id
+    [ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
+    validate_story_id
     [ ! -f "$PROGRESS_FILE" ] && exit 0
     # stdout: last step name with status started|fail|retry, or empty if skill not in_flight.
     jq -r --arg skill "$SKILL" --arg fid "$FEATURE_ID" '
-      (.in_flight | map(select(.skill == $skill and .feature_id == $fid)) | first) as $run
+      (.in_flight | map(select(.skill == $skill and .story_id == $fid)) | first) as $run
       | if $run == null then ""
         else
           ($run.steps | map(select(.status == "started" or .status == "fail" or .status == "retry")) | last) as $s

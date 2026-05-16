@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/config.schema.json",
-  "title": "snapship.config.json",
+  "title": "snap.config.json",
   "description": "Configuration projet snap — racine projet, committable, partagée équipe.",
   "type": "object",
   "required": ["version"],
@@ -65,18 +65,32 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["platform"],
+      "description": "Hébergeur du dépôt Git. Détermine adaptateur (gh/glab) utilisé par /develop pour ouvrir PR/MR.",
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["github", "gitlab"]
+          "enum": ["github", "gitlab"],
+          "description": "Plateforme hébergeur dépôt. Pilote choix CLI (gh/glab) et résolution templates repo-native (.github/.gitlab)."
         },
-        "http_url": { "type": "string", "format": "uri" },
-        "ssh_url": { "type": "string" },
-        "default_branch": { "type": "string", "default": "main" },
+        "http_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL HTTPS clone (informationnel, affichée dans corps PR/MR)."
+        },
+        "ssh_url": {
+          "type": "string",
+          "description": "URL SSH clone (informationnel)."
+        },
+        "default_branch": {
+          "type": "string",
+          "default": "main",
+          "description": "Branche cible des PR/MR ouvertes par /develop."
+        },
         "protected_branches": {
           "type": "array",
           "items": { "type": "string" },
-          "default": ["main"]
+          "default": ["main"],
+          "description": "Branches sur lesquelles /develop refuse de committer directement — force création branche feature via apply-naming.sh."
         }
       }
     },
@@ -90,10 +104,15 @@
           "enum": ["linear", "jira", "github", "gitlab", "inherit", "none"],
           "description": "Tracker platform. 'none' = pas de tracker — /snap:ticket BLOCK avec message clair jusqu'à ce que l'user re-run /snap:init --force."
         },
-        "url": { "type": "string", "format": "uri" },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL workspace tracker (informationnel, affichée dans corps PR/MR et logs)."
+        },
         "default_labels": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Labels appliqués à chaque ticket créé par /ticket (en plus des labels dérivés du type/scope)."
         },
         "github": {
           "type": "object",
@@ -108,11 +127,12 @@
             "issue_types": {
               "type": "object",
               "additionalProperties": { "type": "string" },
-              "description": "Mapping story.type → Issue Type GitHub. Ex: {\"user-story\":\"Feature\",\"bug\":\"Bug\",\"epic\":\"Epic\"}. Clés absentes → fallback label `type:<key>`.",
+              "description": "Mapping story_type → Issue Type GitHub. Ex: {\"user-story\":\"Feature\",\"bug\":\"Bug\",\"epic\":\"Epic\",\"task\":\"Task\"}. Clés absentes → fallback label `type:<key>`.",
               "properties": {
                 "user-story": { "type": "string" },
                 "bug": { "type": "string" },
-                "epic": { "type": "string" }
+                "epic": { "type": "string" },
+                "task": { "type": "string" }
               }
             },
             "project": {
@@ -159,15 +179,18 @@
           "properties": {
             "project_key": {
               "type": "string",
-              "pattern": "^[A-Z][A-Z0-9_]*$"
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "description": "Préfixe ID ticket Jira (ex: PROJ → PROJ-123). Validé contre regex `^[A-Z][A-Z0-9_]*$`."
             },
             "default_issue_type": {
               "type": "string",
-              "default": "Story"
+              "default": "Story",
+              "description": "Issue Type Jira utilisé quand story.type ne match aucune entrée explicite de mapping."
             },
             "workflow_states": {
               "type": "object",
               "additionalProperties": { "type": "string" },
+              "description": "Mapping état logique → nom workflow Jira pour transitions de cycle ticket.",
               "properties": {
                 "todo": { "type": "string" },
                 "in_progress": { "type": "string" },
@@ -177,7 +200,8 @@
             },
             "transitions": {
               "type": "object",
-              "additionalProperties": { "type": "string" }
+              "additionalProperties": { "type": "string" },
+              "description": "Mapping transition logique → ID transition Jira (obtenu via GET /transitions de l'API Jira)."
             }
           }
         }
@@ -187,18 +211,31 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["platform"],
+      "description": "Plateforme doc fonctionnelle vivante + archive PRD. 'none' désactive /doc-import et /doc-update.",
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["affine", "notion", "none"]
+          "enum": ["affine", "notion", "none"],
+          "description": "Backend doc. 'none' = pas de doc — /define skip publication, /doc-* refusent."
         },
-        "url": { "type": "string", "format": "uri" },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL workspace doc (informationnel, affichée logs et PR body)."
+        },
         "workspace": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Identifiants workspace AFFiNE/Notion ciblé.",
           "properties": {
-            "id": { "type": "string" },
-            "root_page_id": { "type": "string" }
+            "id": {
+              "type": "string",
+              "description": "ID workspace AFFiNE/Notion."
+            },
+            "root_page_id": {
+              "type": "string",
+              "description": "ID page racine sous laquelle paths.functional_root et paths.prd_root sont créés."
+            }
           }
         },
         "paths": {
@@ -234,17 +271,34 @@
           "additionalProperties": { "type": "string" },
           "description": "Page IDs (AFFiNE/Notion) of pre-pushed doc templates. Distinct from top-level `templates` which override bundled markdown.",
           "properties": {
-            "prd_feature": { "type": "string" },
-            "wireframes_gallery": { "type": "string" }
+            "prd_feature": {
+              "type": "string",
+              "description": "Page ID template PRD pré-créé dans le workspace. Cloné par /define pour chaque nouvelle feature."
+            },
+            "wireframes_gallery": {
+              "type": "string",
+              "description": "Page ID template galerie wireframes pré-créé. Cloné par /wireframe lors du premier export."
+            }
           }
         },
-        "auto_publish": { "type": "boolean", "default": true },
+        "auto_publish": {
+          "type": "boolean",
+          "default": true,
+          "description": "Si true, /define publie automatiquement la PRD sur le workspace doc en fin de skill. Sinon utilisateur doit lancer /doc-import manuellement."
+        },
         "page_naming": {
           "type": "object",
           "additionalProperties": { "type": "string" },
+          "description": "Patterns nommage pages doc. Tokens: {story_id}, {feature_title}, {YYYY}, {MM}, {DD}.",
           "properties": {
-            "prd_feature": { "type": "string" },
-            "wireframes_gallery": { "type": "string" }
+            "prd_feature": {
+              "type": "string",
+              "description": "Pattern nommage page PRD feature."
+            },
+            "wireframes_gallery": {
+              "type": "string",
+              "description": "Pattern nommage page galerie wireframes."
+            }
           }
         }
       }
@@ -257,21 +311,25 @@
         "platform": {
           "type": "string",
           "enum": ["frame0", "penpot", "figma", "none"],
-          "default": "frame0"
+          "default": "frame0",
+          "description": "Outil de wireframing low-fi utilisé par /wireframe. 'none' désactive le skill."
         },
         "export_format": {
           "type": "string",
           "enum": ["png", "svg", "pdf"],
-          "default": "png"
+          "default": "png",
+          "description": "Format export des wireframes."
         },
         "export_scale": {
           "type": "integer",
           "enum": [1, 2, 3],
-          "default": 2
+          "default": 2,
+          "description": "Facteur d'échelle (1x/2x/3x) pour exports PNG. Ignoré pour SVG/PDF."
         },
         "naming_pattern": {
           "type": "string",
-          "default": "{feature_id}-{screen_name}"
+          "default": "{story_id}-{screen_name}",
+          "description": "Pattern nommage fichiers wireframes exportés. Tokens: {story_id}, {screen_name}."
         },
         "frame0": {
           "type": "object",
@@ -298,7 +356,7 @@
           "properties": {
             "export_dir": {
               "type": "string",
-              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.snap/wireframes/{feature_id}/` résolu runtime."
+              "description": "Chemin absolu où Penpot MCP écrit les assets exportés PNG/SVG. L'outil Penpot `export_shape` requiert un filePath absolu. Défaut `{project_root}/.snap/wireframes/{story_id}/` résolu runtime."
             },
             "file_id": {
               "type": "string",
@@ -345,20 +403,24 @@
         "export_format": {
           "type": "string",
           "enum": ["png", "svg", "pdf"],
-          "default": "png"
+          "default": "png",
+          "description": "Format export des maquettes hi-fi."
         },
         "naming_pattern": {
           "type": "string",
-          "default": "{feature_id}-{screen_name}-design"
+          "default": "{story_id}-{screen_name}-design",
+          "description": "Pattern nommage fichiers design exportés. Tokens: {story_id}, {screen_name}."
         },
         "mode_defaults": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Valeurs par défaut quand l'utilisateur ne les précise pas dans le prompt /design.",
           "properties": {
             "mockup_canvas": {
               "type": "string",
               "enum": ["mobile-portrait", "mobile-landscape", "desktop", "tablet"],
-              "default": "mobile-portrait"
+              "default": "mobile-portrait",
+              "description": "Canvas viewport par défaut pour les maquettes."
             },
             "design_system_source": {
               "type": "string",
@@ -373,9 +435,18 @@
           "additionalProperties": false,
           "description": "Utilisé seulement si platform=penpot. Helper réutilisé: penpot-helper.sh.",
           "properties": {
-            "file_id": { "type": "string" },
-            "file_name": { "type": "string" },
-            "export_dir": { "type": "string" },
+            "file_id": {
+              "type": "string",
+              "description": "UUID fichier Penpot ciblé par /design. Step-00 vérifie `penpot.currentFile.id` contre cette valeur et halt si mismatch."
+            },
+            "file_name": {
+              "type": "string",
+              "description": "Nom de fichier lisible affiché dans l'erreur de mismatch (informationnel ; pas utilisé pour matching)."
+            },
+            "export_dir": {
+              "type": "string",
+              "description": "Chemin absolu où Penpot MCP écrit les assets exportés. Défaut runtime: `{project_root}/.snap/design/{story_id}/`."
+            },
             "design_system_page": {
               "type": "string",
               "default": "Components",
@@ -388,11 +459,18 @@
           "additionalProperties": false,
           "description": "Utilisé seulement si platform=figma. Helper: figma-helper.sh — même helper et même plugin Desktop Bridge que /wireframe figma.",
           "properties": {
-            "file_key": { "type": "string" },
-            "file_name": { "type": "string" },
+            "file_key": {
+              "type": "string",
+              "description": "Clé fichier Figma ciblé par /design. Step-00 vérifie contre `figma_get_current_file` et halt si mismatch."
+            },
+            "file_name": {
+              "type": "string",
+              "description": "Nom fichier lisible (informationnel, affiché en cas de mismatch)."
+            },
             "token_env": {
               "type": "string",
-              "default": "FIGMA_ACCESS_TOKEN"
+              "default": "FIGMA_ACCESS_TOKEN",
+              "description": "Nom variable env où chercher le token API Figma personnel."
             }
           }
         }
@@ -401,98 +479,139 @@
     "testing": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Commandes shell projet exécutées par /develop (validation) et /qa (régression). Détectées par detect-test-commands.sh si absentes.",
       "properties": {
-        "test_command": { "type": "string" },
-        "typecheck_command": { "type": "string" },
-        "lint_command": { "type": "string" },
-        "format_command": { "type": "string" }
+        "test_command": {
+          "type": "string",
+          "description": "Commande lancement tests (ex: `npm test`, `pytest`, `go test ./...`). Lancée par /qa regression et /develop Phase 1 validation."
+        },
+        "typecheck_command": {
+          "type": "string",
+          "description": "Commande typecheck (ex: `tsc --noEmit`, `mypy .`). Lancée par /develop validation."
+        },
+        "lint_command": {
+          "type": "string",
+          "description": "Commande lint (ex: `eslint .`, `ruff check .`)."
+        },
+        "format_command": {
+          "type": "string",
+          "description": "Commande check formatting (ex: `prettier --check .`, `black --check .`)."
+        }
       }
     },
     "naming": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Conventions nommage rendues par apply-naming.sh (story_id, branch, commit).",
       "properties": {
-        "feature_slug_max_length": {
+        "story_slug_max_length": {
           "type": "integer",
           "minimum": 10,
           "maximum": 100,
-          "default": 40
+          "default": 40,
+          "description": "Longueur max du slug feature généré depuis le titre. Utilisé dans branches, IDs feature, noms fichiers."
         },
         "branch_pattern": {
           "type": "string",
-          "default": "{type}/{ticket_id}-{slug}"
+          "default": "{type}/{ticket_id}",
+          "description": "Template nom branche Git. Tokens supportés: {type} (commit_type: feat|fix|chore|refactor|docs|test|perf|build|ci), {ticket_id}. Le token {slug} a été retiré en v1.2 (simplification : un ticket_id suffit à identifier la branche)."
         },
         "commit_pattern": {
           "type": "string",
-          "default": "{type}({scope}): {message}"
+          "default": "{commit_type}({scope}): {message}",
+          "description": "Template message commit (Conventional Commits). Tokens: {commit_type} (feat|fix|chore|refactor|docs|test|perf|build|ci), {scope}, {message}. Renommé {type} → {commit_type} en v1.2 pour lever ambiguïté avec story_type."
         },
-        "ticket_id_regex": { "type": "string" }
+        "ticket_id_regex": {
+          "type": "string",
+          "description": "Regex extraction ID ticket depuis nom branche / message commit. Override le défaut tracker-platform (ex: ABC-\\d+ pour Jira)."
+        }
       }
     },
     "ai": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Réglages exécution IA (parallélisme subagents + serveurs MCP attendus).",
       "properties": {
         "max_parallel_agents": {
           "type": "integer",
           "minimum": 1,
           "maximum": 10,
-          "default": 5
+          "default": 5,
+          "description": "Nombre max de subagents lancés en parallèle (review phase /develop, QA multi-agent /qa)."
         },
         "mcp_servers_required": {
           "type": "array",
           "items": { "type": "string" },
-          "uniqueItems": true
+          "uniqueItems": true,
+          "description": "Serveurs MCP obligatoires. Skill HALT au démarrage si un manque (check-mcp-required.sh)."
         },
         "mcp_servers_optional": {
           "type": "array",
           "items": { "type": "string" },
-          "uniqueItems": true
+          "uniqueItems": true,
+          "description": "Serveurs MCP optionnels. Skill degrade gracefully si absents (ex: /qa fallback scope=tests-only sans code-review-graph)."
         }
       }
     },
     "develop": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Configuration skill /develop (cycles review, agents, stratégie d'échec).",
       "properties": {
         "review_cycles_max": {
           "type": "integer",
           "minimum": 0,
           "maximum": 10,
-          "default": 3
+          "default": 3,
+          "description": "Nombre max de cycles review→fix dans /develop Phase 2. 0 = skip review entièrement (code direct vers QA)."
         },
         "auto_apply_review_feedback": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Si true, applique automatiquement les fixes proposés par les snap-code-reviewer-*. Sinon halt et demande validation user."
         },
         "fail_strategy": {
           "type": "string",
           "enum": ["next-ticket", "stop", "retry"],
-          "default": "next-ticket"
+          "default": "next-ticket",
+          "description": "Action quand un cycle de review n'a pas convergé après `review_cycles_max`. next-ticket=passer ticket suivant, stop=halt pipeline, retry=relancer Phase 1."
         },
         "reviews": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Seuils par reviewer. Severity ≥ threshold bloque convergence et déclenche cycle fix.",
           "properties": {
             "technical": {
               "type": "object",
               "additionalProperties": false,
+              "description": "Reviewer snap-code-reviewer-technical (qualité code, perf, architecture).",
               "properties": {
-                "severity_threshold": { "$ref": "#/$defs/severity" }
+                "severity_threshold": {
+                  "$ref": "#/$defs/severity",
+                  "description": "Severity min finding technical pour bloquer convergence."
+                }
               }
             },
             "functional": {
               "type": "object",
               "additionalProperties": false,
+              "description": "Reviewer snap-code-reviewer-functional (parité PRD, edge cases, contrats UX).",
               "properties": {
-                "severity_threshold": { "$ref": "#/$defs/severity" }
+                "severity_threshold": {
+                  "$ref": "#/$defs/severity",
+                  "description": "Severity min finding functional pour bloquer convergence."
+                }
               }
             },
             "security": {
               "type": "object",
               "additionalProperties": false,
+              "description": "Reviewer snap-code-reviewer-security (OWASP, injection, secrets).",
               "properties": {
-                "severity_threshold": { "$ref": "#/$defs/severity" }
+                "severity_threshold": {
+                  "$ref": "#/$defs/severity",
+                  "description": "Severity min finding security pour bloquer convergence."
+                }
               }
             }
           }
@@ -502,51 +621,74 @@
     "qa": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Configuration skill /qa (cycles fix, régression, vérifs visuelles wireframe/design).",
       "properties": {
         "qa_cycles_max": {
           "type": "integer",
           "minimum": 0,
           "maximum": 10,
-          "default": 2
+          "default": 2,
+          "description": "Nombre max de cycles QA→fix. 0 = skip QA (ship direct après /develop)."
         },
         "auto_apply_qa_feedback": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Si true, applique automatiquement les fixes snap-code-reviewer-qa. Sinon halt et demande validation user."
         },
-        "severity_threshold": { "$ref": "#/$defs/severity" },
+        "severity_threshold": {
+          "$ref": "#/$defs/severity",
+          "description": "Severity min finding QA pour bloquer convergence."
+        },
         "retrigger_review": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Si true, après chaque fix QA relance les reviewers /develop pour vérifier non-régression côté code review."
         },
         "regression": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Exécution suite de tests projet (testing.test_command) pendant /qa.",
           "properties": {
-            "enabled": { "type": "boolean", "default": true },
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Active la régression automatique."
+            },
             "scope": {
               "type": "string",
               "enum": ["impacted", "full", "tests-only"],
-              "default": "impacted"
+              "default": "impacted",
+              "description": "impacted = tests touchés par get_impact_radius (code-review-graph). full = suite entière. tests-only = juste les tests modifiés dans le diff."
             }
           }
         },
         "wireframe_check": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Vérification parité wireframe low-fi vs UI implémentée. Opt-in (requiert playwright).",
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Active le diff visuel wireframe vs UI."
+            },
             "mode": {
               "type": "string",
               "enum": ["playwright"],
-              "default": "playwright"
+              "default": "playwright",
+              "description": "Moteur de diff visuel (seul playwright supporté actuellement)."
             },
             "diff_threshold_pct": {
               "type": "number",
               "minimum": 0,
               "maximum": 100,
-              "default": 5
+              "default": 5,
+              "description": "% différence pixels max toléré avant d'émettre un finding mismatch."
             },
-            "severity_on_mismatch": { "$ref": "#/$defs/severity" }
+            "severity_on_mismatch": {
+              "$ref": "#/$defs/severity",
+              "description": "Severity du finding émis quand le diff dépasse `diff_threshold_pct`."
+            }
           }
         },
         "design_check": {
@@ -554,7 +696,11 @@
           "additionalProperties": false,
           "description": "Vérification parité maquette hi-fi vs implémentation (skill /design). Opt-in.",
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Active la vérification design hi-fi."
+            },
             "mode": {
               "type": "string",
               "enum": ["asset-presence", "playwright"],
@@ -565,9 +711,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 100,
-              "default": 5
+              "default": 5,
+              "description": "% différence pixels max toléré (mode playwright)."
             },
-            "severity_on_mismatch": { "$ref": "#/$defs/severity" }
+            "severity_on_mismatch": {
+              "$ref": "#/$defs/severity",
+              "description": "Severity du finding émis sur mismatch."
+            }
           }
         }
       }
@@ -575,20 +725,20 @@
     "lifecycle_scripts": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Scripts custom workflow (≠ hooks Claude Code natifs). Path script exécutable.",
+      "description": "Scripts custom workflow (≠ hooks Claude Code natifs). Chaque valeur = chemin (relatif racine projet ou absolu) vers un script exécutable lancé avant/après le skill correspondant. Échec script = halt skill.",
       "properties": {
-        "pre_define": { "type": "string" },
-        "post_define": { "type": "string" },
-        "pre_ticket": { "type": "string" },
-        "post_ticket": { "type": "string" },
-        "pre_wireframe": { "type": "string" },
-        "post_wireframe": { "type": "string" },
-        "pre_design": { "type": "string" },
-        "post_design": { "type": "string" },
-        "pre_develop": { "type": "string" },
-        "post_develop": { "type": "string" },
-        "pre_qa": { "type": "string" },
-        "post_qa": { "type": "string" }
+        "pre_define": { "type": "string", "description": "Script lancé avant /define." },
+        "post_define": { "type": "string", "description": "Script lancé après /define (state=defined)." },
+        "pre_ticket": { "type": "string", "description": "Script lancé avant /ticket." },
+        "post_ticket": { "type": "string", "description": "Script lancé après /ticket (state=ticketed)." },
+        "pre_wireframe": { "type": "string", "description": "Script lancé avant /wireframe." },
+        "post_wireframe": { "type": "string", "description": "Script lancé après /wireframe (state=wireframed)." },
+        "pre_design": { "type": "string", "description": "Script lancé avant /design." },
+        "post_design": { "type": "string", "description": "Script lancé après /design (state=designed)." },
+        "pre_develop": { "type": "string", "description": "Script lancé avant /develop." },
+        "post_develop": { "type": "string", "description": "Script lancé après /develop (state=developed)." },
+        "pre_qa": { "type": "string", "description": "Script lancé avant /qa." },
+        "post_qa": { "type": "string", "description": "Script lancé après /qa (state=qa-validated)." }
       }
     },
     "templates": {
@@ -606,9 +756,21 @@
           "additionalProperties": false,
           "description": "Per-ticket-type overrides. Each key resolves against `tickets.platform` to pick the file.",
           "properties": {
-            "user_story": { "type": ["string", "null"], "default": null },
-            "bug":        { "type": ["string", "null"], "default": null },
-            "epic":       { "type": ["string", "null"], "default": null }
+            "user_story": {
+              "type": ["string", "null"],
+              "default": null,
+              "description": "Chemin template markdown ticket user-story (relatif racine projet ou absolu). null = repo-native puis bundled."
+            },
+            "bug": {
+              "type": ["string", "null"],
+              "default": null,
+              "description": "Chemin template markdown ticket bug."
+            },
+            "epic": {
+              "type": ["string", "null"],
+              "default": null,
+              "description": "Chemin template markdown ticket epic."
+            }
           }
         },
         "pr": {
@@ -631,16 +793,57 @@
     "defaults": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Modes globaux qui s'appliquent à tous les skills sauf override CLI.",
       "properties": {
         "lang": {
           "type": "string",
           "enum": ["fr", "en"],
-          "default": "fr"
+          "default": "fr",
+          "description": "Langue des messages utilisateur et documents générés (PRD, tickets, commits)."
         },
-        "auto_mode": { "type": "boolean", "default": false },
-        "save_mode": { "type": "boolean", "default": true },
-        "branch_mode": { "type": "boolean", "default": true },
-        "economy_mode": { "type": "boolean", "default": false }
+        "auto_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, skills passent toutes les validations interactives (utile en CI / runs scriptés)."
+        },
+        "save_mode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Si true, chaque skill sauve progress.json à chaque transition de step (workflow resumable via progress.sh resume)."
+        },
+        "branch_mode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Si true, /develop step-02 crée automatiquement une branche Git via apply-naming.sh (template naming.branch_pattern). Si false, /develop reste sur la branche courante."
+        },
+        "economy_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, skip étapes coûteuses pour réduire tokens — désactive review parallèle multi-agent, limite contexte injecté."
+        },
+        "worktree": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Active la stratégie git-worktree pour isoler chaque ticket avec branche (User Story, Task standalone/sous-Epic, Bug). Ignoré si defaults.branch_mode=false (pas de branche → pas de worktree). /develop crée le worktree au step-02 puis y exécute toutes les étapes (code + reviewers + QA). Stratégie fixée v1.2 (subtask_root retiré) : Task enfant d'US partage le worktree de l'US parent ; Task standalone, Task enfant d'Epic et tickets sans parent reçoivent un worktree propre.",
+          "properties": {
+            "path": {
+              "type": "string",
+              "default": "./.worktrees",
+              "description": "Dossier racine où sont créés les worktrees, chemin relatif à la racine du dépôt (ou absolu)."
+            },
+            "default_root": {
+              "type": "string",
+              "default": "{branch_name}",
+              "description": "Template chemin worktree pour stories standalone et Tasks autonomes. Résolu sous `path`. Tokens supportés: {branch_name}, {story_id}. Retiré en v1.2 : token {slug} (cohérent avec naming.branch_pattern)."
+            },
+            "destroy": {
+              "type": "string",
+              "enum": ["after_develop", "after_review", "after_merge"],
+              "default": "after_merge",
+              "description": "Quand supprimer le worktree. after_develop = fin /develop avant review. after_review = fin cycle review avant /qa. after_merge = post-merge PR/MR (le plus sûr — diff/debug possible jusqu'au merge)."
+            }
+          }
+        }
       }
     }
   }

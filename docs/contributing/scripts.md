@@ -7,7 +7,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ```bash
 # args: --section=tickets|documentation|wireframes|all
 # Output JSON: { tickets: { platform, via, auth }, documentation: {...}, ... }
-# 1. Read snapship.config.json (via load-config.sh)
+# 1. Read snap.config.json (via load-config.sh)
 # 2. For each configured platform:
 #    - MCP server active? (parse claude_desktop_config / .claude/settings.json)
 #    - Otherwise CLI available? (which gh glab jira)
@@ -28,17 +28,17 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ```bash
 # Init .snap/ idempotently (manifests/, PRDs/, designs/, wireframes/, tickets/,
 # queues/, .doc-import/cache/). Bootstrap _taxonomy.json + progress.json.
-# --feature-id + --feature-name → also init manifests/{id}.manifest.json
+# --story-id + --story-name → also init manifests/{id}.manifest.json
 ```
 
 ## progress.sh
 
 ```bash
 # Subcommands (subcommand first, then --flags):
-#   start  --skill=X --feature-id=Y
-#   step   --skill=X --feature-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=...]
-#   finish --skill=X --feature-id=Y --status=ok|fail
-#   resume --skill=X --feature-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
+#   start  --skill=X --story-id=Y
+#   step   --skill=X --story-id=Y --step-num=NN --step-name=NAME --status=STATUS [--note=...]
+#   finish --skill=X --story-id=Y --status=ok|fail
+#   resume --skill=X --story-id=Y   # stdout: NUM\tNAME\tSTATUS or empty
 #   list                              # stdout: in_flight[] JSON
 # Writes .snap/progress.json (gitignored).
 ```
@@ -46,7 +46,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ## load-config.sh
 
 ```bash
-# Parse snapship.config.json + apply bundled defaults + inheritance rules
+# Parse snap.config.json + apply bundled defaults + inheritance rules
 # Output: normalized JSON (all fields resolved) on stdout
 # Cases:
 #   - Config missing → returns defaults
@@ -75,7 +75,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
    - setup-config.sh:
      - AskUserQuestion interactive mapping for required fields
      - Auto-discovery sub-fields (workspace via MCP, templates via name heuristic)
-     - Persist snapship.config.json
+     - Persist snap.config.json
      - Validate via load-config.sh schema
    - Skill resumes step-00 with complete config
 3. If flag `-a` AND section missing → fail explicitly (no AskUserQuestion in autonomous mode)
@@ -113,7 +113,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ## setup-config.sh
 
 ```bash
-# Auto-generate snapship.config.json at project root
+# Auto-generate snap.config.json at project root
 # 1. Parse .git/config → repository.{http_url, ssh_url, platform}
 # 2. Detect active MCP servers (affine, notion, frame0, atlassian, github, gitlab)
 # 3. AskUserQuestion progressive per section:
@@ -125,7 +125,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 #    - develop: review_cycles_max + severity_threshold + fail_strategy
 #    - qa: qa_cycles_max + severity_threshold + retrigger_review
 #    - defaults: lang (FR/EN)
-# 4. Write snapship.config.json
+# 4. Write snap.config.json
 # Idempotent: if config exists, proposes update for incomplete sections
 ```
 
@@ -146,10 +146,10 @@ All scripts in `skills/_shared/`. Reusable across skills.
 ## apply-naming.sh
 
 ```bash
-# args: type (feature_id|branch|commit), context_json
+# args: type (story_id|branch|commit), context_json
 # Reads config.naming.* + renders template with context vars
 # Supported vars:
-#   - feature_id: hardcoded NN-kebab — args: {nn} (number), {name} → kebab truncated to `feature_slug_max_length`
+#   - story_id: hardcoded NN-kebab — args: {nn} (number), {name} → kebab truncated to `story_slug_max_length`
 #   - branch: {type}, {ticket_id}, {slug}
 #   - commit: {type}, {scope}, {message}
 # Automatic slugify (kebab-case, ASCII fold, truncation)

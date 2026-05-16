@@ -52,12 +52,12 @@ managed outside this skill.
 
 ## Per-screen loop
 
-For each screen in `.snap/designs/${feature_id}.draft.json`, for each state in `states[]`:
+For each screen in `.snap/designs/${story_id}.draft.json`, for each state in `states[]`:
 
 ### 1. Create page
 
 ```bash
-page_title="${feature_slug}-${screen_id}-${state}"
+page_title="${story_slug}-${screen_id}-${state}"
 bash "$helper" create-page \
   --title="$page_title" \
   --project-root="$PWD"
@@ -93,7 +93,7 @@ Invoke `export-png` **once** with the resolved `$fmt`.
 The Penpot MCP `export_shape` tool accepts an absolute `filePath` and writes
 the asset itself. Output path must be absolute. Supported `$fmt`: `png|svg`.
 ```bash
-target="$PWD/.snap/designs/${feature_id}/${page_title}.${fmt}"
+target="$PWD/.snap/designs/${story_id}/${page_title}.${fmt}"
 bash "$helper" export-png \
   --page-id="$page_id" \
   --output-path="$target" \
@@ -108,7 +108,7 @@ The Figma helper emits a `figma_execute` descriptor whose JS calls
 `node.exportAsync(...)` and returns base64 inline; `save-export` decodes it
 to disk. Supported `$fmt`: `png|svg|jpg|pdf`. Default scale is `2`.
 ```bash
-target=".snap/designs/${feature_id}/${page_title}.${fmt}"
+target=".snap/designs/${story_id}/${page_title}.${fmt}"
 
 # Step 1: emit figma_execute descriptor (exit 10), MCP returns base64.
 exec_result=$(bash "$helper" export-png \
@@ -128,7 +128,7 @@ bash "$helper" save-export \
 
 ### 4. Cache descriptor
 
-Append to `.snap/designs/${feature_id}.draft.json`:
+Append to `.snap/designs/${story_id}.draft.json`:
 
 ```json
 {
@@ -183,7 +183,7 @@ Platform-specific:
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=design \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=02 \
   --step-name=mockup \
   --status=ok

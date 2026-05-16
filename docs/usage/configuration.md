@@ -1,4 +1,4 @@
-# Config — `snapship.config.json`
+# Config — `snap.config.json`
 
 **Location:** project root (committable, shared with team).
 
@@ -56,15 +56,15 @@
     "auto_publish": true,                  // publish vs draft
     "page_naming": {
       "prd_global": "PRD - {product_name}",
-      "prd_feature": "{feature_id} - {feature_name}",
-      "wireframes_gallery": "Wireframes - {feature_name}"
+      "prd_feature": "{story_id} - {story_name}",
+      "wireframes_gallery": "Wireframes - {story_name}"
     }
   },
   "wireframes": {                          // optional, absent = /wireframe disabled
     "platform": "frame0",                  // frame0 | penpot | figma
     "export_format": "png",                // png | svg | pdf
     "export_scale": 2,                     // 1x, 2x, 3x (retina, ignored by export-png)
-    "naming_pattern": "{feature_id}-{screen_name}",
+    "naming_pattern": "{story_id}-{screen_name}",
     "frame0": {                            // read only if platform=frame0
       "api_port": 58320,                   // Frame0 desktop HTTP API port (export-png bypass)
       "export_source_dir": null            // absolute, by default resolved at runtime (Frame0 cwd)
@@ -83,7 +83,7 @@
   "design": {                              // optional, absent = /design disabled. Block parallel to wireframes
     "platform": "penpot",                  // penpot | figma (frame0 excluded — low-fi only)
     "export_format": "png",                // png | svg | pdf
-    "naming_pattern": "{feature_id}-{screen_name}-design",
+    "naming_pattern": "{story_id}-{screen_name}-design",
     "mode_defaults": {
       "mockup_canvas": "mobile-portrait",  // mobile-portrait | mobile-landscape | desktop | tablet
       "design_system_source": "auto"       // auto | file | none — DS read for reference only, never written
@@ -107,8 +107,8 @@
     "format_command": "pnpm format"
   },
   "naming": {
-    // feature_id format hardcoded: NN-kebab (e.g. 01-auth) — not configurable
-    "feature_slug_max_length": 40,         // slug truncation
+    // story_id format hardcoded: NN-kebab (e.g. 01-auth) — not configurable
+    "story_slug_max_length": 40,         // slug truncation
     "branch_pattern": "{type}/{ticket_id}-{slug}",
     "commit_pattern": "{type}({scope}): {message}",
     "ticket_id_regex": "[A-Z]+-[0-9]+"     // extract ID from branch/commit
@@ -217,7 +217,7 @@ MCP/CLI handle independently:
    - `testing.*_command` absent → auto-detect via `package.json`/`pyproject.toml`/etc.
    - `repository.protected_branches` absent → `["main"]`
    - `naming.ticket_id_regex` absent → patterns per platform (JIRA: `[A-Z]+-[0-9]+`, GitHub: `#[0-9]+`)
-   - `naming.feature_slug_max_length` absent → 40
+   - `naming.story_slug_max_length` absent → 40
    - `develop.review_cycles_max` absent → 3
    - `develop.reviews.{type}.severity_threshold` absent → `minor` (except `security` → `info`)
    - `qa.qa_cycles_max` absent → `2`
@@ -225,18 +225,18 @@ MCP/CLI handle independently:
    - `qa.retrigger_review` absent → `false`
    - `qa.regression.scope` absent → `impacted` (fallback `tests-only` if code-review-graph MCP absent)
    - `qa.wireframe_check.enabled` absent → `false` (opt-in)
-4. **`feature_id` format hardcoded:** `NN-kebab` (e.g. `01-auth`). `NN` = auto-incremented number from `index.md`, `kebab` = slugified feature name truncated to `feature_slug_max_length`.
+4. **`story_id` format hardcoded:** `NN-kebab` (e.g. `01-auth`). `NN` = auto-incremented number from `index.md`, `kebab` = slugified feature name truncated to `story_slug_max_length`.
 5. CLI flag override always wins (`--platform=...`, `--review-cycles=N`)
 6. `ai.mcp_servers_required` validated at startup for each skill — fail fast if absent
 7. `ai.mcp_servers_optional` validated at startup — log warning if absent, dependent features auto-disabled (e.g. code-review-graph absent → `qa.regression.scope` forced to `tests-only`)
 
 ## First-run auto-generation
 
-1. `_shared/setup-config.sh` runs if `snapship.config.json` is absent
+1. `_shared/setup-config.sh` runs if `snap.config.json` is absent
 2. Parses `.git/config` → extracts remote URL → detects repo platform + URLs
 3. Tries active MCP servers → proposes match (atlassian, github, notion, affine, frame0)
 4. AskUserQuestion mapping for ambiguous cases + critical fields (jira.project_key if JIRA, workspace_id, root_page_id, template_ids)
-5. Generates `snapship.config.json` with detected sections
+5. Generates `snap.config.json` with detected sections
 6. User can edit afterwards (config = source of truth, no re-detection)
 
 ## Per-step section auto-discovery
@@ -293,17 +293,17 @@ MCP/CLI handle independently:
 // No auto-link (different platforms) — design.figma requires separate binding
 ```
 
-## Secrets: `.env.snapship`
+## Secrets: `.env.snap`
 
-Secrets (Figma PAT, other tokens) **do not live in `snapship.config.json`**
-(commit-friendly). They are read from `.env.snapship` at the project root
+Secrets (Figma PAT, other tokens) **do not live in `snap.config.json`**
+(commit-friendly). They are read from `.env.snap` at the project root
 (gitignored by default).
 
 **Format:** `KEY=VALUE` per line. Comments `#`. Quotes `"…"` / `'…'`
 stripped automatically. No shell substitution.
 
 ```bash
-# .env.snapship — gitignored, per-project secrets
+# .env.snap — gitignored, per-project secrets
 FIGMA_ACCESS_TOKEN=figd_abc123def456
 # OPENAI_API_KEY="sk-…"
 ```
@@ -327,7 +327,7 @@ new token. Scope: read + edit the file.
 
 Orchestrated explicitly by each skill via `_shared/run-lifecycle-script.sh` — user shell scripts, **not** native Claude Code hooks (which operate at session/tool level: `SessionStart`, `PreToolUse`, etc.).
 
-Skill passes JSON context via stdin (feature_id, ticket_ids, etc.).
+Skill passes JSON context via stdin (story_id, ticket_ids, etc.).
 
 ## Runtime validation (JSON Schema)
 

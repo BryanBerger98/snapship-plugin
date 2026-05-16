@@ -1,10 +1,11 @@
 {
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "platform": "github",
   "tickets": [
     {
       "local_id": "t-001",
       "title": "Login",
+      "story_type": "user-story",
       "status": "completed"
     }
   ]

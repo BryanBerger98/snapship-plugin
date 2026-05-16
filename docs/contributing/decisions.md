@@ -11,7 +11,7 @@
 | AFFiNE                | MCP `affine-mcp-server` (DAWNCR0W, 84 tools) — primary product docs source                                                          |
 | Docs templates        | Native AFFiNE template pages (UI), referenced by template_id                                                                        |
 | Generated AFFiNE pages | Global PRD, feature PRD, feature wireframes gallery                                                                                |
-| AFFiNE workspace      | 1 per code project, mapped via `snapship.config.json` (`documentation.workspace`)                                                    |
+| AFFiNE workspace      | 1 per code project, mapped via `snap.config.json` (`documentation.workspace`)                                                    |
 | PRD source of truth   | AFFiNE (primary) — minimal local                                                                                                    |
 | Tickets source of truth | Primary platform, local cache                                                                                                     |
 | Local storage         | `.snap/` minimal (cache + progress + meta)                                                                                          |
@@ -25,7 +25,7 @@
 | `/develop`            | Standalone (1 ticket = 1 dev/review cycle) + `--loop=session` (epic/feature)                                                        |
 | Chaining              | Manual (suggestion at end of skill)                                                                                                 |
 | Tickets sync          | Local draft → batch review → push                                                                                                   |
-| Config                | `snapship.config.json` at project root (extends bundled defaults)                                                                   |
+| Config                | `snap.config.json` at project root (extends bundled defaults)                                                                   |
 | Auth                  | None in config — MCP/CLI handle it (gh auth, glab auth, $AFFINE_API_TOKEN)                                                          |
 | Config sections       | `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `defaults` |
 
@@ -33,11 +33,11 @@
 
 ### Config bootstrap: dedicated `/snap:init` skill
 
-**Choice:** dedicated `/snap:init` skill (steps `step-00-detect.md` + `step-01-write.md`) handles `snapship.config.json` creation. All other skills (define/ticket/wireframe/develop/qa) exit early with `ERROR: snapship.config.json not found. Run /snap:init first.` if config missing.
+**Choice:** dedicated `/snap:init` skill (steps `step-00-detect.md` + `step-01-write.md`) handles `snap.config.json` creation. All other skills (define/ticket/wireframe/develop/qa) exit early with `ERROR: snap.config.json not found. Run /snap:init first.` if config missing.
 
 **Why:** separation of concerns, loud fail-fast > silent fallback, explicit init (1× per project).
 
-**How to apply:** adding a new skill = add the guard `[ -f "$PWD/snapship.config.json" ] || exit 1` at the start of step-00.
+**How to apply:** adding a new skill = add the guard `[ -f "$PWD/snap.config.json" ] || exit 1` at the start of step-00.
 
 ### Config `$schema`: GitHub raw URL
 
@@ -45,9 +45,9 @@
 
 **Why:** cross-install portability — once installed via marketplace the schema file lives in the CC cache, not in the project, so a relative path would break IDE validation. Runtime `load-config.sh` always reads the schema from the plugin bundle (not via the `$schema` field), so ajv validation is unaffected.
 
-### feature_id_pattern
+### story_id_pattern
 
-**Choice:** `feature_id` always `NN-kebab` (decoupled from tickets). `ticket_id` separate, used only in `branch_pattern`/`commit_pattern`.
+**Choice:** `story_id` always `NN-kebab` (decoupled from tickets). `ticket_id` separate, used only in `branch_pattern`/`commit_pattern`.
 
 **Why:** simple, platform-independent. Decouples feature ↔ tickets (a feature is created before tickets exist).
 
@@ -116,7 +116,7 @@ Configurable update mode: `diff` (default — patch impacted sections) or `rewri
 
 ### `/design` scope — mockups only
 
-**Choice:** `/design` does **one thing only** — hi-fi mockups. Takes a `<ticket-id|feature-id>` as input (like `/develop` and `/qa`) and builds mockups based on what the ticket requires. `/design figma` uses the **same** `figma-helper.sh` and the **same** Desktop Bridge plugin as `/wireframe figma`.
+**Choice:** `/design` does **one thing only** — hi-fi mockups. Takes a `<ticket-id|story-id>` as input (like `/develop` and `/qa`) and builds mockups based on what the ticket requires. `/design figma` uses the **same** `figma-helper.sh` and the **same** Desktop Bridge plugin as `/wireframe figma`.
 
 **Why:** one skill = one responsibility. Design system management belongs to a dedicated tool, not a mode grafted onto the mockup skill. `/design` and `/wireframe` share exactly the same Figma surface — a single helper to maintain.
 
@@ -176,3 +176,43 @@ Autonomous workflow. Native patterns:
 - 1–10 parallel agents based on complexity
 - Atomic stories 5–30 min (1 ticket = 1 atomic commit)
 - Branch naming configurable via `naming.branch_pattern`
+
+## v1.2.0 — ticket hierarchy redesign (YYYY-MM-DD)
+
+Reworks the ticket model around an explicit Epic / User Story / Task / Bug taxonomy, makes the tracker the sole source of truth for tickets (platform-first, cache éphémère intra-run), and renames the product surface from `snapship` to `snap` (config file, env file, plugin manifest). Scope also covers the `feature_id` → `story_id` rename, worktree resolution simplification, and the removal of `subtask_root`.
+
+### Actioned decisions (16)
+
+- **Decision 1 — No offline mode** — every flow assumes connectivity (LLM + tracker), removing the offline guarantee in exchange for a simpler architecture.
+- **Decision 2 — Ephemeral ticket cache** — tickets live in `.snap/.runtime/<subject-id>/tickets.json` for the duration of one skill run, replacing the persistent `.snap/tickets/{feature_id}.json`.
+- **Decision 3 — No local cache for Epics / Milestones / Versions** — platform-first lookup live each time; the tracker list is the single source of truth and `/fetch` no longer syncs these objects.
+- **Decision 4 — Feature = User Story** — a "feature" maps exactly to one deliverable User Story; vocabulary aligned with Agile and `feature_id` renamed to `story_id`.
+- **Decision 5 — Epic is project-management only** — `story_type=epic` never produces a branch, commit, or `/develop`/`/qa` run; schema forbids `branch_name`/`commit_sha` on epics.
+- **Decision 6 — Remote state is authoritative** — local state loses normative value; `/develop` accepts any existing tracker ticket (US, Bug, Task) without local state-machine prerequisite.
+- **Decision 7 — `/ticket --standalone`** — allows ticket creation without a parent feature/story or PRD, for isolated technical work (e.g. "upgrade Node 20").
+- **Decision 7b — Strict hierarchical push** — a child ticket cannot be pushed if its parent is not already on the tracker; step-05 orders parents first, blocks children with an explicit message otherwise.
+- **Decision 7c — `/develop` ignores the PRD** — the skill reads only the ticket (and any references it points to), decoupling `meta.json` from ticket lifecycle so `/develop --ticket=<platform_id>` works on any tracker ticket.
+- **Decision 7d — Big-bang `feature_id` → `story_id` rename** — no retro-compatibility alias; migration shipped in one coherent commit and handled downstream by `/upgrade`.
+- **Decision 7e — Cache purge immediate, scoped by subject** — `.snap/.runtime/<subject-id>/` is purged on skill exit (success or failure); distinct subject-ids keep concurrent runs isolated.
+- **Decision 7f — `target_version` explicit, no inheritance** — user sets the target version per ticket when relevant; empty means no target, no silent propagation.
+- **Decision 8 — `/define` is multi-mode** — single skill with internal routing (vision / journey / story / refinement), no split into `/define-vision` or `/define-journey`.
+- **Decision 9 — Single schema constraint: epic forbids branch/commit** — `commit_type` stays free and uncoupled from `story_type`; one allOf rule keeps validation usable in continuous mode during `/ticket`.
+- **Decision 10 — LLM clustering heuristic in auto mode** — the agent auto-groups stories under Epics and proposes Task ↔ US hierarchy with a warn; interactive mode keeps explicit user concertation.
+- **Decision 11 — `subtask_root` removed** — worktree strategy is fixed (Task under US shares the US worktree; Task standalone or under Epic gets its own); schema keeps only `path`, `default_root`, `destroy`.
+- **Decision 12 — `naming.branch_pattern` simplified** — global default becomes `{type}/{ticket_id}`, `{slug}` dropped; breaking change migrated via `/upgrade`.
+- **Decision 13 — `naming.commit_pattern` token rename** — `{type}` becomes `{commit_type}`; breaking template change, documented upgrade.
+- **Decision 14 — GitHub `task` issue_type mapping** — `tickets.github.issue_types.task` added for symmetry with other story_types; adapter routes `story_type=task` to the configured GH Issue Type.
+- **Decision 15 — Bug parent matrix** — Bug can have Task children, Bug-as-parent-of-Bug forbidden; parent-child matrix updated accordingly.
+- **Decision 16 — Plugin rename `snapship` → `snap`** — big-bang user-facing rename: `snapship.config.json` → `snap.config.json`, `.env.snapship` → `.env.snap`, plugin manifest `name` → `snap`. Git repo keeps `snapship-plugin`, product identity is `snap`. Migration via `/upgrade`.
+
+### Additional v1.2 subjects
+
+- **Tracker version mapping — degenerate cases** — `target_version` is a single explicit ticket field, mapped per platform via adapter capability (`supports_version`). GitHub Releases + Git tags, GitLab Releases, Jira Fix Version, Linear Releases; when `supports_version=false` the value is silently ignored with a one-shot warn.
+- **Epic post-merge auto-close** — `/develop` post-merge step calls `close_epic_if_all_children_done(epic_id)` through the adapter (Jira transition, Linear state, GitLab API, GH marker comment + manual). Capability-gated and opt-out via `--no-epic-close`.
+- **Subagent orchestration constraint** — subagents cannot nest, so the orchestrator (parent skill) centralises any digest/summary spawn instead of letting a child agent spawn its own; keeps fan-out predictable and bounded.
+- **Haiku for classifier + digest** — extraction-only jobs (ticket classification, digest summarisation) target Haiku to optimise cost and latency without quality loss on these narrow tasks.
+- **One-ticket-per-`/develop`-call** — invocation pattern is single-ticket; multi-ticket loops are dropped from `/develop` in favour of explicit external orchestration (composable, easier to resume, no implicit batching).
+
+### Historical reference
+
+Detailed plans archived at `.claude/plan/ticket-hierarchy-redesign/` until Phase J cleanup. After cleanup, original plans accessible via git history at tag `v1.2.0`.

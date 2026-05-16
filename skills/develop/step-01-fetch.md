@@ -1,74 +1,149 @@
 ---
 step: 01-fetch
 next_step: 02-prepare
-description: Hydrate target ticket(s). Cache-first; fall back to platform fetch via tickets-adapter.
+description: Read ticket + parent from ephemeral cache, filter story_type=epic, follow external refs (wireframe/design/doc).
 ---
 
 # step-01 — fetch
 
-Load the ticket(s) the run will work on. Cache-first to avoid platform calls.
+The live ticket and (when relevant) its parent were already pulled into the
+ephemeral cache by step-00. This step :
+
+1. asserts they are present,
+2. **rejects `story_type=epic`** with a dedicated exit code,
+3. extracts external references (wireframe / design / doc URLs) for downstream
+   agents.
+
+No PRD lookup, no `.snap/stories/{story_id}/meta.json` read — the ticket is the
+single source of truth.
 
 ## Tasks
 
-### A. Standalone mode (target_kind=ticket)
-
-1. Resolve via cache:
-   ```bash
-   ticket_json=$(jq --arg id "$ticket_id" \
-     '.tickets[] | select(.platform_id == $id or .local_id == $id)' \
-     ".snap/tickets/${feature_id}.json")
-   ```
-2. Cache miss → platform fetch:
-   ```bash
-   bash skills/_shared/tickets-adapter.sh \
-     --action=get --platform="$platform" --id="$ticket_id" \
-     --project-root="$PWD"
-   # exits 10 (MCP descriptor) → invoke MCP → merge into tickets.json
-   ```
-3. Validate the ticket has minimal fields (`title`, `acceptance_criteria` non-empty
-   or explicit `tech_notes`). If neither → AskUserQuestion: "Proceed without AC?
-   (skip / cancel)".
-
-### B. Loop mode (target_kind=feature)
-
-1. Read all tickets where `status in (todo, in_progress)` from
-   `.snap/tickets/${feature_id}.json`.
-2. Order by `priority` (P0→P3), then `local_id` ascending.
-3. Optionally filter by `--label=` if user passed it.
-4. Stash queue in `.snap/queues/${feature_id}.develop.json`:
-   ```json
-   {
-     "queue": ["t-001", "t-002", "t-003"],
-     "processed": [],
-     "started_at": "<ISO-8601>"
-   }
-   ```
-
-### C. Sync ticket status (idempotent)
-
-Mark tickets we plan to touch as `in_progress` locally + remote (best-effort):
+### A. Read from cache
 
 ```bash
-tmp=$(mktemp)
-jq --arg lid "$lid" \
-  '(.tickets[] | select(.local_id == $lid)).status = "in_progress"' \
-  ".snap/tickets/${feature_id}.json" > "$tmp" \
-  && mv "$tmp" ".snap/tickets/${feature_id}.json"
-
-bash skills/_shared/tickets-adapter.sh \
-  --action=update --platform="$platform" --id="$platform_id" \
-  --status="in_progress" --project-root="$PWD" || true
+ticket_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" ticket.json \
+              --project-root="$PWD")
+parent_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" parent.json \
+              --project-root="$PWD" 2>/dev/null || echo '{}')
 ```
 
-Remote update failures are non-fatal — local cache still drives behaviour.
+### B. Filter `story_type=epic`
 
-## Append progress
+Epic = aggregator, not a deliverable unit. Refuse to develop it.
+
+```bash
+story_type=$(jq -r '.story_type // ""' <<<"$ticket_json")
+if [ "$story_type" = "epic" ]; then
+  cat >&2 <<EOF
+ERROR (exit=20): ticket $TICKET_ID has story_type=epic.
+Epic n'est pas une unité de livraison — decompose en User Stories
+(/snap:ticket --feature=$STORY_ID) puis relance /develop sur une US.
+EOF
+  exit 20
+fi
+```
+
+Exit code `20` is reserved for *Epic-refusé* — different from generic `1`
+(misuse) and `2` (config error). Wrappers (`/qa`, CI gates) can branch on it.
+
+### C. Validate minimal shape
+
+```bash
+title=$(jq -r '.title // ""' <<<"$ticket_json")
+ac=$(jq -r '(.acceptance_criteria // []) | length' <<<"$ticket_json")
+tech=$(jq -r '.tech_notes // ""' <<<"$ticket_json")
+
+[ -z "$title" ] && { echo "ERROR: ticket has no title" >&2; exit 1; }
+
+if [ "$ac" -eq 0 ] && [ -z "$tech" ]; then
+  echo "WARN: ticket has neither acceptance_criteria nor tech_notes."
+  # AskUserQuestion in non-auto mode: proceed or cancel.
+fi
+```
+
+### D. External refs
+
+Extract URLs the ticket points at (wireframe / design / doc page). These are
+plain fields on the ticket schema (`wireframe_url`, `design_url`, `doc_url`) ;
+some teams also mention them in description / comments via Markdown links —
+fall back to a regex sweep when fields are absent.
+
+```bash
+refs=$(jq -c '{
+  wireframe_url: (.wireframe_url // ""),
+  design_url:    (.design_url // ""),
+  doc_url:       (.doc_url // "")
+}' <<<"$ticket_json")
+printf '%s' "$refs" \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" refs.json \
+      --project-root="$PWD"
+```
+
+Surface a one-liner so the developer agent knows visuals exist before writing
+code :
+
+```bash
+handoff=$(jq -r '
+  [ (if .wireframe_url != "" then "[wireframe] " + .wireframe_url else empty end),
+    (if .design_url    != "" then "[design] "    + .design_url    else empty end),
+    (if .doc_url       != "" then "[doc] "       + .doc_url       else empty end) ]
+  | if length > 0 then "Refs: " + join("; ") else empty end' <<<"$refs")
+[ -n "$handoff" ] && echo "$handoff"
+```
+
+### E. Spawn `snap-ticket-digest` (consumer=developer)
+
+Condense the raw cache into a developer-tailored brief. The skill spawns
+the subagent **once** here ; downstream steps (prepare / sync) consume
+`digest.json` from the cache instead of re-reading the full payload.
+
+Issue a single `Agent` call :
+
+```
+subagent_type: snap-ticket-digest
+prompt: |
+  {ticket_id}: <jq -r '.platform_id' ticket.json>
+  {raw_payload}: <merged JSON: {ticket: <ticket.json>, parent: <parent.json>, refs: <refs.json>}>
+  {linked_docs}: <inlined content of doc_url body if fetched in step-00, else empty>
+  {consumer}: "developer"
+```
+
+Parse the **last** ` ```json ` fence from the response. Persist the
+`brief_md` payload to the cache so step-02-prepare reads it instead of the
+raw ticket :
+
+```bash
+printf '%s' "$digest_json" \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" digest.json \
+      --project-root="$PWD"
+```
+
+If the subagent fails (unparseable JSON / empty response), fall back to
+passing the raw cache files downstream and log a `digest_error` event via
+`progress.sh step --status=warn`. The skill does not abort.
+
+### F. Sync ticket status (idempotent)
+
+Mark the ticket as `in_progress` on the tracker (best-effort) :
+
+```bash
+platform_id=$(jq -r '.platform_id' <<<"$ticket_json")
+bash skills/_shared/tickets-adapter.sh \
+  --action=update --platform="$PLATFORM" --ticket-id="$platform_id" \
+  --state=in_progress --project-root="$PWD" \
+  >/dev/null 2>&1 || true
+```
+
+Remote failure is non-fatal — local cache drives behaviour.
+
+### G. Append progress
 
 ```bash
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --feature-id="$feature_id" \
+  --story-id="$TICKET_ID" \
   --step-num=01 \
   --step-name=fetch \
   --status=ok
@@ -76,9 +151,9 @@ bash skills/_shared/progress.sh step \
 
 ## Acceptance check
 
-- Standalone: `ticket_json` materialised.
-- Loop: `.snap/queues/${feature_id}.develop.json` written with non-empty
-  `queue[]`.
+- `ticket.json` readable from cache.
+- `story_type` ∈ `{user-story, task, bug}` ; Epic rejected with exit 20.
+- `refs.json` written (URLs may be empty strings — that's fine).
 
 ## Next step
 

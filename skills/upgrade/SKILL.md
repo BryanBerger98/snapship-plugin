@@ -1,6 +1,6 @@
 ---
 name: upgrade
-description: Migre le workspace local `.snap/` (ou ancien `.claude/product/`) vers la version snap installée. Détecte version courante, plan la chaîne de migrations, demande les décisions utilisateur pour breaking changes, backup, applique, valide.
+description: Migre le workspace local `.snap/` (ou ancien `.claude/product/`) vers la version snap installée. Détecte version courante, plan la chaîne de migrations, demande les décisions utilisateur pour breaking changes, backup, applique, valide. v1.2 — chaîne supporte v1.1.0 → v1.2.0 (rename snapship→snap, features→stories, feature_id→story_id, drop epic_link + .snap/tickets/).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -42,7 +42,7 @@ schémas, chemins, et formats. Idempotent — peut être re-exécuté.
 
 - `.snap/` migré au schéma cible.
 - `.snap.bak-v{from}-{ts}/` backup (sauf `--dry-run`).
-- `snapship.config.json.version` = version cible.
+- `snap.config.json.version` = version cible.
 - Telemetry entrées `/upgrade step-NN ... — ok`.
 
 ## Détection de version
@@ -50,8 +50,39 @@ schémas, chemins, et formats. Idempotent — peut être re-exécuté.
 Source de vérité (par priorité) :
 1. `.snap/manifests/_taxonomy.json.schema_version`
 2. `.snap/manifests/*.manifest.json.schema_version` (premier trouvé)
-3. `snapship.config.json.version`
-4. Si `.claude/product/` existe et `.snap/` absent → `0.6.0` présumé.
+3. `snap.config.json.version`
+4. Si `snapship.config.json` (ancien nom) présent → version lue (défaut `1.1.0`).
+5. Si `.claude/product/` existe et `.snap/` absent → `0.6.0` présumé.
+
+## Migrations disponibles
+
+| From | To | Breaking | Résumé |
+|------|------|----------|--------|
+| 0.6.0 | 1.0.0 | ✅ | `.claude/product/` → `.snap/`, split features par type |
+| 1.0.0 | 1.1.0 | ❌ | GitHub native routing (Issue Types + Projects v2) |
+| 1.1.0 | 1.2.0 | ✅ | Hierarchy redesign : rename `snapship.config.json`→`snap.config.json`, `.env.snapship`→`.env.snap`, `.snap/features/`→`.snap/stories/`, `feature_id`→`story_id`, drop `epic_link`, drop `.snap/tickets/` (tracker = source unique) |
+
+## v1.1 → v1.2 spécifique
+
+Détections automatiques :
+- `tickets_cache_present` : `.snap/tickets/` existe → demande confirmation suppression.
+- `legacy_env_present` : `.env.snapship` existe → demande rename auto.
+
+Migration applique :
+1. `mv snapship.config.json snap.config.json` (atomique, préserve content).
+2. `mv .env.snapship .env.snap` (si présent et décision = `auto`).
+3. `mv .snap/features .snap/stories` (préserve sous-arbres et inodes pour git).
+4. Pour chaque `.snap/stories/<id>/meta.json` :
+   - `feature_id` → `story_id` (renomme clé).
+   - `epic_link` → supprimée (chaîne libre opaque).
+   - `parent_epic_id: null` ajouté (user remplit post-migration si applicable).
+5. `.snap/tickets/` → trashé (sauf décision `skip`).
+6. `snap.config.json.version` bumpé à `1.2`.
+
+Validation post-migrate (`step-04-validate.md`) :
+- Schémas Ajv : config, manifest, taxonomy, progress.
+- Absence legacy : `snapship.config.json`, `.env.snapship`, `.snap/features/`.
+- Sweep `grep -rn 'snapship\|feature_id\|epic_link'` projet — non-bloquant, warn-only.
 
 ## How to run a step
 

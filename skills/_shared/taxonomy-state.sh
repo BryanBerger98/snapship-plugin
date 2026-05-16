@@ -16,10 +16,21 @@
 #   set-workspace [--platform=P] [--workspace-id=W] [--root-page-id=R]
 #                 [--root-url=U]  Update workspace block (merge).
 #   get-workspace                 Print workspace JSON or empty.
+#   set-vision TEXT               Set workspace.vision (mode=vision).
+#   set-principles JSON_ARRAY     Replace workspace.principles (string[]).
+#   set-north-star METRIC [CURRENT] [TARGET] [HORIZON]
+#                                 Set workspace.north_star (metric required).
 #   add-domain SLUG TITLE PAGE_ID [URL]
 #   add-journey DOMAIN_SLUG JOURNEY_SLUG TITLE PAGE_ID [URL]
 #   add-top-journey SLUG TITLE PAGE_ID [URL]
 #                                 Top-level journey (no domain parent).
+#   draft-journey DOMAIN_SLUG JOURNEY_SLUG TITLE
+#                                 Create journey local-only (state=draft, no page_id).
+#                                 DOMAIN_SLUG="_" → top-level journey.
+#   set-journey-content DOMAIN_SLUG JOURNEY_SLUG STEPS_JSON OUTCOMES_JSON
+#                                 Replace steps[]+outcomes[] of a journey.
+#                                 STEPS_JSON: [{title,description?}, ...]
+#                                 OUTCOMES_JSON: ["text", ...]
 #   get-domain SLUG               JSON or empty.
 #   get-journey DOMAIN_SLUG JOURNEY_SLUG
 #                                 JSON or empty.
@@ -37,7 +48,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
-SCHEMA_VERSION="1.0.0"
+SCHEMA_VERSION="1.1.0"
 SLUG_RE='^[a-z0-9][a-z0-9-]*$'
 
 state_file() { echo "${PROJECT_ROOT}/.snap/manifests/_taxonomy.json"; }
@@ -50,9 +61,14 @@ Subcommands:
   init
   set-workspace [--platform=P] [--workspace-id=W] [--root-page-id=R] [--root-url=U]
   get-workspace
+  set-vision TEXT
+  set-principles JSON_ARRAY
+  set-north-star METRIC [CURRENT] [TARGET] [HORIZON]
   add-domain SLUG TITLE PAGE_ID [URL]
   add-journey DOMAIN_SLUG JOURNEY_SLUG TITLE PAGE_ID [URL]
   add-top-journey SLUG TITLE PAGE_ID [URL]
+  draft-journey DOMAIN_SLUG JOURNEY_SLUG TITLE
+  set-journey-content DOMAIN_SLUG JOURNEY_SLUG STEPS_JSON OUTCOMES_JSON
   get-domain SLUG
   get-journey DOMAIN_SLUG JOURNEY_SLUG
   list-domains
@@ -142,6 +158,128 @@ cmd_set_workspace() {
 cmd_get_workspace() {
   ensure_file
   jq -c '.workspace // empty' "$(state_file)"
+}
+
+cmd_set_vision() {
+  [ $# -ge 1 ] || { echo "ERROR: set-vision TEXT" >&2; return 2; }
+  local text="$1"
+  [ -n "$text" ] || { echo "ERROR: vision empty" >&2; return 2; }
+  ensure_file
+  local f tmp now
+  f=$(state_file); tmp=$(mktemp); now=$(now_iso)
+  jq --arg t "$text" --arg now "$now" '
+    .workspace = (.workspace // {})
+    | .workspace.vision = $t
+    | .workspace.synced_at = $now
+  ' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_set_principles() {
+  [ $# -ge 1 ] || { echo "ERROR: set-principles JSON_ARRAY" >&2; return 2; }
+  local arr="$1"
+  echo "$arr" | jq -e 'type == "array"' >/dev/null \
+    || { echo "ERROR: principles must be JSON array" >&2; return 2; }
+  ensure_file
+  local f tmp now
+  f=$(state_file); tmp=$(mktemp); now=$(now_iso)
+  jq --argjson p "$arr" --arg now "$now" '
+    .workspace = (.workspace // {})
+    | .workspace.principles = $p
+    | .workspace.synced_at = $now
+  ' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_set_north_star() {
+  [ $# -ge 1 ] || { echo "ERROR: set-north-star METRIC [CURRENT] [TARGET] [HORIZON]" >&2; return 2; }
+  local metric="$1" current="${2:-}" target="${3:-}" horizon="${4:-}"
+  [ -n "$metric" ] || { echo "ERROR: METRIC empty" >&2; return 2; }
+  ensure_file
+  local f tmp now
+  f=$(state_file); tmp=$(mktemp); now=$(now_iso)
+  jq --arg m "$metric" --arg c "$current" --arg tg "$target" --arg h "$horizon" --arg now "$now" '
+    .workspace = (.workspace // {})
+    | .workspace.north_star = (
+        {metric: $m}
+        + (if $c  == "" then {} else {current: $c}  end)
+        + (if $tg == "" then {} else {target:  $tg} end)
+        + (if $h  == "" then {} else {horizon: $h}  end)
+      )
+    | .workspace.synced_at = $now
+  ' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+cmd_draft_journey() {
+  [ $# -ge 3 ] || { echo "ERROR: draft-journey DOMAIN_SLUG JOURNEY_SLUG TITLE" >&2; return 2; }
+  local dslug="$1" jslug="$2" title="$3"
+  check_slug "$jslug" "journey"
+  ensure_file
+  local f tmp now
+  f=$(state_file); tmp=$(mktemp); now=$(now_iso)
+  if [ "$dslug" = "_" ]; then
+    jq --arg j "$jslug" --arg title "$title" --arg now "$now" '
+      .journeys = (.journeys // {})
+      | .journeys[$j] = (
+          (.journeys[$j] // {}) +
+          { title: $title, state: "draft", synced_at: $now }
+        )
+    ' "$f" > "$tmp" && mv "$tmp" "$f"
+  else
+    check_slug "$dslug" "domain"
+    local exists
+    exists=$(jq --arg d "$dslug" '(.domains // {}) | has($d)' "$f")
+    if [ "$exists" != "true" ]; then
+      echo "ERROR: domain '$dslug' not found — call add-domain first" >&2
+      rm -f "$tmp"
+      return 1
+    fi
+    jq --arg d "$dslug" --arg j "$jslug" --arg title "$title" --arg now "$now" '
+      .domains[$d].journeys = (.domains[$d].journeys // {})
+      | .domains[$d].journeys[$j] = (
+          (.domains[$d].journeys[$j] // {}) +
+          { title: $title, state: "draft", synced_at: $now }
+        )
+    ' "$f" > "$tmp" && mv "$tmp" "$f"
+  fi
+}
+
+cmd_set_journey_content() {
+  [ $# -ge 4 ] || { echo "ERROR: set-journey-content DOMAIN_SLUG JOURNEY_SLUG STEPS_JSON OUTCOMES_JSON" >&2; return 2; }
+  local dslug="$1" jslug="$2" steps="$3" outcomes="$4"
+  echo "$steps" | jq -e 'type == "array"' >/dev/null \
+    || { echo "ERROR: STEPS_JSON must be array" >&2; return 2; }
+  echo "$outcomes" | jq -e 'type == "array"' >/dev/null \
+    || { echo "ERROR: OUTCOMES_JSON must be array" >&2; return 2; }
+  ensure_file
+  local f tmp now
+  f=$(state_file); tmp=$(mktemp); now=$(now_iso)
+  if [ "$dslug" = "_" ]; then
+    local exists
+    exists=$(jq --arg j "$jslug" '(.journeys // {}) | has($j)' "$f")
+    if [ "$exists" != "true" ]; then
+      echo "ERROR: top-journey '$jslug' not found" >&2
+      rm -f "$tmp"
+      return 1
+    fi
+    jq --arg j "$jslug" --argjson s "$steps" --argjson o "$outcomes" --arg now "$now" '
+      .journeys[$j].steps = $s
+      | .journeys[$j].outcomes = $o
+      | .journeys[$j].synced_at = $now
+    ' "$f" > "$tmp" && mv "$tmp" "$f"
+  else
+    local exists
+    exists=$(jq --arg d "$dslug" --arg j "$jslug" \
+      '((.domains // {})[$d].journeys // {}) | has($j)' "$f")
+    if [ "$exists" != "true" ]; then
+      echo "ERROR: journey '$dslug/$jslug' not found" >&2
+      rm -f "$tmp"
+      return 1
+    fi
+    jq --arg d "$dslug" --arg j "$jslug" --argjson s "$steps" --argjson o "$outcomes" --arg now "$now" '
+      .domains[$d].journeys[$j].steps = $s
+      | .domains[$d].journeys[$j].outcomes = $o
+      | .domains[$d].journeys[$j].synced_at = $now
+    ' "$f" > "$tmp" && mv "$tmp" "$f"
+  fi
 }
 
 cmd_add_domain() {
@@ -339,20 +477,25 @@ SUBCMD="$1"; shift
 parse_flags "$@"
 
 case "$SUBCMD" in
-  init)             cmd_init ;;
-  set-workspace)    cmd_set_workspace ;;
-  get-workspace)    cmd_get_workspace ;;
-  add-domain)       cmd_add_domain       ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  add-journey)      cmd_add_journey      ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  add-top-journey)  cmd_add_top_journey  ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  get-domain)       cmd_get_domain       ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  get-journey)      cmd_get_journey      ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  list-domains)     cmd_list_domains ;;
-  list-journeys)    cmd_list_journeys    ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  has-domain)       cmd_has_domain       ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  has-journey)      cmd_has_journey      ${REMAINING[@]+"${REMAINING[@]}"} ;;
-  validate)         cmd_validate ;;
-  path)             cmd_path ;;
-  -h|--help)        usage; exit 0 ;;
+  init)                 cmd_init ;;
+  set-workspace)        cmd_set_workspace ;;
+  get-workspace)        cmd_get_workspace ;;
+  set-vision)           cmd_set_vision           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set-principles)       cmd_set_principles       ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set-north-star)       cmd_set_north_star       ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  add-domain)           cmd_add_domain           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  add-journey)          cmd_add_journey          ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  add-top-journey)      cmd_add_top_journey      ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  draft-journey)        cmd_draft_journey        ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  set-journey-content)  cmd_set_journey_content  ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  get-domain)           cmd_get_domain           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  get-journey)          cmd_get_journey          ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  list-domains)         cmd_list_domains ;;
+  list-journeys)        cmd_list_journeys        ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  has-domain)           cmd_has_domain           ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  has-journey)          cmd_has_journey          ${REMAINING[@]+"${REMAINING[@]}"} ;;
+  validate)             cmd_validate ;;
+  path)                 cmd_path ;;
+  -h|--help)            usage; exit 0 ;;
   *) echo "ERROR: unknown subcommand: $SUBCMD" >&2; usage >&2; exit 2 ;;
 esac

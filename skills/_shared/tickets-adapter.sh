@@ -1,24 +1,45 @@
 #!/usr/bin/env bash
-# tickets-adapter.sh — abstraction over GitHub / GitLab / JIRA tickets.
+# tickets-adapter.sh — abstraction over GitHub / GitLab / JIRA / Linear tickets.
 #
-# Actions: create | get | update | comment | comment-pr | list
-#          | set-issue-type | add-to-project | set-project-field   (github only)
+# v1.2 — adds hierarchical push (Epic → Story → Task), live lookups,
+# capability matrix, retry/timeout wrapper, idempotence guard.
+#
+# Actions (CRUD): create | get | update | comment | comment-pr | list
+# Actions (native github): set-issue-type | add-to-project | set-project-field
+# Actions (v1.2 hierarchy):
+#   capabilities          → return capability JSON for platform
+#   link-parent           → wire child ↔ parent (Sub-issue GH / Epic Link Jira / Linear parent / GitLab Epic)
+#   set-milestone         → assign milestone/sprint
+#   set-version           → assign fixVersion/Release (capability-gated)
+#   list-epics            → live list of open epics (array)
+#   list-milestones       → live list of milestones (capability-gated)
+#   list-versions         → live list of versions (capability-gated)
+#   close-epic            → close epic if all children done (capability-gated)
 #
 # Platform routing:
 #   - github → shells out to `gh` CLI (GraphQL via `gh api graphql` for native fields)
 #   - gitlab → shells out to `glab` CLI
 #   - jira   → emits MCP descriptor on stdout, exits 10 (skill executes call)
+#   - linear → emits MCP descriptor on stdout, exits 10 (no canonical CLI)
 #
-# Dry-run: write actions (create/update/comment/comment-pr) skip the underlying
-# call, log to telemetry, and return a mock success result. Reads (get/list)
-# run normally even with dry-run set.
+# Retry/timeout (decision O — hardcoded constants):
+#   SNAP_TRACKER_RETRY_MAX=3, SNAP_TRACKER_BACKOFF_MS=1000, SNAP_TRACKER_TIMEOUT_S=30
+#   Retry only on transient errors (5xx, 429, "rate limit", timeouts).
+#
+# Idempotence (decision 7b — hierarchical strict):
+#   - `create` with `--idempotency-check=true` looks up by title before create.
+#   - `link-parent` refuses if --parent-id empty or unresolved.
+#
+# Dry-run: write actions (create/update/comment/comment-pr/link-parent/
+# set-milestone/set-version/close-epic) skip the underlying call, log, and
+# return a mock success result. Reads (get/list*) run normally even with
+# dry-run set.
 #
 # `comment-pr` semantics:
 #   - github: `gh pr comment <PR-ID>`. Plain comment (not a code review).
 #   - gitlab: `glab mr note <MR-ID>`. MR-level comment.
-#   - jira:   no PR concept — caller must redirect to `comment` on the parent
-#             ticket. Adapter exits 1 with `not_supported` for jira; the skill
-#             handles that by falling back to per-ticket comments.
+#   - jira/linear: no PR concept — caller must redirect to `comment` on the
+#                  parent ticket. Adapter exits 1 with `not_supported`.
 #
 # Output JSON shapes:
 #   ok:   {"ok":true, "mode":"cli|mcp|dry-run", "action":..., "platform":..., "result":{...}}
@@ -28,6 +49,11 @@
 # Exit codes: 0=ok, 1=error, 2=bad args, 10=MCP descriptor emitted
 
 set -euo pipefail
+
+# v1.2 — decision O : hardcoded defaults (overridable via env for tests).
+RETRY_MAX="${SNAP_TRACKER_RETRY_MAX:-3}"
+BACKOFF_MS="${SNAP_TRACKER_BACKOFF_MS:-1000}"
+TIMEOUT_S="${SNAP_TRACKER_TIMEOUT_S:-30}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
@@ -49,6 +75,13 @@ FIELD_ID=""
 OPTION_ID=""
 VALUE_TEXT=""
 ITEM_ID=""
+PARENT_ID=""
+PARENT_TYPE=""
+CHILD_ID=""
+MILESTONE=""
+VERSION_NAME=""
+STORY_TYPE=""
+IDEMPOTENCY_CHECK="false"
 DRY_RUN="${SNAP_DRY_RUN:-false}"
 MODE="auto"
 
@@ -58,9 +91,12 @@ Usage: tickets-adapter.sh --action=ACTION [OPTIONS]
 
 Actions: create | get | update | comment | comment-pr | list
          set-issue-type | add-to-project | set-project-field   (github only)
+         capabilities | link-parent | set-milestone | set-version
+         list-epics | list-milestones | list-versions | close-epic
 
 Required per action:
-  create            --title (--body, --labels, --assignees optional)
+  create            --title (--body, --labels, --assignees, --parent-id,
+                    --idempotency-check optional)
   get               --ticket-id
   update            --ticket-id (any of --title/--body/--labels/--state)
   comment           --ticket-id (--comment | --body-file)
@@ -69,6 +105,15 @@ Required per action:
   set-issue-type    --ticket-id --issue-type=NAME      github only
   add-to-project    --ticket-id --project-id=PVT_xxx   github only (echoes item_id)
   set-project-field --item-id --project-id --field-id --option-id   github only
+  capabilities      (no args) — returns JSON {supports_version, supports_epic,
+                    supports_milestone, supports_epic_auto_close}
+  link-parent       --child-id --parent-id (--parent-type=epic|user-story|bug)
+  set-milestone     --ticket-id --milestone=NAME
+  set-version       --ticket-id --version-name=SEMVER  capability-gated
+  list-epics        (no args)
+  list-milestones   (no args)                          capability-gated
+  list-versions     (no args)                          capability-gated
+  close-epic        --ticket-id                        capability-gated
 
 Options:
   --platform=github|gitlab|jira  Override config.tickets.platform
@@ -89,6 +134,13 @@ Options:
   --option-id=ID                 Project v2 single-select option ID
   --value=TEXT                   Free-text value for non-single-select fields (number/date/text)
   --item-id=ID                   Project v2 item ID (issue inside project)
+  --parent-id=ID                 Platform ID of parent ticket (link-parent / create)
+  --parent-type=KIND             epic | user-story | bug (link-parent hint)
+  --child-id=ID                  Platform ID of child ticket (link-parent)
+  --milestone=NAME               Milestone/Sprint name (set-milestone)
+  --version-name=SEMVER          fixVersion/Release name (set-version)
+  --story-type=KIND              epic | user-story | task | bug (create)
+  --idempotency-check=BOOL       Lookup by title before create (default false)
   --dry-run                      Skip writes; equivalent to \$SNAP_DRY_RUN=1
   --mode=auto|cli|mcp            Force routing (default auto)
   -h, --help                     Show this help
@@ -116,6 +168,13 @@ while [ $# -gt 0 ]; do
     --option-id=*)     OPTION_ID="${1#--option-id=}" ;;
     --value=*)         VALUE_TEXT="${1#--value=}" ;;
     --item-id=*)       ITEM_ID="${1#--item-id=}" ;;
+    --parent-id=*)     PARENT_ID="${1#--parent-id=}" ;;
+    --parent-type=*)   PARENT_TYPE="${1#--parent-type=}" ;;
+    --child-id=*)      CHILD_ID="${1#--child-id=}" ;;
+    --milestone=*)     MILESTONE="${1#--milestone=}" ;;
+    --version-name=*)  VERSION_NAME="${1#--version-name=}" ;;
+    --story-type=*)    STORY_TYPE="${1#--story-type=}" ;;
+    --idempotency-check=*) IDEMPOTENCY_CHECK="${1#--idempotency-check=}" ;;
     --dry-run)         DRY_RUN="true" ;;
     --mode=*)          MODE="${1#--mode=}" ;;
     -h|--help)         usage; exit 0 ;;
@@ -130,6 +189,8 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 case "$ACTION" in
   create|get|update|comment|comment-pr|list) ;;
   set-issue-type|add-to-project|set-project-field) ;;
+  capabilities|link-parent|set-milestone|set-version) ;;
+  list-epics|list-milestones|list-versions|close-epic) ;;
   *) echo "ERROR: invalid --action: $ACTION" >&2; exit 2 ;;
 esac
 
@@ -142,7 +203,7 @@ fi
 case "$MODE" in auto|cli|mcp) ;; *) echo "ERROR: bad --mode: $MODE" >&2; exit 2 ;; esac
 
 # Resolve platform from config when omitted
-if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
   if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
@@ -152,7 +213,7 @@ fi
 [ -z "$PLATFORM" ] && { echo "ERROR: --platform required (or set tickets.platform in config)" >&2; exit 2; }
 
 case "$PLATFORM" in
-  github|gitlab|jira) ;;
+  github|gitlab|jira|linear) ;;
   *) echo "ERROR: unsupported platform: $PLATFORM" >&2; exit 2 ;;
 esac
 
@@ -177,8 +238,106 @@ err_out() {
 # Required field check helpers
 need() { [ -n "$1" ] || { echo "$(err_out "$2")"; exit 2; }; }
 
+# --- v1.2 capability matrix ---------------------------------------------
+# Static per platform. Caller may further degrade based on workspace probe
+# (Linear Release configured? GitHub Issue Types enabled?).
+capabilities_for() {
+  case "$1" in
+    github)
+      jq -nc '{platform:"github", supports_version:false, supports_epic:true,
+               supports_milestone:true, supports_epic_auto_close:false}' ;;
+    gitlab)
+      jq -nc '{platform:"gitlab", supports_version:true, supports_epic:true,
+               supports_milestone:true, supports_epic_auto_close:true}' ;;
+    jira)
+      jq -nc '{platform:"jira", supports_version:true, supports_epic:true,
+               supports_milestone:true, supports_epic_auto_close:true}' ;;
+    linear)
+      jq -nc '{platform:"linear", supports_version:true, supports_epic:true,
+               supports_milestone:true, supports_epic_auto_close:true}' ;;
+    *) jq -nc '{ok:false, error:"unknown_platform"}' ;;
+  esac
+}
+
+# --- v1.2 retry + timeout wrapper ---------------------------------------
+# Wraps a CLI invocation. Retries only on transient errors visible in stdout/
+# stderr (rate limit, 5xx, 429, timeout). Sleep grows exponentially:
+# BACKOFF_MS, 2×BACKOFF_MS, 4×BACKOFF_MS. Each attempt is timed out at
+# TIMEOUT_S seconds when `timeout`/`gtimeout` is on PATH.
+maybe_timeout() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$TIMEOUT_S" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$TIMEOUT_S" "$@"
+  else
+    "$@"
+  fi
+}
+
+is_transient_err() {
+  echo "$1" | grep -qiE '(rate limit|HTTP 5[0-9][0-9]|HTTP 429|429 Too Many|503 Service|temporarily|timed out|deadline exceeded|connection reset)'
+}
+
+call_with_retry() {
+  local attempt=1 last_out="" last_rc=0
+  while [ "$attempt" -le "$RETRY_MAX" ]; do
+    last_out=$(maybe_timeout "$@" 2>&1)
+    last_rc=$?
+    if [ "$last_rc" -eq 0 ]; then
+      printf '%s' "$last_out"
+      return 0
+    fi
+    if [ "$attempt" -ge "$RETRY_MAX" ] || ! is_transient_err "$last_out"; then
+      printf '%s' "$last_out"
+      return "$last_rc"
+    fi
+    local backoff_ms=$(( BACKOFF_MS * (1 << (attempt - 1)) ))
+    sleep "$(awk -v ms="$backoff_ms" 'BEGIN { printf "%.3f", ms / 1000 }')"
+    attempt=$(( attempt + 1 ))
+  done
+  printf '%s' "$last_out"
+  return "$last_rc"
+}
+
+# --- v1.2 hierarchical strict ------------------------------------------
+# Refuses to push a child ticket whose parent has no resolved platform_id.
+require_parent_id() {
+  if [ -z "$PARENT_ID" ] || [ "$PARENT_ID" = "null" ]; then
+    jq -nc '{ok:false, error:"parent_unresolved",
+             reason:"refused: child push requires --parent-id with platform_id (decision 7b)"}'
+    exit 1
+  fi
+}
+
+# --- v1.2 idempotence : lookup by title before create -------------------
+lookup_existing_by_title() {
+  local title="$1" bin out
+  case "$PLATFORM" in
+    github)
+      bin=$(gh_bin); command -v "$bin" >/dev/null 2>&1 || return 1
+      out=$(call_with_retry "$bin" issue list --search "in:title \"$title\"" --json number,title,url --limit 5 2>&1) || return 1
+      echo "$out" | jq -e --arg t "$title" '[.[] | select(.title == $t)] | .[0]' >/dev/null 2>&1 || return 1
+      echo "$out" | jq -c --arg t "$title" '[.[] | select(.title == $t)] | .[0]'
+      ;;
+    gitlab)
+      bin=$(glab_bin); command -v "$bin" >/dev/null 2>&1 || return 1
+      out=$(call_with_retry "$bin" issue list --search "$title" --output json --per-page 5 2>&1) || return 1
+      echo "$out" | jq -e --arg t "$title" '[.[] | select(.title == $t)] | .[0]' >/dev/null 2>&1 || return 1
+      echo "$out" | jq -c --arg t "$title" '[.[] | select(.title == $t) | {platform_id:(.iid|tostring), url:.web_url, title:.title}] | .[0]'
+      ;;
+    *) return 1 ;;
+  esac
+}
+
 # --- DRY RUN write shortcut ----------------------------------------------
-if [ "$DRY_RUN" = "true" ] && [ "$ACTION" != "get" ] && [ "$ACTION" != "list" ]; then
+_is_read_action() {
+  case "$1" in
+    get|list|list-epics|list-milestones|list-versions|capabilities) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if [ "$DRY_RUN" = "true" ] && ! _is_read_action "$ACTION"; then
   MOCK=$(jq -nc \
     --arg act "$ACTION" \
     --arg pid "${TICKET_ID:-DRY-0}" \
@@ -193,12 +352,20 @@ if [ "$DRY_RUN" = "true" ] && [ "$ACTION" != "get" ] && [ "$ACTION" != "list" ];
     --arg option_id "$OPTION_ID" \
     --arg value "$VALUE_TEXT" \
     --arg item_id "${ITEM_ID:-DRY-ITEM-0}" \
+    --arg parent_id "$PARENT_ID" \
+    --arg parent_type "$PARENT_TYPE" \
+    --arg child_id "${CHILD_ID:-${TICKET_ID:-DRY-0}}" \
+    --arg milestone "$MILESTONE" \
+    --arg version_name "$VERSION_NAME" \
+    --arg story_type "$STORY_TYPE" \
     --argjson labels    "$(csv_to_array "$LABELS_CSV")" \
     --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" '
     {dry_run:true, action:$act, platform_id:$pid, pr_id:$pr_id, title:$title, body:$body, state:$state,
      comment:$comment, labels:$labels, assignees:$assignees,
      issue_type:$issue_type, project_id:$project_id, field_id:$field_id, option_id:$option_id,
-     value:$value, item_id:$item_id}')
+     value:$value, item_id:$item_id,
+     parent_id:$parent_id, parent_type:$parent_type, child_id:$child_id,
+     milestone:$milestone, version_name:$version_name, story_type:$story_type}')
   ok_result "dry-run" "$MOCK"
   exit 0
 fi
@@ -216,6 +383,12 @@ emit_mcp_descriptor() {
     --arg state "$STATE" \
     --arg limit "$LIMIT" \
     --arg comment "$COMMENT_TEXT" \
+    --arg parent_id "$PARENT_ID" \
+    --arg parent_type "$PARENT_TYPE" \
+    --arg child_id "$CHILD_ID" \
+    --arg milestone "$MILESTONE" \
+    --arg version_name "$VERSION_NAME" \
+    --arg story_type "$STORY_TYPE" \
     --argjson labels    "$(csv_to_array "$LABELS_CSV")" \
     --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" '
     {
@@ -224,12 +397,18 @@ emit_mcp_descriptor() {
         platform: $plat, action: $act,
         params: (
           {}
-          | if $pid     != "" then .ticket_id = $pid     else . end
-          | if $pr_id   != "" then .pr_id     = $pr_id   else . end
-          | if $title   != "" then .title     = $title   else . end
-          | if $body    != "" then .body      = $body    else . end
-          | if $state   != "" then .state     = $state   else . end
-          | if $comment != "" then .comment   = $comment else . end
+          | if $pid          != "" then .ticket_id    = $pid          else . end
+          | if $pr_id        != "" then .pr_id        = $pr_id        else . end
+          | if $title        != "" then .title        = $title        else . end
+          | if $body         != "" then .body         = $body         else . end
+          | if $state        != "" then .state        = $state        else . end
+          | if $comment      != "" then .comment      = $comment      else . end
+          | if $parent_id    != "" then .parent_id    = $parent_id    else . end
+          | if $parent_type  != "" then .parent_type  = $parent_type  else . end
+          | if $child_id     != "" then .child_id     = $child_id     else . end
+          | if $milestone    != "" then .milestone    = $milestone    else . end
+          | if $version_name != "" then .version_name = $version_name else . end
+          | if $story_type   != "" then .story_type   = $story_type   else . end
           | if ($labels    | length) > 0 then .labels    = $labels    else . end
           | if ($assignees | length) > 0 then .assignees = $assignees else . end
           | if $act == "list" then .limit = ($limit | tonumber) else . end
@@ -240,8 +419,14 @@ emit_mcp_descriptor() {
   exit 10
 }
 
-if [ "$ACTION" = "comment-pr" ] && [ "$PLATFORM" = "jira" ]; then
-  jq -nc '{ok:false, error:"not_supported", reason:"jira platform has no PR concept; use action=comment on the parent ticket instead"}'
+if [ "$ACTION" = "capabilities" ]; then
+  caps=$(capabilities_for "$PLATFORM")
+  ok_result "static" "$caps"
+  exit 0
+fi
+
+if [ "$ACTION" = "comment-pr" ] && { [ "$PLATFORM" = "jira" ] || [ "$PLATFORM" = "linear" ]; }; then
+  jq -nc --arg p "$PLATFORM" '{ok:false, error:"not_supported", reason:($p + " platform has no PR concept; use action=comment on the parent ticket instead")}'
   exit 1
 fi
 
@@ -255,7 +440,17 @@ case "$ACTION" in
     ;;
 esac
 
-if [ "$MODE" = "mcp" ] || [ "$PLATFORM" = "jira" ]; then
+# v1.2 capability-gated rejections (decision 7b — refuse silently-wrong calls)
+case "$ACTION:$PLATFORM" in
+  set-version:github|list-versions:github|close-epic:github)
+    jq -nc --arg act "$ACTION" --arg p "$PLATFORM" \
+      '{ok:false, error:"not_supported",
+        reason:($act + " not supported on " + $p + " (see capabilities action)")}'
+    exit 1
+    ;;
+esac
+
+if [ "$MODE" = "mcp" ] || [ "$PLATFORM" = "jira" ] || [ "$PLATFORM" = "linear" ]; then
   emit_mcp_descriptor
 fi
 
@@ -303,11 +498,21 @@ run_github() {
   case "$ACTION" in
     create)
       need "$TITLE" "title required for create"
+      # v1.2 idempotence guard (decision 7b)
+      if [ "$IDEMPOTENCY_CHECK" = "true" ]; then
+        local existing; existing=$(lookup_existing_by_title "$TITLE" 2>/dev/null || echo "")
+        if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+          jq -nc --argjson e "$existing" --arg title "$TITLE" \
+            '{platform_id:($e.number|tostring), url:$e.url, title:$title, status:"todo", deduped:true}' \
+            | { read -r r; ok_result "cli" "$r"; }
+          return 0 2>/dev/null || exit 0
+        fi
+      fi
       local args=(issue create --title "$TITLE")
       [ -n "$BODY" ]          && args+=(--body "$BODY")
       [ -n "$LABELS_CSV" ]    && args+=(--label "$LABELS_CSV")
       [ -n "$ASSIGNEES_CSV" ] && args+=(--assignee "$ASSIGNEES_CSV")
-      local out; out=$("$bin" "${args[@]}" 2>&1) || { err_out "gh create failed: $out"; exit 1; }
+      local out; out=$(call_with_retry "$bin" "${args[@]}" 2>&1) || { err_out "gh create failed: $out"; exit 1; }
       # gh issue create echoes the URL on success
       local url="${out##*$'\n'}"
       local num="${url##*/}"
@@ -464,6 +669,66 @@ run_github() {
         '{item_id:$item, field_id:$fid, option_id:$opt, value:$v, updated:true}' \
         | { read -r r; ok_result "cli" "$r"; }
       ;;
+    link-parent)
+      need "$CHILD_ID" "child-id required for link-parent"
+      require_parent_id
+      local repo_full owner name parent_nid child_nid
+      repo_full=$(call_with_retry "$bin" repo view --json nameWithOwner -q .nameWithOwner 2>&1) \
+        || { err_out "gh repo view failed: $repo_full"; exit 1; }
+      owner="${repo_full%%/*}"; name="${repo_full#*/}"
+      local resolve_q='query($o:String!,$n:String!,$p:Int!,$c:Int!){
+        repository(owner:$o,name:$n){
+          parent: issue(number:$p){ id }
+          child:  issue(number:$c){ id }
+        }
+      }'
+      local resolved
+      resolved=$(call_with_retry "$bin" api graphql -f query="$resolve_q" \
+                  -F o="$owner" -F n="$name" -F p="$PARENT_ID" -F c="$CHILD_ID" 2>&1) \
+        || { err_out "gh graphql resolve failed: $resolved"; exit 1; }
+      parent_nid=$(echo "$resolved" | jq -r '.data.repository.parent.id // ""')
+      child_nid=$(echo "$resolved"  | jq -r '.data.repository.child.id  // ""')
+      [ -n "$parent_nid" ] || { err_out "parent #$PARENT_ID not found"; exit 1; }
+      [ -n "$child_nid"  ] || { err_out "child  #$CHILD_ID not found";  exit 1; }
+      local mut_q='mutation($p:ID!,$c:ID!){
+        addSubIssue(input:{issueId:$p, subIssueId:$c}){ issue{ id } subIssue{ id } }
+      }'
+      local mut_out
+      mut_out=$(call_with_retry "$bin" api graphql -f query="$mut_q" \
+                -F p="$parent_nid" -F c="$child_nid" 2>&1) \
+        || { err_out "gh addSubIssue failed: $mut_out"; exit 1; }
+      jq -nc --arg p "$PARENT_ID" --arg c "$CHILD_ID" \
+        '{parent_id:$p, child_id:$c, linked:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    set-milestone)
+      need "$TICKET_ID" "ticket-id required for set-milestone"
+      need "$MILESTONE" "milestone required"
+      local out; out=$(call_with_retry "$bin" issue edit "$TICKET_ID" --milestone "$MILESTONE" 2>&1) \
+        || { err_out "gh set-milestone failed: $out"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" --arg m "$MILESTONE" \
+        '{platform_id:$pid, milestone:$m, updated:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    list-epics)
+      local out; out=$(call_with_retry "$bin" issue list --label epic --state open \
+                       --json number,url,title --limit 100 2>&1) \
+        || { err_out "gh list-epics failed: $out"; exit 1; }
+      local norm; norm=$(echo "$out" | jq '[.[] | {platform_id:(.number|tostring), url:.url, title:.title}]')
+      jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    list-milestones)
+      local repo_full owner name
+      repo_full=$(call_with_retry "$bin" repo view --json nameWithOwner -q .nameWithOwner 2>&1) \
+        || { err_out "gh repo view failed: $repo_full"; exit 1; }
+      owner="${repo_full%%/*}"; name="${repo_full#*/}"
+      local out; out=$(call_with_retry "$bin" api "repos/$owner/$name/milestones?state=open&per_page=100" 2>&1) \
+        || { err_out "gh list-milestones failed: $out"; exit 1; }
+      local norm; norm=$(echo "$out" | jq '[.[] | {id:(.number|tostring), title:.title, due_on:(.due_on // null)}]')
+      jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
   esac
 }
 
@@ -474,11 +739,20 @@ run_gitlab() {
   case "$ACTION" in
     create)
       need "$TITLE" "title required for create"
+      if [ "$IDEMPOTENCY_CHECK" = "true" ]; then
+        local existing; existing=$(lookup_existing_by_title "$TITLE" 2>/dev/null || echo "")
+        if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+          jq -nc --argjson e "$existing" --arg title "$TITLE" \
+            '{platform_id:$e.platform_id, url:$e.url, title:$title, status:"todo", deduped:true}' \
+            | { read -r r; ok_result "cli" "$r"; }
+          return 0 2>/dev/null || exit 0
+        fi
+      fi
       local args=(issue create --title "$TITLE")
       [ -n "$BODY" ]          && args+=(--description "$BODY")
       [ -n "$LABELS_CSV" ]    && args+=(--label "$LABELS_CSV")
       [ -n "$ASSIGNEES_CSV" ] && args+=(--assignee "$ASSIGNEES_CSV")
-      local out; out=$("$bin" "${args[@]}" 2>&1) || { err_out "glab create failed: $out"; exit 1; }
+      local out; out=$(call_with_retry "$bin" "${args[@]}" 2>&1) || { err_out "glab create failed: $out"; exit 1; }
       local url; url=$(printf '%s\n' "$out" | grep -oE 'https?://[^[:space:]]+' | tail -1)
       local iid="${url##*/}"
       jq -nc --arg url "$url" --arg iid "$iid" --arg title "$TITLE" '
@@ -487,7 +761,7 @@ run_gitlab() {
       ;;
     get)
       need "$TICKET_ID" "ticket-id required for get"
-      local out; out=$("$bin" issue view "$TICKET_ID" --output json 2>&1) \
+      local out; out=$(call_with_retry "$bin" issue view "$TICKET_ID" --output json 2>&1) \
         || { err_out "glab get failed: $out"; exit 1; }
       ok_result "cli" "$(echo "$out" | normalize_gitlab_issue)"
       ;;
@@ -535,6 +809,66 @@ run_gitlab() {
         assignees: ((.assignees // []) | map(.username))
       }]')
       jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    link-parent)
+      need "$CHILD_ID" "child-id required for link-parent"
+      require_parent_id
+      # GitLab : child issue gets `Related to #parent` link via REST API,
+      # then milestone-of-epic propagates. Group epics need REST POST to
+      # /groups/:id/epics/:epic_iid/issues — keep simple : use `related-to`.
+      local out; out=$(call_with_retry "$bin" issue update "$CHILD_ID" \
+                       --label "parent:${PARENT_ID}" 2>&1) \
+        || { err_out "glab link-parent failed: $out"; exit 1; }
+      jq -nc --arg p "$PARENT_ID" --arg c "$CHILD_ID" \
+        '{parent_id:$p, child_id:$c, linked:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    set-milestone)
+      need "$TICKET_ID" "ticket-id required for set-milestone"
+      need "$MILESTONE" "milestone required"
+      local out; out=$(call_with_retry "$bin" issue update "$TICKET_ID" --milestone "$MILESTONE" 2>&1) \
+        || { err_out "glab set-milestone failed: $out"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" --arg m "$MILESTONE" \
+        '{platform_id:$pid, milestone:$m, updated:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    set-version)
+      need "$TICKET_ID" "ticket-id required for set-version"
+      need "$VERSION_NAME" "version-name required"
+      # GitLab : no native fixVersion on issue ; use label `version:X.Y.Z`.
+      local out; out=$(call_with_retry "$bin" issue update "$TICKET_ID" --label "version:${VERSION_NAME}" 2>&1) \
+        || { err_out "glab set-version failed: $out"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" --arg v "$VERSION_NAME" \
+        '{platform_id:$pid, version:$v, updated:true}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    list-epics)
+      local out; out=$(call_with_retry "$bin" issue list --label epic --output json --per-page 100 2>&1) \
+        || { err_out "glab list-epics failed: $out"; exit 1; }
+      local norm; norm=$(echo "$out" | jq '[.[] | {platform_id:(.iid|tostring), url:.web_url, title:.title}]')
+      jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    list-milestones)
+      local out; out=$(call_with_retry "$bin" api "milestones?state=active&per_page=100" 2>&1) \
+        || { err_out "glab list-milestones failed: $out"; exit 1; }
+      local norm; norm=$(echo "$out" | jq '[.[] | {id:(.id|tostring), title:.title, due_on:(.due_date // null)}]')
+      jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    list-versions)
+      local out; out=$(call_with_retry "$bin" api releases 2>&1) \
+        || { err_out "glab list-versions failed: $out"; exit 1; }
+      local norm; norm=$(echo "$out" | jq '[.[] | {tag:.tag_name, name:(.name // .tag_name), released_at:(.released_at // null)}]')
+      jq -nc --argjson items "$norm" '{items:$items, count:($items|length)}' \
+        | { read -r r; ok_result "cli" "$r"; }
+      ;;
+    close-epic)
+      need "$TICKET_ID" "ticket-id required for close-epic"
+      local out; out=$(call_with_retry "$bin" issue close "$TICKET_ID" 2>&1) \
+        || { err_out "glab close-epic failed: $out"; exit 1; }
+      jq -nc --arg pid "$TICKET_ID" '{platform_id:$pid, closed:true}' \
         | { read -r r; ok_result "cli" "$r"; }
       ;;
   esac

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-config.sh — initial wizard producing snapship.config.json.
+# setup-config.sh — initial wizard producing snap.config.json.
 #
 # Two modes:
 #
@@ -9,7 +9,7 @@
 #      Skill consumes this to drive AskUserQuestion prompts.
 #
 #   2. --write
-#      Writes snapship.config.json from explicit field flags +/or merged
+#      Writes snap.config.json from explicit field flags +/or merged
 #      answer JSON. Refuses to overwrite an existing config unless --force.
 #
 # Usage:
@@ -43,11 +43,11 @@ Usage: setup-config.sh [--detect | --write] [OPTIONS]
 
 Modes:
   --detect          (default) Probe environment, emit detected defaults JSON.
-  --write           Materialize snapship.config.json at project root.
+  --write           Materialize snap.config.json at project root.
 
 Options:
   --project-root=PATH      Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
-  --force                  Overwrite existing snapship.config.json
+  --force                  Overwrite existing snap.config.json
   --auto-mode=true|false   In --write: skip empty-field check; use detected defaults
   --available=CSV          Override MCP detection (test hook; defaults to \$SNAP_MCP_AVAILABLE)
   --from-answers=JSON      JSON object merged on top of detected defaults
@@ -230,7 +230,7 @@ fi
 
 # --- Write mode -----------------------------------------------------------
 
-OUTPUT="$PROJECT_ROOT/snapship.config.json"
+OUTPUT="$PROJECT_ROOT/snap.config.json"
 
 if [ -e "$OUTPUT" ] && [ "$FORCE" != "true" ]; then
   echo "ERROR: $OUTPUT exists; pass --force to overwrite" >&2

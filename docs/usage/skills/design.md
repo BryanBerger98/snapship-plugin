@@ -17,7 +17,7 @@ Like `/snap:develop` and `/snap:qa`:
 | Input          | Effect                                          |
 | -------------- | ----------------------------------------------- |
 | `<ticket-id>`  | Mocks up the single ticket.                     |
-| `<feature-id>` | Mocks up every UI ticket in the feature (batch). |
+| `<story-id>` | Mocks up every UI ticket in the feature (batch). |
 
 Partial-match on the id. With no argument (and no `--resume`), step-00 proposes
 the UI tickets with no `design_url` via `AskUserQuestion`.
@@ -41,20 +41,20 @@ the UI tickets with no `design_url` via `AskUserQuestion`.
 Desktop Bridge plugin as `/snap:wireframe figma`.
 
 > **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
-> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
+> a token in `.env.snap` (key `FIGMA_ACCESS_TOKEN`, override
 > `design.figma.token_env`).
 
 ## Syntax
 
 ```
-/snap:design <ticket-id|feature-id> [--resume|-r] [--dry-run] [--no-wireframe-reuse]
+/snap:design <ticket-id|story-id> [--resume|-r] [--dry-run] [--no-wireframe-reuse]
 ```
 
 ## Flags
 
 | Flag                   | Effect                                                                                 |
 | ---------------------- | -------------------------------------------------------------------------------------- |
-| `<ticket-id\|feature-id>` | Required except with `--resume`. Ticket id → one ticket; feature id → every UI ticket. |
+| `<ticket-id\|story-id>` | Required except with `--resume`. Ticket id → one ticket; feature id → every UI ticket. |
 | `--resume` / `-r`      | Resumes via `progress.sh resume next --skill=design`.                                  |
 | `--dry-run`            | Helpers return mock descriptors: no MCP calls, no assets, no doc writes.               |
 | `--no-wireframe-reuse` | Skips the "reuse `/wireframe` screens" prompt; rebuilds the list from the tickets.    |
@@ -93,11 +93,11 @@ The DS is **read-only** — `/snap:design` never writes to it.
 
 ## Outputs
 
-- `.snap/designs/{feature_id}/{screen-id}-{state}.{fmt}` (local cache pre-push).
+- `.snap/designs/{story_id}/{screen-id}-{state}.{fmt}` (local cache pre-push).
 - `design-gallery` page in the docs — ref persisted in
-  `manifests/{feature_id}.manifest.json` → `refs.design_gallery.{page_id,url,synced_at,sync_status}`.
-- `.snap/designs/{feature_id}/gallery.md` — one section per screen (source rendered before push).
-- Each target UI ticket in `.snap/tickets/{feature_id}.json` gains
+  `manifests/{story_id}.manifest.json` → `refs.design_gallery.{page_id,url,synced_at,sync_status}`.
+- `.snap/designs/{story_id}/gallery.md` — one section per screen (source rendered before push).
+- Each target UI ticket in `.snap/tickets/{story_id}.json` gains
   `design_screen`, `design_url`, `design_mode` (`mockup` | `reused`).
 
 ## Next step

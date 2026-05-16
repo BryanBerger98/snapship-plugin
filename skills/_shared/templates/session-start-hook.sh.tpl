@@ -9,7 +9,7 @@
 # state so the model does not waste turns reading the same files.
 #
 # What this emits (in order, each block bounded by markers):
-#   1. snapship.config.json (if present)       — testing.* commands, naming
+#   1. snap.config.json (if present)       — testing.* commands, naming
 #   2. PRD global summary                      — vision + feature index
 #   3. Active feature manifest + progress      — current state, last step
 #   4. Open tickets                            — top N by priority
@@ -42,9 +42,9 @@ block() {
 }
 
 emit_config() {
-  local f="snapship.config.json"
+  local f="snap.config.json"
   [ -f "$f" ] || return 0
-  block "snapship.config.json"
+  block "snap.config.json"
   jq '{
     version: .version,
     naming: .naming,
@@ -82,7 +82,7 @@ emit_active_feature() {
     local prog="${SNAP_DIR}/progress.json"
     if [ -f "$prog" ]; then
       block "Progress (in-flight for ${fid})"
-      jq --arg fid "$fid" '.in_flight | map(select(.feature_id == $fid))' "$prog" 2>/dev/null || true
+      jq --arg fid "$fid" '.in_flight | map(select(.story_id == $fid))' "$prog" 2>/dev/null || true
     fi
   fi
 }

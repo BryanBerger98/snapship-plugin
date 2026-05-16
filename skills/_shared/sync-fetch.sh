@@ -9,16 +9,16 @@
 #   4. check → compare manifest.synced_at vs remote last_edited_time (opt-in, /snap:fetch --check)
 #
 # Subcommands:
-#   plan         --feature-id=X --kind=K
-#       stdout: JSON {feature_id, kind, ref, staging_target, manifest_path}
+#   plan         --story-id=X --kind=K
+#       stdout: JSON {story_id, kind, ref, staging_target, manifest_path}
 #       Sortie 1 si refs.<kind> absent du manifest (rien à fetch).
-#   ack          --feature-id=X --kind=K --content-file=PATH
+#   ack          --story-id=X --kind=K --content-file=PATH
 #                [--platform=P] [--url=U] [--page-id|--file-key|--project-id|--issue-number=...]
 #       Copie content-file dans staging target.
 #       Update manifest.refs.<kind> { synced_at, sync_status=synced } (+ optional ids).
-#   fail         --feature-id=X --kind=K [--note=TEXT]
+#   fail         --story-id=X --kind=K [--note=TEXT]
 #       Mark sync_status=error.
-#   check-mark   --feature-id=X --kind=K --remote-edited=TIMESTAMP
+#   check-mark   --story-id=X --kind=K --remote-edited=TIMESTAMP
 #       Compare manifest.refs.<kind>.synced_at vs remote-edited.
 #       Si remote > local → mark sync_status=dirty (suggère fetch).
 #
@@ -36,12 +36,14 @@ usage() {
 Usage: sync-fetch.sh <subcommand> [OPTIONS]
 
 Subcommands:
-  plan         --feature-id=X --kind=K
-  ack          --feature-id=X --kind=K --content-file=PATH [--platform=P --url=U ...ids]
-  fail         --feature-id=X --kind=K [--note=TEXT]
-  check-mark   --feature-id=X --kind=K --remote-edited=TIMESTAMP
+  plan         --story-id=X --kind=K
+  ack          --story-id=X --kind=K --content-file=PATH [--platform=P --url=U ...ids]
+  fail         --story-id=X --kind=K [--note=TEXT]
+  check-mark   --story-id=X --kind=K --remote-edited=TIMESTAMP
 
-Kinds: prd, design-gallery, wireframes-gallery, tickets, design-file
+Kinds: prd, design-gallery, wireframes-gallery, design-file
+       (v1.2 — `tickets` kind removed; tracker is the single source of truth,
+        use `/snap:fetch --probe-tracker` for connectivity/auth/capability check)
 
 Common: --project-root=PATH, -h
 EOF
@@ -66,7 +68,7 @@ REMOTE_EDITED=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-root=*)  PROJECT_ROOT="${1#--project-root=}"; SNAP_DIR="${PROJECT_ROOT}/.snap" ;;
-    --feature-id=*)    FEATURE_ID="${1#--feature-id=}" ;;
+    --story-id=*)    FEATURE_ID="${1#--story-id=}" ;;
     --kind=*)          KIND="${1#--kind=}" ;;
     --content-file=*)  CONTENT_FILE="${1#--content-file=}" ;;
     --platform=*)      PLATFORM="${1#--platform=}" ;;
@@ -83,12 +85,17 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-[ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
+[ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
 [ -z "$KIND" ] && { echo "ERROR: --kind required" >&2; exit 1; }
 
 case "$KIND" in
-  prd|design-gallery|wireframes-gallery|tickets|design-file) ;;
-  *) echo "ERROR: --kind must be prd|design-gallery|wireframes-gallery|tickets|design-file" >&2; exit 1 ;;
+  prd|design-gallery|wireframes-gallery|design-file) ;;
+  tickets)
+    echo "ERROR: --kind=tickets removed in v1.2 — tracker is the single source." >&2
+    echo "       Use /snap:fetch --probe-tracker for connectivity/auth/capabilities." >&2
+    exit 1
+    ;;
+  *) echo "ERROR: --kind must be prd|design-gallery|wireframes-gallery|design-file" >&2; exit 1 ;;
 esac
 
 MANIFEST="${SNAP_DIR}/manifests/${FEATURE_ID}.manifest.json"
@@ -98,7 +105,6 @@ ref_key() {
     prd) echo "prd" ;;
     design-gallery) echo "design_gallery" ;;
     wireframes-gallery) echo "wireframes_gallery" ;;
-    tickets) echo "tickets" ;;
     design-file) echo "design_file" ;;
   esac
 }
@@ -108,7 +114,6 @@ staging_target() {
     prd)                 echo "${SNAP_DIR}/PRDs/${FEATURE_ID}.md" ;;
     design-gallery)      echo "${SNAP_DIR}/designs/${FEATURE_ID}/gallery.md" ;;
     wireframes-gallery)  echo "${SNAP_DIR}/wireframes/${FEATURE_ID}/gallery.md" ;;
-    tickets)             echo "${SNAP_DIR}/tickets/${FEATURE_ID}.json" ;;
     design-file)         echo "${SNAP_DIR}/designs/${FEATURE_ID}/design.txt" ;;
   esac
 }
@@ -146,7 +151,7 @@ case "$CMD" in
       --arg st "$STARGET" \
       --arg mp "$MANIFEST" \
       --argjson ref "$REF" '
-      {feature_id:$fid, kind:$kind, ref_key:$key, ref:$ref, staging_target:$st, manifest_path:$mp}'
+      {story_id:$fid, kind:$kind, ref_key:$key, ref:$ref, staging_target:$st, manifest_path:$mp}'
     ;;
 
   ack)

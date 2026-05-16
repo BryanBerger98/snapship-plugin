@@ -31,7 +31,7 @@ The skill is platform-agnostic at the orchestration layer: step-00 resolves
 the `$helper` variable.
 
 > **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
-> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
+> a token in `.env.snap` (key `FIGMA_ACCESS_TOKEN`, override
 > `wireframes.figma.token_env`). step-00 halts if `figma.fileKey` doesn't match
 > `wireframes.figma.file_key`.
 
@@ -46,7 +46,7 @@ the `$helper` variable.
 | Flag                | Effect                                                                           |
 | ------------------- | -------------------------------------------------------------------------------- |
 | `--resume` / `-r`   | Resumes via `progress.sh resume next --skill=wireframe`.                         |
-| `--feature=NN-slug` | Targets the `feature_id` (required if multiple features; partial-match).         |
+| `--feature=NN-slug` | Targets the `story_id` (required if multiple features; partial-match).         |
 | `--dry-run`         | Helpers return mock descriptors: no MCP calls, no PNG, no doc writes.            |
 
 ## Pipeline
@@ -61,13 +61,13 @@ the `$helper` variable.
 
 ## Outputs
 
-- `.snap/wireframes/{feature_id}/{screen-id}-{state}.png` (local cache
+- `.snap/wireframes/{story_id}/{screen-id}-{state}.png` (local cache
   pre-push).
 - Gallery page in the docs — ref persisted in
-  `manifests/{feature_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
-- `.snap/wireframes/{feature_id}/gallery.md` — one section per screen
+  `manifests/{story_id}.manifest.json` → `refs.wireframes_gallery.{page_id,url,synced_at,sync_status}`.
+- `.snap/wireframes/{story_id}/gallery.md` — one section per screen
   (source rendered before doc push).
-- Each UI ticket in `.snap/tickets/{feature_id}.json` gains
+- Each UI ticket in `.snap/tickets/{story_id}.json` gains
   `wireframe_screen` + `wireframe_url`.
 
 ## Next step

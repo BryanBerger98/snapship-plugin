@@ -1,0 +1,18 @@
+{
+  "story_id": "20-tooling",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "platform_id": "#200",
+      "title": "Bump Node 20 → 22",
+      "story_type": "task",
+      "commit_type": "build",
+      "parent_epic_id": null,
+      "parent_story_id": null,
+      "status": "todo",
+      "branch_name": "build/repo-200-node-22",
+      "estimated_size": "S"
+    }
+  ]
+}

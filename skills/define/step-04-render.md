@@ -13,7 +13,7 @@ The v0.1 `prd-global.md` artefact is **dropped**. The "global PRD" concept is
 replaced by domain pages on the doc platform (created/idempotent in step-05).
 
 The v0.2 `meta.json` is **dropped** in v1.0 — replaced by
-`.snap/manifests/{feature_id}.manifest.json` (schema_version, refs, sync_state).
+`.snap/manifests/{story_id}.manifest.json` (schema_version, refs, sync_state).
 
 ## Inputs
 
@@ -39,7 +39,7 @@ For each feature in `.snap/.define-state.json.features`:
 1. **Compute staging path** :
    ```bash
    PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
-     --feature-id="$fid" --kind=prd \
+     --story-id="$fid" --kind=prd \
      --project-root="$PWD")
    # → ${PWD}/.snap/PRDs/${fid}.md
    ```
@@ -47,7 +47,7 @@ For each feature in `.snap/.define-state.json.features`:
 2. Render `$TPL_FEATURE` with feature-scoped vars (template reflects "change
    request" semantics : forward-looking, archived post-ship, never edited after
    publish) :
-   `{{feature_id}}`, `{{feature_title}}`, `{{feature_status}}`, `{{owner}}`
+   `{{story_id}}`, `{{feature_title}}`, `{{feature_status}}`, `{{owner}}`
    (default `<TBD>`), `{{target_release}}` (default `<TBD>`),
    `{{problem_statement}}`, `{{solution_overview}}`, `{{in_scope}}`,
    `{{out_of_scope}}`, `{{user_flow}}` (default `<TBD — fill in /snap:ticket>`),
@@ -70,8 +70,8 @@ For each feature, materialize the manifest via `setup-snap-dir.sh` (idempotent
 ```bash
 bash skills/_shared/setup-snap-dir.sh \
   --project-root="$PWD" \
-  --feature-id="$fid" \
-  --feature-name="$ftitle" \
+  --story-id="$fid" \
+  --story-name="$ftitle" \
   --lang="$lang" \
   --green-field="$has_codebase_inverted"
 ```
@@ -82,15 +82,24 @@ impacted_journeys) :
 ```bash
 MANIFEST=".snap/manifests/${fid}.manifest.json"
 DOMAINS_JSON=$(jq -c --arg fid "$fid" \
-  '.features[] | select(.feature_id == $fid) | .domains' \
+  '.features[] | select(.story_id == $fid) | .domains' \
   .snap/.define-state.json)
 JOURNEYS_JSON=$(jq -c --arg fid "$fid" \
-  '.features[] | select(.feature_id == $fid)
+  '.features[] | select(.story_id == $fid)
    | .impacted_journeys
    | map({domain: .domain, journey_slug: .journey_slug})' \
   .snap/.define-state.json)
 PRIORITY=$(jq -r --arg fid "$fid" \
-  '.features[] | select(.feature_id == $fid) | .priority' \
+  '.features[] | select(.story_id == $fid) | .priority' \
+  .snap/.define-state.json)
+PARENT_EPIC_ID=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_id // ""' \
+  .snap/.define-state.json)
+PARENT_EPIC_TITLE=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_title // ""' \
+  .snap/.define-state.json)
+PARENT_EPIC_PENDING=$(jq -r --arg fid "$fid" \
+  '.features[] | select(.story_id == $fid) | .parent_epic_pending // false' \
   .snap/.define-state.json)
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -98,10 +107,16 @@ tmp=$(mktemp)
 jq --arg prio "$PRIORITY" \
    --argjson domains "$DOMAINS_JSON" \
    --argjson journeys "$JOURNEYS_JSON" \
+   --arg pepic "$PARENT_EPIC_ID" \
+   --arg petitle "$PARENT_EPIC_TITLE" \
+   --argjson ppending "$PARENT_EPIC_PENDING" \
    --arg ts "$NOW" '
   .priority = $prio
   | .domains = $domains
   | .impacted_journeys = $journeys
+  | (if $pepic != "" then .parent_epic_id = $pepic else . end)
+  | (if $petitle != "" then .parent_epic_title = $petitle else . end)
+  | (if $ppending == true then .parent_epic_pending = true else . end)
   | .updated_at = $ts
 ' "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
 ```
@@ -126,7 +141,7 @@ On failure, emit the ajv error verbatim and stop. Do NOT advance to step-05.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=define \
-  --feature-id=_global \
+  --story-id=_global \
   --step-num=04 \
   --step-name=render \
   --status=ok
@@ -136,7 +151,7 @@ bash skills/_shared/progress.sh step \
 
 - Every feature has its `.snap/PRDs/{fid}.md` staging file.
 - Every feature has its `.snap/manifests/{fid}.manifest.json` with
-  `schema_version`, `feature_id`, `feature_name`, `state="defined"`,
+  `schema_version`, `story_id`, `story_name`, `state="defined"`,
   `priority`, `domains[]`, `impacted_journeys[]`, `refs={}`.
 - Every manifest validates against `manifest.schema.json`.
 - No `prd-global.md` written (v0.1 artefact dropped).

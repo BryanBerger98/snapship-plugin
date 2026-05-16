@@ -41,7 +41,7 @@ Exécute la chaîne migrations résolue par step-00.
 
 4. **Telemetry + progress global step-03** après dernière migration OK :
    ```bash
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=03 --step-name=apply --status=ok
    ```
 

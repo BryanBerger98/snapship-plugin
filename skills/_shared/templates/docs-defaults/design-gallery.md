@@ -7,7 +7,7 @@
 
 ## How to use
 
-1. Each screen has an ID (`{{feature_id}}-{{screen_slug}}`) shared with the PRD and tickets.
+1. Each screen has an ID (`{{story_id}}-{{screen_slug}}`) shared with the PRD and tickets.
 2. Reviewers (`snap-code-reviewer-visual`) open the asset paths to verify implementation fidelity.
 3. `/qa` `design_check` (opt-in) compares the PR's rendered DOM against these mockups.
 4. Each ticket gains `design_url` → this gallery, anchor `#{{screen_id}}`.
@@ -15,10 +15,10 @@
 ## Screens by feature
 
 {{#features}}
-### {{feature_id}} · {{feature_title}}
+### {{story_id}} · {{feature_title}}
 
-PRD: [`PRDs/{{feature_id}}.md`](./PRDs/{{feature_id}}.md)
-Wireframes (if any): [`wireframes-gallery.md#{{feature_id}}`](./wireframes-gallery.md#{{feature_id}})
+PRD: [`PRDs/{{story_id}}.md`](./PRDs/{{story_id}}.md)
+Wireframes (if any): [`wireframes-gallery.md#{{story_id}}`](./wireframes-gallery.md#{{story_id}})
 
 {{#screens}}
 #### `{{screen_id}}` — {{screen_title}}
@@ -42,10 +42,10 @@ States:
 
 ## Conventions
 
-- Filenames: `{{feature_id}}-{{screen_slug}}-{{state}}.{{ext}}` (e.g. `01-auth-signup-default.png`).
+- Filenames: `{{story_id}}-{{screen_slug}}-{{state}}.{{ext}}` (e.g. `01-auth-signup-default.png`).
 - Canvas: configured via `design.mode_defaults.mockup_canvas` (desktop / mobile-portrait / tablet).
 - Real copy required — no `Lorem ipsum`. Use `<TBD>` to flag undecided strings.
-- Edits: re-run `/design <ticket-id|feature-id>` after the ticket changes; do **not** hand-edit assets.
+- Edits: re-run `/design <ticket-id|story-id>` after the ticket changes; do **not** hand-edit assets.
 - `mode = reused` means the design re-uses the existing wireframe artifact unchanged (skipped hi-fi pass).
 
 ## Index by screen ID
@@ -53,7 +53,7 @@ States:
 | ID | Feature | State | Mode | Path |
 |----|---------|-------|------|------|
 {{#screen_index}}
-| `{{screen_id}}` | {{feature_id}} | {{state}} | {{mode}} | `{{path}}` |
+| `{{screen_id}}` | {{story_id}} | {{state}} | {{mode}} | `{{path}}` |
 {{/screen_index}}
 
 ---
@@ -64,10 +64,10 @@ Variables:
   {{updated_at}}              ISO-8601
   {{design_platform}}         penpot|figma
   {{design_export_dir}}       relative path
-  {{features}}                list — {feature_id, feature_title, screens:[...]}
+  {{features}}                list — {story_id, feature_title, screens:[...]}
   {{screens}}                 nested list — {screen_id, screen_title,
                                               states:[{state, mode, asset_path}],
                                               components_used, ds_source,
                                               screen_tickets, screen_notes}
-  {{screen_index}}            flat list — {screen_id, feature_id, state, mode, path}
+  {{screen_index}}            flat list — {screen_id, story_id, state, mode, path}
 -->

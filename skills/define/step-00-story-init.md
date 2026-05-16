@@ -1,14 +1,14 @@
 ---
-step: 00-init
+step: 00-story-init
 next_step: 01-vision
-description: Parse args, require snapship.config.json, detect codebase, branch greenfield vs extension.
+description: Mode story — parse args, require snap.config.json, detect codebase, branch greenfield vs extension. Entry when define_mode=story (selected by step-00-detect-mode).
 ---
 
-# step-00 — init
+# step-00 — story init (mode story entry)
 
 Validate that the workspace was bootstrapped (`/snap:init`) and decide which
 path to follow. **Config bootstrap is not handled here** — if
-`snapship.config.json` is missing, this step exits early and points the user back
+`snap.config.json` is missing, this step exits early and points the user back
 to `/snap:init`.
 
 ## Tasks
@@ -21,20 +21,20 @@ to `/snap:init`.
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=define \
-     --feature-id="${feature:-_global}")
+     --story-id="${feature:-_global}")
    ```
    - Non-empty → parse `NUM\tNAME\tSTATUS`, jump to `step-${NUM}-${NAME}.md` with
-     `feature_id` pre-loaded. Skip the rest of this step.
+     `story_id` pre-loaded. Skip the rest of this step.
    - Empty → no in-flight run; fall through to step-00 init normally.
 
    For partial `--feature` matches, resolve against
    `.snap/manifests/*.manifest.json` filenames — "01" or "auth" → first match.
    Ambiguous → surface candidate list and re-prompt.
 
-3. **Require config**: `snapship.config.json` must exist at `$PWD`. If absent,
+3. **Require config**: `snap.config.json` must exist at `$PWD`. If absent,
    abort early with:
    ```
-   ERROR: snapship.config.json not found at <PWD>.
+   ERROR: snap.config.json not found at <PWD>.
    Run /snap:init first to bootstrap the workspace.
    ```
    Do not scaffold, do not write progress. Just exit.
@@ -58,7 +58,7 @@ to `/snap:init`.
      --project-root="$PWD" \
      --lang="$lang" \
      --mode="$mode" \
-     ${feature_id:+--feature="$feature_id"}
+     ${story_id:+--feature="$story_id"}
    ```
 
 7. **Capture resolved config** into a shell variable (load-config writes nothing
@@ -77,14 +77,14 @@ to `/snap:init`.
      flow. Extend = jump to `step-03-features.md` with existing taxonomy loaded
      as context.
    - `--feature=NN-slug` set → jump straight to `step-03-features.md` and
-     pre-fill `feature_id`.
+     pre-fill `story_id`.
 
 9. **Register skill run in progress.json**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=define \
-     --feature-id="${ACTIVE_FEATURE:-_global}" \
+     --story-id="${ACTIVE_FEATURE:-_global}" \
      --step-num=00 \
      --step-name=init \
      --status=ok
@@ -97,7 +97,7 @@ to `/snap:init`.
 |-----|--------|---------|
 | `has_codebase` | detection | step-01 (skip vision if extending) |
 | `lang` | `--lang` or detected | step-04 (template rendering) |
-| `feature_id` | `--feature` or chosen later | step-03 onward |
+| `story_id` | `--feature` or chosen later | step-03 onward |
 | `mode` | `greenfield` \| `extension` | step-01..03 |
 | `CONFIG_JSON` | `load-config.sh` stdout | step-05 (paths, platform) |
 

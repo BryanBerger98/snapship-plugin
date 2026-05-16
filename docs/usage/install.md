@@ -82,13 +82,13 @@ launches the server, **it does not install it**. If the binary is missing,
 | CLI `gh` / `glab`    | Fallback if GitHub/GitLab tickets MCP missing           |
 | CLI `jira`           | JIRA tickets fallback                                   |
 
-## Secrets — `.env.snapship`
+## Secrets — `.env.snap`
 
-Snap reads secrets **only** from `<project>/.env.snapship`. This file is
+Snap reads secrets **only** from `<project>/.env.snap`. This file is
 gitignored by default.
 
 ```dotenv
-# .env.snapship — project root
+# .env.snap — project root
 FIGMA_ACCESS_TOKEN=figd_xxxxxxxxxxxxxxxxxxxx
 # AFFINE_API_TOKEN and NOTION_TOKEN are read by the MCP servers themselves,
 # not by snap directly.
@@ -101,7 +101,7 @@ Reader helper: `skills/_shared/load-env.sh --project-root=$PWD --key=FIGMA_ACCES
 | `FIGMA_ACCESS_TOKEN`  | `wireframes.platform=figma` or `design.platform=figma`|
 
 Override the key name via `wireframes.figma.token_env` / `design.figma.token_env`
-in `snapship.config.json` (e.g. `FIGMA_DEV_TOKEN`).
+in `snap.config.json` (e.g. `FIGMA_DEV_TOKEN`).
 
 ## Verification
 

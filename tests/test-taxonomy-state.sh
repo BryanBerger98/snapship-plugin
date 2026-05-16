@@ -25,7 +25,7 @@ bash "$SCRIPT" init --project-root="$DIR"
 F="${DIR}/.snap/manifests/_taxonomy.json"
 [ -f "$F" ] && ok "1.1 file created" || ko "1.1 missing"
 jq empty "$F" 2>/dev/null && ok "1.2 valid JSON" || ko "1.2 invalid JSON"
-[ "$(jq -r '.schema_version' "$F")" = "1.0.0" ] && ok "1.3 schema_version" || ko "1.3"
+[ "$(jq -r '.schema_version' "$F")" = "1.1.0" ] && ok "1.3 schema_version" || ko "1.3"
 trash "$DIR" 2>/dev/null || true
 
 # 2. add-domain (positional args)

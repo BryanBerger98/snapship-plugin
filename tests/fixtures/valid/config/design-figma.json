@@ -13,7 +13,7 @@
   "design": {
     "platform": "figma",
     "export_format": "png",
-    "naming_pattern": "{feature_id}-{screen_name}-design",
+    "naming_pattern": "{story_id}-{screen_name}-design",
     "mode_defaults": {
       "mockup_canvas": "desktop",
       "design_system_source": "auto"

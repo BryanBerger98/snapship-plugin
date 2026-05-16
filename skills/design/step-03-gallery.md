@@ -35,14 +35,14 @@ Resolve staging path via `sync-push.sh`, render with `render-template.sh`:
 ```bash
 STAGING=$(bash skills/_shared/sync-push.sh staging-path \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=design-gallery)
 
 ctx=$(jq -n \
-  --arg fid "$feature_id" \
+  --arg fid "$story_id" \
   --arg ftitle "$feature_title" \
-  --argjson screens "$(jq '.screens' .snap/designs/${feature_id}.draft.json)" \
-  '{feature_id:$fid, feature_title:$ftitle, screens:$screens}')
+  --argjson screens "$(jq '.screens' .snap/designs/${story_id}.draft.json)" \
+  '{story_id:$fid, feature_title:$ftitle, screens:$screens}')
 
 bash skills/_shared/render-template.sh \
   --template=skills/_shared/templates/docs-defaults/design-gallery.md \
@@ -68,11 +68,11 @@ Replace each local `asset_path` in the rendered markdown with the remote
 ### D. Push gallery page
 
 Parent page = the feature PRD page recorded in
-`.snap/manifests/${feature_id}.manifest.json` at `.refs.prd.page_id`:
+`.snap/manifests/${story_id}.manifest.json` at `.refs.prd.page_id`:
 
 ```bash
 PRD_PAGE_ID=$(jq -r '.refs.prd.page_id // ""' \
-  ".snap/manifests/${feature_id}.manifest.json")
+  ".snap/manifests/${story_id}.manifest.json")
 
 create_out=$(bash skills/_shared/docs-adapter.sh \
   --action=create \
@@ -89,7 +89,7 @@ GALLERY_URL=$(jq -r '.url' <<<"$create_out")
 ```bash
 bash skills/_shared/sync-push.sh ack \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=design-gallery \
   --platform="$PLATFORM" \
   --url="$GALLERY_URL" \
@@ -107,7 +107,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=design \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=03 \
   --step-name=gallery \
   --status=ok

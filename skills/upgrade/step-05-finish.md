@@ -1,7 +1,7 @@
 ---
 step: 05-finish
 next_step: null
-description: Bump snapship.config.json.version, trash ephemeral files (.upgrade-plan, .upgrade-decisions), suggère /snap:fetch + reprise progress.
+description: Bump snap.config.json.version, trash ephemeral files (.upgrade-plan, .upgrade-decisions), suggère /snap:fetch + reprise progress.
 terminal: true
 ---
 
@@ -13,10 +13,10 @@ Boucle la migration : versions bumpées, ephémères trashés, prochaine étape 
 
 1. **Skip writes si `--dry-run`** : log "DRY: skip bump + cleanup".
 
-2. **Bump `snapship.config.json.version`** :
+2. **Bump `snap.config.json.version`** :
    ```bash
-   jq --arg v "$TARGET" '.version = $v' snapship.config.json > snapship.config.json.tmp
-   mv snapship.config.json.tmp snapship.config.json
+   jq --arg v "$TARGET" '.version = $v' snap.config.json > snap.config.json.tmp
+   mv snap.config.json.tmp snap.config.json
    ```
    (Idempotent — peut être déjà au target depuis la migration script.)
 
@@ -34,9 +34,9 @@ Boucle la migration : versions bumpées, ephémères trashés, prochaine étape 
    ```bash
    bash skills/_shared/telemetry.sh log --skill=upgrade --step-num=05 --step-name=finish --status=ok \
      --extra="$(jq -nc --arg t "$TARGET" '{target:$t}')"
-   bash skills/_shared/progress.sh step --skill=upgrade --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=upgrade --story-id=_global \
      --step-num=05 --step-name=finish --status=ok
-   bash skills/_shared/progress.sh finish --skill=upgrade --feature-id=_global --status=ok
+   bash skills/_shared/progress.sh finish --skill=upgrade --story-id=_global --status=ok
    ```
 
 6. **Summary output** :

@@ -21,14 +21,14 @@ problem/solution/AC.
    Parse each line. Reject lines without a recognized priority — re-ask with the
    parsing error shown.
 
-2. **Assign feature_id**: starting from `01-` (or N+1 if extension mode finds existing
+2. **Assign story_id**: starting from `01-` (or N+1 if extension mode finds existing
    features). Slug is kebab-case of the title (`Sign-up with email` → `signup-email`).
    Pad sequence to 2 digits (`01-`, `02-`, …, `99-`).
 
 3. **Validate**:
    - At least 1 feature.
    - At least 1 feature has priority `must`.
-   - No duplicate `feature_id`.
+   - No duplicate `story_id`.
    - Each title is at least 3 chars.
 
 4. **Confirm** the list back to the user via `AskUserQuestion`:
@@ -48,7 +48,26 @@ For each feature in priority order (`must` → `should` → `could`), ask:
    rest" are rejected).
 6. **Wireframe references** (optional — list of expected screen IDs; can be filled
    later by `/wireframe`).
-7. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
+7. **Parent Epic** (v1.1 — concertation user) :
+   - `AskUserQuestion` :
+     > "Cette feature fait-elle partie d'un Epic parent ?"
+     > - "Oui — j'ai déjà un Epic identifié (saisir l'ID plateforme)"
+     > - "Oui — l'Epic n'existe pas encore (sera créé par `/snap:ticket`)"
+     > - "Non — feature autonome"
+   - Si "Oui avec ID" : free text `parent_epic_id` (ex. `#42`, `AUTH-1`,
+     `&12`). Pas de validation regex ici — `/snap:ticket` validera contre la
+     plateforme cible.
+   - Si "Oui à créer" : free text `parent_epic_title` (slug + titre). Cache
+     pour `/snap:ticket` qui créera l'Epic puis lien link-parent.
+   - Persister dans le feature object :
+     ```json
+     {"parent_epic_id": "AUTH-1"}   // mode "existant"
+     {"parent_epic_title": "Authentication platform", "parent_epic_pending": true}  // mode "à créer"
+     ```
+   - Si flag CLI `--epic=PARENT_EPIC_ID` passé en step-00, skip la question
+     et reporter directement la valeur.
+
+8. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
    - Read existing domains from cache:
      ```bash
      bash skills/_shared/taxonomy-state.sh list-domains --project-root="$PWD"
@@ -58,7 +77,7 @@ For each feature in priority order (`must` → `should` → `could`), ask:
      exists with a different title.
    - Persist as `domains: [<slug>, …]` on the feature object. ≥1 domain required.
 
-8. **Journeys impacted** (v0.2 — per domain chosen in step 7):
+9. **Journeys impacted** (v0.2 — per domain chosen in step 8):
    For each domain in `feature.domains`:
    - List existing journeys via:
      ```bash
@@ -82,7 +101,7 @@ Drafts skip Phase B; their PRDs are rendered with placeholder sections marked
 For each feature collected in Phase A/B:
 ```bash
 bash skills/_shared/define-state.sh add-feature '{
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "feature_title": "...",
   "feature_status": "draft",
   "priority": "must",
@@ -92,12 +111,20 @@ bash skills/_shared/define-state.sh add-feature '{
   "in_scope": "...",
   "out_of_scope": "...",
   "wireframes": [],
+  "parent_epic_id": "AUTH-1",
+  "parent_epic_title": null,
+  "parent_epic_pending": false,
   "domains": ["auth"],
   "impacted_journeys": [
     {"domain": "auth", "journey_slug": "login-flow", "journey_title": "Login Flow", "is_new": false}
   ]
 }' --project-root="$PWD"
 ```
+
+`parent_epic_id` est utilisé tel quel par step-04 (écrit dans
+`manifest.parent_epic_id`). `parent_epic_pending=true` signale à
+`/snap:ticket` qu'il faut créer l'Epic avant la User Story (mode
+hierarchical strict — Phase D step-03b).
 
 `is_new: true` flags journeys that don't exist yet on the doc platform —
 step-05-publish will create them with an empty body (filled later by the first
@@ -116,7 +143,7 @@ feature(s) flagged. Do not advance to step-04 until validation passes.
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=define \
-  --feature-id=_global \
+  --story-id=_global \
   --step-num=03 \
   --step-name=features \
   --status=ok

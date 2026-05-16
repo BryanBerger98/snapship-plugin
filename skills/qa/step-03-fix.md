@@ -54,7 +54,7 @@ git add -A
 git commit --amend --no-edit
 new_sha=$(git rev-parse HEAD)
 
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 tmp=$(mktemp)
 jq --arg lid "$lid" --arg sha "$new_sha" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '(.tickets[] | select(.local_id == $lid))
@@ -108,7 +108,7 @@ bash skills/_shared/telemetry.sh log \
   --step-num=03 --step-name=fix --status=$status
 
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --step-num=03 --step-name=fix --status=$status \
   --note="$lid cycles=$cycles_used sev=$severity"
 ```

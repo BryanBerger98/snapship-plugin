@@ -32,7 +32,7 @@ fi
 ### B. Update tickets cache
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 tmp=$(mktemp)
 jq --arg lid "$lid" --arg s "$new_status" \
    --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
@@ -66,20 +66,20 @@ mode logs warning but does not fail the run — the local cache is authoritative
 ### D. Cleanup transient files
 
 ```bash
-trash .snap/queues/${feature_id}.qa-collect-*.json 2>/dev/null || true
-trash .snap/queues/${feature_id}.qa-verdict-*.json 2>/dev/null || true
-trash .snap/queues/${feature_id}.qa-regression-*.log 2>/dev/null || true
+trash .snap/queues/${story_id}.qa-collect-*.json 2>/dev/null || true
+trash .snap/queues/${story_id}.qa-verdict-*.json 2>/dev/null || true
+trash .snap/queues/${story_id}.qa-regression-*.log 2>/dev/null || true
 ```
 
 ### E. Roll up feature state
 
-If **all** tickets for `$feature_id` now have `status == qa-validated`,
+If **all** tickets for `$story_id` now have `status == qa-validated`,
 transition the feature itself to `qa-validated` in the manifest:
 
 ```bash
 total=$(jq '.tickets | length' "$tickets_file")
 validated=$(jq '[.tickets[] | select(.status == "qa-validated")] | length' "$tickets_file")
-manifest=".snap/manifests/${feature_id}.manifest.json"
+manifest=".snap/manifests/${story_id}.manifest.json"
 
 feature_qa_validated=false
 if [ "$total" -gt 0 ] && [ "$total" -eq "$validated" ]; then
@@ -113,16 +113,16 @@ if [ "$feature_qa_validated" = "true" ] \
    && [ "$AUTO_DOC" = "true" ] \
    && [ "$PLATFORM" != "none" ] \
    && [ "$NO_DOC_UPDATE" != "true" ]; then
-  echo "→ feature ${feature_id} qa-validated, triggering /snap:doc-update --auto"
+  echo "→ feature ${story_id} qa-validated, triggering /snap:doc-update --auto"
   # Hand off to the doc-update skill in -a (autonomous) mode.
   # The orchestrator picks up this directive after step-05 returns:
-  echo "SNAP_NEXT_SKILL=doc-update --feature=${feature_id} -a"
+  echo "SNAP_NEXT_SKILL=doc-update --feature=${story_id} -a"
 fi
 ```
 
 > The orchestrator (Claude in `/snap:qa` execution context) picks up the
 > `SNAP_NEXT_SKILL=` directive and invokes `Skill(skill="doc-update",
-> args="--feature=${feature_id} -a")` after step-05 returns. Failure of the
+> args="--feature=${story_id} -a")` after step-05 returns. Failure of the
 > doc-update skill is **non-fatal** to the QA run — QA verdict stands.
 
 If the user wants to opt out per-run, they pass `--no-doc-update` to `/snap:qa`
@@ -137,19 +137,19 @@ bash skills/_shared/telemetry.sh log \
   --extra='{"validated":'"$validated_count"',"blocked":'"$blocked_count"'}'
 
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --step-num=05 --step-name=finish --status=ok \
   --note="validated=$validated_count blocked=$blocked_count"
 
 bash skills/_shared/progress.sh finish \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --status=ok
 ```
 
 ### H. Summary to stdout
 
 ```
-/qa done — feature ${feature_id}:
+/qa done — feature ${story_id}:
   - Validated: t-001, t-002 (2)
   - Blocked:   t-003 (severity=major)
   - Cycles:    avg 1.3 / max 2

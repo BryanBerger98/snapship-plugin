@@ -1,7 +1,7 @@
 ---
 step: 00-init
 next_step: 01-filter
-description: Parse args, resolve feature_id, load tickets.json + config, resolve wireframe MCP platform.
+description: Parse args, resolve story_id, load tickets.json + config, resolve wireframe MCP platform.
 ---
 
 # step-00 — init
@@ -24,17 +24,17 @@ once and downstream steps pass values explicitly.
    resume_line=$(bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=wireframe \
-     --feature-id="${feature:-_global}")
+     --story-id="${feature:-_global}")
    ```
    Same rc=0/1/2 handling as `/define`.
 
-3. **Resolve `feature_id`**: same precedence as `/ticket` (single → use it; multi →
+3. **Resolve `story_id`**: same precedence as `/ticket` (single → use it; multi →
    AskUserQuestion; zero → abort with "Run `/define` first").
 
 4. **Require config + load + resolve platform**:
    ```bash
-   [ -f "$PWD/snapship.config.json" ] || {
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   [ -f "$PWD/snap.config.json" ] || {
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
@@ -151,15 +151,15 @@ If `$figma_file_key` empty: `AskUserQuestion` "Use this Figma file: <name>
 (<id>)?" — Yes / No / Save to config. "Save to config" writes
 `wireframes.figma.{file_key,file_name}`.
 
-Also load the token from `.env.snapship` at project root (clé par défaut
+Also load the token from `.env.snap` at project root (clé par défaut
 `FIGMA_ACCESS_TOKEN`, override via `wireframes.figma.token_env`). Le fichier
-`.env.snapship` est gitignored — secrets isolés per-project. `figma-console-mcp`
+`.env.snap` est gitignored — secrets isolés per-project. `figma-console-mcp`
 lit la var env pour ses fallbacks REST :
 ```bash
 figma_token=$(bash skills/_shared/load-env.sh \
   --project-root="$PWD" --key="$figma_token_env" 2>/dev/null || true)
 if [ -z "$figma_token" ]; then
-  echo "ERROR: $figma_token_env absent de $PWD/.env.snapship." >&2
+  echo "ERROR: $figma_token_env absent de $PWD/.env.snap." >&2
   echo "Créer le fichier avec: $figma_token_env=figd_<votre-pat-figma>" >&2
   echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1
@@ -174,25 +174,46 @@ export "$figma_token_env=$figma_token"
    context-agnostic helpers.
 
 7. **Validate inputs**:
-   - `.snap/tickets/${feature_id}.json` exists (run `/ticket` first if not).
-   - PRD (`.snap/PRDs/${feature_id}.md` or rehydrated from `manifest.refs.prd`)
+   - `.snap/tickets/${story_id}.json` exists (run `/ticket` first if not).
+   - PRD (`.snap/PRDs/${story_id}.md` or rehydrated from `manifest.refs.prd`)
      mentions ≥ 1 wireframe screen ID (otherwise skip — feature is non-UI).
 
-8. **Append progress**:
+8. **Spawn `snap-ticket-digest` (consumer=designer, conditional)** :
+
+   When the run targets a refactor of an existing ticket (positional
+   `<platform_id>` passed instead of a feature `story_id`), spawn the
+   digest once so step-02-design has a designer-tailored brief instead of
+   re-reading the full tracker payload :
+
+   ```
+   subagent_type: snap-ticket-digest
+   prompt: |
+     {ticket_id}: <PLATFORM_ID>
+     {raw_payload}: <merged JSON: {ticket: <fetched ticket>, parent: <parent_story / parent_epic>}>
+     {linked_docs}: ""
+     {consumer}: "designer"
+   ```
+
+   Persist to `.snap/.runtime/<subject>/digest.json`. Skip entirely when
+   the run targets a fresh feature (no existing ticket to condense).
+
+9. **Append progress**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=wireframe \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=00 \
      --step-name=init \
      --status=ok
    ```
 
+
+
 ## Acceptance check
 
-- `feature_id` resolved.
-- `.snap/tickets/${feature_id}.json` exists.
+- `story_id` resolved.
+- `.snap/tickets/${story_id}.json` exists.
 - `wf_platform` resolved (or `none` → skip).
 - MCP for resolved platform reachable.
 - Platform-specific binding verified:

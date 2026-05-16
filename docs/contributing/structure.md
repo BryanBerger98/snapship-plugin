@@ -75,8 +75,8 @@ snapship-plugin/  (plugin repo)
 │   │       └── step-05-finish.md
 │   │
 │   └── _shared/
-│       ├── load-config.sh                  # parse snapship.config.json + apply defaults/inheritance + validate schema
-│       ├── setup-config.sh                 # auto-generate snapship.config.json (first run)
+│       ├── load-config.sh                  # parse snap.config.json + apply defaults/inheritance + validate schema
+│       ├── setup-config.sh                 # auto-generate snap.config.json (first run)
 │       ├── detect-platforms.sh             # detect available MCP/CLI (auth check at runtime)
 │       ├── detect-test-commands.sh         # auto-detect testing commands
 │       ├── tickets-adapter.sh              # ticket CRUD (route MCP|CLI based on config.tickets.platform)
@@ -84,7 +84,7 @@ snapship-plugin/  (plugin repo)
 │       ├── frame0-helper.sh                # Frame0 MCP wrapper
 │       ├── run-lifecycle-script.sh         # exec custom lifecycle_scripts (pre_/post_) — ≠ native CC hooks
 │       ├── ask-or-default.sh               # AskUserQuestion wrapper: short-circuit in -a mode to explicit default
-│       ├── apply-naming.sh                 # render branch/commit/feature_id based on naming.*
+│       ├── apply-naming.sh                 # render branch/commit/story_id based on naming.*
 │       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) at startup
 │       ├── telemetry.sh                    # append _shared/telemetry.log NDJSON (duration_ms, status, ticket_id)
 │       ├── setup-snap-dir.sh
@@ -112,7 +112,7 @@ snapship-plugin/  (plugin repo)
 │       │   │   └── wireframes-gallery.md
 │       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # bundled JSON Schemas for runtime validation
-│       │   ├── config.schema.json          # snapship.config.json
+│       │   ├── config.schema.json          # snap.config.json
 │       │   ├── manifest.schema.json            # manifests/{id}.manifest.json
 │       │   ├── tickets.schema.json         # features/{id}/tickets.json
 │       │   └── domains.schema.json         # .snap/manifests/_taxonomy.json
@@ -133,12 +133,12 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
 
 ```
 <project_root>/
-├── snapship.config.json            # Unified config (extends bundled defaults)
+├── snap.config.json            # Unified config (extends bundled defaults)
 └── .snap/
     ├── index.md                    # Track features (state + page IDs)
     ├── _taxonomy.json                # cache domain + journey → page IDs (persistent)
     └── features/
-        └── 01-feature-name/
+        └── 01-story-name/
             ├── manifest.json           # prd.{page_id,url,path}, domains[], impacted_journeys[]
             ├── tickets.json        # Tickets cache (platform id, AC, status)
             ├── prd-feature.md      # Locally rendered PRD (before push to archive {prd_root}/{YYYY}/{MM-YYYY}/)
@@ -151,7 +151,7 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
 ## 3. State (centralized via `manifests/_taxonomy.json` + per-feature manifests)
 
 Progression lives in:
-- `.snap/manifests/{feature_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
+- `.snap/manifests/{story_id}.manifest.json` — `state`, `refs.{prd,wireframes_gallery,design_gallery}`, `tickets_count`, `lang`
 - `.snap/manifests/_taxonomy.json` — workspace, domains, journeys
 - `.snap/progress.json` — in-flight runs (gitignored)
 

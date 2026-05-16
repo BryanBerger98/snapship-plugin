@@ -12,19 +12,30 @@ Validate prerequisites. Fail loud, fail early.
 
 1. **Require `/snap:init`** — exit early if missing:
    ```bash
-   if [ ! -f "$PWD/snapship.config.json" ]; then
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   if [ ! -f "$PWD/snap.config.json" ]; then
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    fi
    ```
 
 2. **Parse args** from `/snap:doc-update`:
-   - `--feature=NN-slug` (required; partial-match on `feature_id`)
-   - `--mode=diff|rewrite` (optional; overrides `documentation.auto_update_mode`)
+   - `--feature=NN-slug` (partial-match on `story_id`) — feature mode
+   - `--epic=<platform_id>` — Epic-ship mode (v1.2)
+   - `--mode=diff|rewrite` (feature mode only; overrides
+     `documentation.auto_update_mode`)
    - `--dry-run` (default false)
    - `-a` / `--auto` (default false)
 
-   Reject unknown `--mode` values.
+   Validation :
+   - `--feature` ET `--epic` mutuellement exclusifs. Exactement un des deux
+     requis.
+   - Reject unknown `--mode` values.
+   - In `--epic` mode, `--mode` is ignored (the section is generated, not
+     diff-patched).
+
+   If `--epic=<id>` provided, **jump directly to step-01b (Epic ship)** and
+   skip feature-mode validation (steps 3, 5, 8 below). Step-01b is the
+   terminal step for Epic-ship mode.
 
 3. **Resolve feature**:
    ```bash
@@ -45,7 +56,7 @@ Validate prerequisites. Fail loud, fail early.
    bash skills/_shared/progress.sh resume \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID"
+     --story-id="$FEATURE_ID"
    ```
 
 5. **Validate feature state**:
@@ -123,7 +134,7 @@ Validate prerequisites. Fail loud, fail early.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=doc-update \
-     --feature-id="$FEATURE_ID" \
+     --story-id="$FEATURE_ID" \
      --step-num=00 \
      --step-name=init \
      --status=ok

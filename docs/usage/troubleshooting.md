@@ -35,7 +35,7 @@ Without it, `/snap:develop` and `/snap:qa` degrade: no impact radius,
 
 ## `/snap:init`
 
-### `ERROR: snapship.config.json already exists`
+### `ERROR: snap.config.json already exists`
 
 ```text
 /snap:init --force
@@ -45,7 +45,7 @@ The content of `.snap/` is **preserved** — only the config file is
 rewritten. If you truly want to start from scratch:
 
 ```bash
-trash .snap snapship.config.json
+trash .snap snap.config.json
 ```
 
 (and **never** `rm -rf` — use `trash` to keep it reversible.)
@@ -60,19 +60,19 @@ Solution:
 /snap:init             # interactive mode, choose `none` or install the MCP
 ```
 
-## Secrets — `.env.snapship`
+## Secrets — `.env.snap`
 
-### `ERROR: .env.snapship not found`
+### `ERROR: .env.snap not found`
 
 The file must exist at the **project root** (not in `.snap/`).
 
 ```bash
-touch .env.snapship
-chmod 600 .env.snapship
-echo "FIGMA_ACCESS_TOKEN=figd_..." >> .env.snapship
+touch .env.snap
+chmod 600 .env.snap
+echo "FIGMA_ACCESS_TOKEN=figd_..." >> .env.snap
 ```
 
-### `key 'FIGMA_ACCESS_TOKEN' not found in .env.snapship`
+### `key 'FIGMA_ACCESS_TOKEN' not found in .env.snap`
 
 Strict `KEY=VALUE` format, **no whitespace** around `=`, no shell
 expansion.
@@ -95,8 +95,8 @@ claude mcp list
 
 - If the server doesn't appear → install + restart Claude Code.
 - If it appears but doesn't respond → check the token in the MCP config
-  (env variable exposed to the server, **not** in `.env.snapship` —
-  `.env.snapship` is read by snap directly, not by the MCPs).
+  (env variable exposed to the server, **not** in `.env.snap` —
+  `.env.snap` is read by snap directly, not by the MCPs).
 - For AFFiNE / Notion: test the API outside Claude Code with `curl` to
   isolate a scope / token expiration issue.
 
@@ -117,7 +117,7 @@ Checklist:
 
 `progress.sh resume next --skill=<name>` reads `.snap/progress.json`
 `in_flight[]`. If several features are in progress in parallel, add
-`--feature-id=` explicitly.
+`--story-id=` explicitly.
 
 Inspect the state:
 
@@ -128,11 +128,11 @@ jq '.in_flight, .steps' .snap/progress.json
 Restart from scratch on a feature:
 
 ```bash
-jq 'del(.in_flight[] | select(.feature_id == "01-auth-email"))' \
+jq 'del(.in_flight[] | select(.story_id == "01-auth-email"))' \
    .snap/progress.json > .snap/progress.tmp && mv .snap/progress.tmp .snap/progress.json
 ```
 
-### Partial-match feature_id returns multiple candidates
+### Partial-match story_id returns multiple candidates
 
 Partial-match isn't in the helper (`progress.sh resume` requires an exact
 id). It's each skill's `step-00-init.md` that performs matching. Typical
@@ -142,7 +142,7 @@ error:
 Multiple features match 'auth': 01-auth-email, 02-auth-sso. Be more specific.
 ```
 
-→ use the full `feature_id`.
+→ use the full `story_id`.
 
 ## Platform sync
 
@@ -157,14 +157,14 @@ not duplicate the resource.
 Inspect:
 
 ```bash
-jq '.refs' .snap/manifests/<feature_id>.manifest.json
+jq '.refs' .snap/manifests/<story_id>.manifest.json
 ```
 
 `pending` = not yet pushed (offline first run, or silent failure).
 Replay:
 
 ```text
-/snap:fetch <feature_id>       # re-sync from remote (read)
+/snap:fetch <story_id>       # re-sync from remote (read)
 ```
 
 For forced repush: re-run the skill that produced the ref

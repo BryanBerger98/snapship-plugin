@@ -1,0 +1,13 @@
+{
+  "story_id": "10-billing-overhaul",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "title": "Refonte facturation",
+      "story_type": "epic",
+      "status": "done",
+      "commit_sha": "abcdef1234567890"
+    }
+  ]
+}

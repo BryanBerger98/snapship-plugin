@@ -80,7 +80,7 @@ DOCS_PLATFORM=""
 WIRE_PLATFORM=""
 
 if [ -z "$TICKETS_OVERRIDE" ] || [ -z "$DOCS_OVERRIDE" ] || [ -z "$WIRE_OVERRIDE" ]; then
-  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     TICKETS_PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
     DOCS_PLATFORM=$(echo "$CFG"    | jq -r '.documentation.platform // ""')

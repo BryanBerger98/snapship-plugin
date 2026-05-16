@@ -10,7 +10,7 @@ description: Écrit le contenu pull dans le staging local approprié (.snap/PRDs
 
 1. **Pour chaque target ok** dans `.snap/.fetch-cache/` :
    - Détermine staging path via `bash skills/_shared/sync-push.sh staging-path
-     --feature-id=$FID --kind=$KIND`.
+     --story-id=$FID --kind=$KIND`.
    - Crée parent dirs si absents.
    - `cp` du fichier cache vers staging.
 
@@ -23,14 +23,17 @@ description: Écrit le contenu pull dans le staging local approprié (.snap/PRDs
    `.snap/designs/{slug}/figma-context.json`. Pas de tentative de copie binaire
    complète — c'est référencé via URL.
 
-5. **Tickets** : `.snap/tickets/{slug}.json` — liste tickets sérialisée.
+5. **Tickets** : _retiré en v1.2_ — tracker = source unique (décision 3).
+   Aucune écriture `.snap/tickets/`. Les skills consommateurs (`/qa`,
+   `/develop`, `/doc-update`) lisent les tickets en live via
+   `tickets-adapter.sh get-ticket`.
 
 6. **Skip si `--dry-run`** : log "DRY: would write $TARGET → $PATH".
 
 7. **Telemetry + progress** :
    ```bash
    bash skills/_shared/telemetry.sh log --skill=fetch --step-num=02 --step-name=write --status=ok
-   bash skills/_shared/progress.sh step --skill=fetch --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=fetch --story-id=_global \
      --step-num=02 --step-name=write --status=ok
    ```
 

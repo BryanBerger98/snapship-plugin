@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# load-config.sh — Read snapship.config.json, merge defaults, validate schema, resolve inheritance.
+# load-config.sh — Read snap.config.json, merge defaults, validate schema, resolve inheritance.
 # Output: normalized JSON config on stdout (no file cache — capture in bash var).
 # Exit codes:
 #   0 = success
@@ -18,7 +18,7 @@ usage() {
   cat <<EOF
 Usage: load-config.sh [OPTIONS]
 
-Reads snapship.config.json (project root), merges bundled defaults, validates
+Reads snap.config.json (project root), merges bundled defaults, validates
 schema, resolves inheritance, outputs normalized JSON to stdout.
 
 Options:
@@ -38,7 +38,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-CONFIG_FILE="${PROJECT_ROOT}/snapship.config.json"
+CONFIG_FILE="${PROJECT_ROOT}/snap.config.json"
 SCHEMA_FILE="${SCRIPT_DIR}/schemas/config.schema.json"
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 1; }
@@ -48,9 +48,9 @@ DEFAULTS=$(cat <<'JSON'
 {
   "version": "1.0",
   "naming": {
-    "feature_slug_max_length": 40,
-    "branch_pattern": "{type}/{ticket_id}-{slug}",
-    "commit_pattern": "{type}({scope}): {message}"
+    "story_slug_max_length": 40,
+    "branch_pattern": "{type}/{ticket_id}",
+    "commit_pattern": "{commit_type}({scope}): {message}"
   },
   "ai": {
     "max_parallel_agents": 5,
@@ -84,7 +84,7 @@ DEFAULTS=$(cat <<'JSON'
     "platform": "frame0",
     "export_format": "png",
     "export_scale": 2,
-    "naming_pattern": "{feature_id}-{screen_name}",
+    "naming_pattern": "{story_id}-{screen_name}",
     "frame0": { "api_port": 58320 }
   },
   "lifecycle_scripts": {},
@@ -104,7 +104,12 @@ DEFAULTS=$(cat <<'JSON'
     "auto_mode": false,
     "save_mode": true,
     "branch_mode": true,
-    "economy_mode": false
+    "economy_mode": false,
+    "worktree": {
+      "path": "./.worktrees",
+      "default_root": "{branch_name}",
+      "destroy": "after_merge"
+    }
   }
 }
 JSON
@@ -216,7 +221,7 @@ RESOLVED=$(echo "$MERGED" | jq '
   # design defaults — résolus seulement si bloc design présent (skill opt-in)
   | (if (.design // null) != null then
       (if (.design | has("export_format")) | not then .design.export_format = "png" else . end)
-      | (if (.design | has("naming_pattern")) | not then .design.naming_pattern = "{feature_id}-{screen_name}-design" else . end)
+      | (if (.design | has("naming_pattern")) | not then .design.naming_pattern = "{story_id}-{screen_name}-design" else . end)
       | .design.mode_defaults = (
           (.design.mode_defaults // {})
           | (if has("mockup_canvas") | not then .mockup_canvas = "mobile-portrait" else . end)

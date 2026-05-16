@@ -22,7 +22,7 @@ post-QA diff.
 ### A. Compute post-QA diff
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 sha=$(jq -r --arg lid "$lid" \
   '.tickets[] | select(.local_id == $lid).commit_sha' \
   "$tickets_file")
@@ -31,12 +31,31 @@ diff=$(git show "$sha")
 
 ### B. Spawn 3 reviewers in parallel
 
-**One** message, **three** Agent calls (mirrors /develop step-03a Phase 2):
+**One** message, **three** Agent calls (mirrors /develop step-03a Phase 2).
+Reuse the digest cached at step-00-init (consumer=qa). If reviewers expect
+consumer=reviewer flavour, re-spawn `snap-ticket-digest` once here with
+consumer=reviewer and cache as `digest-reviewer.json` — subagents do not
+nest, so the orchestrator (this step) centralises the spawn and feeds the
+same brief to all three reviewers.
+
+```bash
+digest_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" digest.json \
+              --project-root="$PWD" 2>/dev/null || echo '')
+
+if [ -z "$digest_json" ] || [ "$digest_json" = '{}' ]; then
+  payload_field='"ticket_raw"'
+  payload_value=$(jq -nc --argjson t "$ticket_json" --argjson p "$parent_json" --argjson r "$refs_json" \
+    '{ticket:$t, parent:$p, refs:$r}')
+else
+  payload_field='"ticket_digest"'
+  payload_value="$digest_json"
+fi
+```
 
 ```
-Task({description:"retrigger technical t-001", subagent_type:"snap-code-reviewer-technical", prompt:<diff+ticket>})
-Task({description:"retrigger functional t-001", subagent_type:"snap-code-reviewer-functional", prompt:<diff+ticket>})
-Task({description:"retrigger security  t-001", subagent_type:"snap-code-reviewer-security",   prompt:<diff+ticket>})
+Agent({description:"retrigger technical t-001", subagent_type:"snap-code-reviewer-technical", prompt:<diff + ticket_digest>})
+Agent({description:"retrigger functional t-001", subagent_type:"snap-code-reviewer-functional", prompt:<diff + ticket_digest>})
+Agent({description:"retrigger security  t-001", subagent_type:"snap-code-reviewer-security",   prompt:<diff + ticket_digest>})
 ```
 
 Each returns the same JSON fence as /develop:
@@ -75,7 +94,7 @@ if [ "$dc_enabled" = "true" ]; then
     '.tickets[] | select(.local_id==$lid)
      | (.design_screen // "")' "$tickets_file")
   if [ -n "$asset" ]; then
-    design_dir=".snap/designs/${feature_id}"
+    design_dir=".snap/designs/${story_id}"
     case "$dc_mode" in
       asset-presence)
         if ! find "$design_dir" -maxdepth 1 -name "${asset}*" -print -quit 2>/dev/null | grep -q .; then
@@ -100,7 +119,7 @@ If `design_check_fail` set, surface it in the ticket's blocked feedback.
 ### E. Persist
 
 ```bash
-tickets_file=".snap/tickets/${feature_id}.json"
+tickets_file=".snap/tickets/${story_id}.json"
 tmp=$(mktemp)
 jq --arg lid "$lid" --arg sev "$overall" --argjson v "$verdicts_json" \
   '(.tickets[] | select(.local_id == $lid))
@@ -128,7 +147,7 @@ bash skills/_shared/telemetry.sh log \
   --step-num=04 --step-name=retrigger --status=$status
 
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" --feature-id="$feature_id" \
+  --project-root="$PWD" --story-id="$story_id" \
   --skill=qa --step-num=04 --step-name=retrigger --status=$status \
   --note="$lid overall=$overall"
 ```

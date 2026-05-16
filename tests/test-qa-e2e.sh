@@ -26,7 +26,7 @@ DIR=$(mktemp -d -t snap-qa-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"
-bash "$SETUP" --project-root="$DIR" --feature-id="$FEATURE_ID" --feature-name="Auth" --lang=en >/dev/null
+bash "$SETUP" --project-root="$DIR" --story-id="$FEATURE_ID" --story-name="Auth" --lang=en >/dev/null
 
 MANIFEST="${DIR}/.snap/manifests/${FEATURE_ID}.manifest.json"
 TICKETS="${DIR}/.snap/tickets/${FEATURE_ID}.json"
@@ -54,11 +54,11 @@ T1_SHA=$(git rev-parse HEAD)
 
 cat > "$TICKETS" <<JSON
 {
-  "feature_id": "${FEATURE_ID}",
+  "story_id": "${FEATURE_ID}",
   "platform": "github",
   "tickets": [
     {
-      "local_id":"t-001","title":"Build signup form","status":"in_review","type":"feat",
+      "local_id":"t-001","title":"Build signup form","status":"in_review","story_type":"user-story","commit_type":"feat",
       "files":["src/signup.ts","src/signup.test.ts"],"commit_sha":"${T1_SHA}",
       "developed_at":"2026-05-09T12:00:00Z",
       "acceptance_criteria":[
@@ -67,7 +67,7 @@ cat > "$TICKETS" <<JSON
       ]
     },
     {
-      "local_id":"t-002","title":"Add login flow","status":"todo","type":"feat",
+      "local_id":"t-002","title":"Add login flow","status":"todo","story_type":"user-story","commit_type":"feat",
       "files":["src/login.ts"]
     }
   ]
@@ -76,7 +76,7 @@ JSON
 
 jq '.state = "developed"' "$MANIFEST" > "$DIR/.m.tmp" && mv "$DIR/.m.tmp" "$MANIFEST"
 
-cat > "${DIR}/snapship.config.json" <<'JSON'
+cat > "${DIR}/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "repository": {"platform": "github", "default_branch": "main"},
@@ -316,19 +316,19 @@ fi
 # --- progress.json entries ------------------------------------------------
 echo ""
 echo "[progress] entries"
-bash "$PROGRESS" step --project-root="$DIR" --skill=qa --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=qa --story-id="$FEATURE_ID" \
   --step-num=00 --step-name=init --status=ok >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=qa --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=qa --story-id="$FEATURE_ID" \
   --step-num=01 --step-name=collect --status=ok --note="regression=pass" >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=qa --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=qa --story-id="$FEATURE_ID" \
   --step-num=02 --step-name=interpret --status=ok --note="severity=minor" >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=qa --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=qa --story-id="$FEATURE_ID" \
   --step-num=03 --step-name=fix --status=ok --note="t-001 cycles=1" >/dev/null
-bash "$PROGRESS" step --project-root="$DIR" --skill=qa --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=qa --story-id="$FEATURE_ID" \
   --step-num=05 --step-name=finish --status=ok --note="validated=1" >/dev/null
 
 steps_json=$(bash "$PROGRESS" list --project-root="$DIR" \
-  | jq --arg fid "$FEATURE_ID" '.[] | select(.skill == "qa" and .feature_id == $fid) | .steps')
+  | jq --arg fid "$FEATURE_ID" '.[] | select(.skill == "qa" and .story_id == $fid) | .steps')
 for step in init collect interpret fix finish; do
   found=$(echo "$steps_json" | jq --arg n "$step" '[.[] | select(.name == $n and .status == "ok")] | length')
   [ "$found" -ge 1 ] && ok "progress contains qa ${step} ok" || ko "progress qa ${step}" "missing"

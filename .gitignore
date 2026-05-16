@@ -1,6 +1,6 @@
 # Secrets per-projet (Figma PAT, etc.) — lu par skills/_shared/load-env.sh
-.env.snapship
-.env.snapship.*
+.env.snap
+.env.snap.*
 
 # .snap/ — whitelist manifests + tickets, ignore the rest (caches, queues,
 # telemetry, progress, backups, staging galleries — sources of truth are

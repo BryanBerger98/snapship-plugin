@@ -51,11 +51,11 @@
 
 ## References
 
-- Feature PRD: `.snap/PRDs/{{feature_id}}.md`
+- Feature PRD: `.snap/PRDs/{{story_id}}.md`
 - Domain pages: {{domain_pages}}
 - Related: {{related_refs}}
 
-/label ~"feature::{{feature_id}}" ~"type::epic" ~"size::{{epic_size}}"
+/label ~"feature::{{story_id}}" ~"type::epic" ~"size::{{epic_size}}"
 /milestone {{milestone}}
 /assign {{assignee}}
 

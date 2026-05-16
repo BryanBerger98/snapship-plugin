@@ -32,7 +32,7 @@ DIR=$(mktemp -d -t snap-wf-e2e-XXXXXX)
 trap 'trash "$DIR" 2>/dev/null || true' EXIT
 
 FEATURE_ID="01-auth"
-bash "$SETUP" --project-root="$DIR" --feature-id="$FEATURE_ID" --feature-name="Auth" --lang=en >/dev/null
+bash "$SETUP" --project-root="$DIR" --story-id="$FEATURE_ID" --story-name="Auth" --lang=en >/dev/null
 
 MANIFEST="${DIR}/.snap/manifests/${FEATURE_ID}.manifest.json"
 TICKETS="${DIR}/.snap/tickets/${FEATURE_ID}.json"
@@ -49,13 +49,13 @@ echo ""
 # --- Setup tickets fixture ------------------------------------------------
 cat > "$TICKETS" <<JSON
 {
-  "feature_id": "${FEATURE_ID}",
+  "story_id": "${FEATURE_ID}",
   "platform": "github",
   "tickets": [
-    {"local_id":"t-001","title":"Build signup screen","status":"todo","files":["src/components/Signup.tsx"]},
-    {"local_id":"t-002","title":"Verify email page","status":"todo","files":["src/pages/Verify.tsx"]},
-    {"local_id":"t-003","title":"Show error modal","status":"todo","files":["src/components/ErrorModal.tsx"]},
-    {"local_id":"t-004","title":"DB migration users","status":"todo","files":["db/001-users.sql"]}
+    {"local_id":"t-001","title":"Build signup screen","status":"todo","story_type":"user-story","files":["src/components/Signup.tsx"]},
+    {"local_id":"t-002","title":"Verify email page","status":"todo","story_type":"user-story","files":["src/pages/Verify.tsx"]},
+    {"local_id":"t-003","title":"Show error modal","status":"todo","story_type":"user-story","files":["src/components/ErrorModal.tsx"]},
+    {"local_id":"t-004","title":"DB migration users","status":"todo","story_type":"task","files":["db/001-users.sql"]}
   ]
 }
 JSON
@@ -81,7 +81,7 @@ draft_path="${DIR}/.snap/queues/${FEATURE_ID}.wireframes-draft.json"
 echo "$ui_json" | jq --argjson screens "$screens_json" '{ui_tickets: ., screens: $screens}' > "$draft_path"
 [ -f "$draft_path" ] && ok "01.4 wireframes-draft stashed in queues/" || ko "01.4" "missing draft"
 
-bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --story-id="$FEATURE_ID" \
   --step-num=01 --step-name=filter --status=ok >/dev/null
 
 # --- Step-02: Frame0 dry-run loop -----------------------------------------
@@ -118,7 +118,7 @@ draft_with_pages=$(jq --argjson pages "$(printf '%s\n' "${pages_log[@]}" | jq -R
 ' "$draft_path")
 echo "$draft_with_pages" > "$draft_path"
 
-bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --story-id="$FEATURE_ID" \
   --step-num=02 --step-name=design --status=ok >/dev/null
 
 # --- Step-03: render gallery + dry-run docs publish -----------------------
@@ -135,9 +135,9 @@ ctx=$(jq -n \
     product_name: "TestApp",
     updated_at: $now,
     frame0_export_dir: $dir,
-    feature_id: $fid,
+    story_id: $fid,
     features: [{
-      feature_id: $fid,
+      story_id: $fid,
       feature_title: $ftitle,
       screens: ($screens | map({
         screen_id: .screen_id,
@@ -149,7 +149,7 @@ ctx=$(jq -n \
         screen_notes: "—"
       }))
     }],
-    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, feature_id: $fid, state, path: .png_path})) | flatten)
+    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, story_id: $fid, state, path: .png_path})) | flatten)
   }')
 
 gallery_md="${WF_DIR}/gallery.md"
@@ -176,7 +176,7 @@ jq --arg url "$gallery_url" --arg ts "$NOW" \
   '.refs.wireframes_gallery = {platform:"affine", page_id:"DRY-WF-0", url:$url, synced_at:$ts, sync_status:"synced"}' \
   "$MANIFEST" > "$DIR/.m.tmp" && mv "$DIR/.m.tmp" "$MANIFEST"
 
-bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --story-id="$FEATURE_ID" \
   --step-num=03 --step-name=gallery --status=ok >/dev/null
 
 # --- Step-04: link tickets ------------------------------------------------
@@ -218,15 +218,15 @@ fi
 trash "$draft_path" 2>/dev/null || true
 [ ! -f "$draft_path" ] && ok "04.5 draft cleaned up" || ko "04.5" "draft remains"
 
-bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" \
+bash "$PROGRESS" step --project-root="$DIR" --skill=wireframe --story-id="$FEATURE_ID" \
   --step-num=04 --step-name=link --status=ok >/dev/null
-bash "$PROGRESS" finish --project-root="$DIR" --skill=wireframe --feature-id="$FEATURE_ID" --status=ok >/dev/null
+bash "$PROGRESS" finish --project-root="$DIR" --skill=wireframe --story-id="$FEATURE_ID" --status=ok >/dev/null
 
 # --- progress.json final state --------------------------------------------
 echo ""
 echo "[progress] in_flight purged after finish"
 in_flight=$(bash "$PROGRESS" list --project-root="$DIR")
-remaining=$(echo "$in_flight" | jq '[.[] | select(.skill == "wireframe" and .feature_id == "01-auth")] | length')
+remaining=$(echo "$in_flight" | jq '[.[] | select(.skill == "wireframe" and .story_id == "01-auth")] | length')
 assert_eq "progress.1 wireframe entry purged" "0" "$remaining"
 
 # --- Manifest state -------------------------------------------------------

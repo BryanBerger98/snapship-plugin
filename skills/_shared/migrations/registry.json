@@ -1,7 +1,38 @@
 {
-  "schema_version": "1.1.0",
-  "current_version": "1.1.0",
+  "schema_version": "1.2.0",
+  "current_version": "1.2.0",
   "migrations": [
+    {
+      "from": "1.1.0",
+      "to": "1.2.0",
+      "script": "v1.1.0_to_v1.2.0.sh",
+      "breaking": true,
+      "summary": "Hierarchy redesign (Epic / User Story / Task / Bug). Rename snapship.config.json → snap.config.json, .env.snapship → .env.snap, .snap/features/ → .snap/stories/. Migrate each meta.json (feature_id → story_id, drop epic_link, add parent_epic_id:null). Drop .snap/tickets/ cache (tracker = single source). Bump version to 1.2.",
+      "decisions": [
+        {
+          "key": "drop_tickets_cache",
+          "question": "Le cache local .snap/tickets/ n'est plus lu en v1.2 (tracker = source unique). Le supprimer ?",
+          "header": "Tickets cache",
+          "condition": "tickets_cache_present",
+          "options": [
+            { "value": "confirm", "label": "Trash maintenant (recommandé)", "description": "Backup contient déjà une copie. Récupérable via corbeille système." },
+            { "value": "skip",    "label": "Garder en place",                "description": "Cache laissé en l'état. Aucun skill ne le lira en v1.2, mais l'espace disque reste utilisé." }
+          ],
+          "default": "confirm"
+        },
+        {
+          "key": "rename_env",
+          "question": "Renommer .env.snapship → .env.snap ?",
+          "header": "Env rename",
+          "condition": "legacy_env_present",
+          "options": [
+            { "value": "auto", "label": "Renommer (recommandé)", "description": "mv préserve contenu intact. Tokens (Figma/Notion/AFFiNE) inchangés." },
+            { "value": "skip", "label": "Skip — je gère manuellement", "description": "Aucun skill ne lira .env.snapship en v1.2. À rapatrier manuellement plus tard." }
+          ],
+          "default": "auto"
+        }
+      ]
+    },
     {
       "from": "1.0.0",
       "to": "1.1.0",

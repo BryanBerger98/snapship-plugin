@@ -2,7 +2,7 @@
 # apply-github-metadata.sh — After a GitHub issue is created, route the story's
 # structured attributes (type, priority, size, scope, …) to native GitHub
 # primitives (Issue Type + Project v2 single-select fields) per the mapping
-# stored in `snapship.config.json` under `tickets.github.*`. Returns the residual
+# stored in `snap.config.json` under `tickets.github.*`. Returns the residual
 # labels that could not be routed natively (caller may apply them with
 # `tickets-adapter.sh update --labels=…` as fallback).
 #

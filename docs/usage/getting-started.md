@@ -33,7 +33,7 @@ On exit:
 
 ```
 <project>/
-  snapship.config.json     # ← committable, shared with team
+  snap.config.json     # ← committable, shared with team
   .snap/                   # ← local workspace
     manifests/             # ← committed (platform references)
     tickets/               # ← committed (ticket cache)
@@ -41,7 +41,7 @@ On exit:
     progress.json          # ← gitignored (runtime state)
 ```
 
-> Re-init later: `/snap:init --force` (rewrites `snapship.config.json`,
+> Re-init later: `/snap:init --force` (rewrites `snap.config.json`,
 > **preserves** `.snap/`).
 
 ## 2. `/snap:define` — first feature
@@ -52,7 +52,7 @@ On exit:
 
 Pipeline:
 
-1. **step-00** creates the `feature_id` (e.g. `01-auth-email`) and slug.
+1. **step-00** creates the `story_id` (e.g. `01-auth-email`) and slug.
 2. **step-01..03** interactive PRD brainstorm: goal, scope, screens,
    acceptance criteria. Answers via `AskUserQuestion`.
 3. **step-04** writes `.snap/PRDs/01-auth-email.md` + pushes to the configured
@@ -90,7 +90,7 @@ If the feature has at least one UI ticket:
 ```
 
 Each skill generates the assets, pushes to the platform, and back-links
-`wireframe_url` + `design_url` in `tickets/{feature_id}.json`.
+`wireframe_url` + `design_url` in `tickets/{story_id}.json`.
 
 ## 5. `/snap:develop` — implement ticket by ticket
 
@@ -124,12 +124,12 @@ as `qa_blocked`.
 ```text
 /snap:init                           # 1× per project
 /snap:define "..."                   # 1× per feature
-/snap:ticket   <feature_id>
+/snap:ticket   <story_id>
 /snap:wireframe                      # if UI
-/snap:design   <feature_id>          # if hi-fi UI
-/snap:develop  <feature_id>
-/snap:qa       <feature_id>
-/snap:doc-update <feature_id>        # post-ship — refreshes the functional doc
+/snap:design   <story_id>          # if hi-fi UI
+/snap:develop  <story_id>
+/snap:qa       <story_id>
+/snap:doc-update <story_id>        # post-ship — refreshes the functional doc
 ```
 
 See [workflow.md](workflow.md) for platform details and

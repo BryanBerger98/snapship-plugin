@@ -1,31 +1,46 @@
 ---
 step: 06-index
-description: Promote draft → .snap/tickets/{fid}.json, ack manifest.refs.tickets via sync-push, validate schemas, drop draft. Terminal step.
+description: Promote ephemeral drafts → `.snap/tickets/${story_id}.json`, ack manifest, surface summary table, purge ephemeral cache (mandatory). Terminal step.
 ---
 
 # step-06 — index
 
-Final step. Promote the draft to the canonical
-`.snap/tickets/${feature_id}.json` (cache pointing at remote tickets), ack the
-batch into `manifest.refs.tickets` via `sync-push.sh ack`, validate, drop the
-draft.
+Terminal step. Move the now-pushed drafts from the ephemeral cache to the
+canonical `.snap/tickets/${story_id}.json`, ack the batch into
+`manifest.refs.tickets`, validate, surface a summary table to the user,
+**and purge the ephemeral subject** (decision #2 — mandatory, even on
+failure).
 
 This step has no `next_step` — it is terminal.
 
+## Inputs
+
+- `.snap/.runtime/<SUBJECT_ID>/drafts.json` — drafts after step-05 carrying
+  `platform_id` + `url` (or `status=blocked`).
+- `.snap/manifests/${story_id}.manifest.json` — only in normal mode (no
+  manifest under `--standalone`).
+
 ## Tasks
 
-### A. Promote draft → tickets.json
+### A. Promote drafts → `tickets.json`
+
+Standalone (`SNAP_STANDALONE=true`) **skips** this section — there is no
+feature manifest, so the canonical persistent index is the tracker itself.
+The summary table (section E) is the final user-visible artefact.
+
+Normal mode :
 
 ```bash
-src=".snap/tickets/${feature_id}.draft.json"
-dst=".snap/tickets/${feature_id}.json"
+drafts=$(bash skills/_shared/cache-runtime.sh read \
+  "$SUBJECT_ID" drafts.json --project-root="$PWD")
+dst=".snap/tickets/${story_id}.json"
 NOW=$(date -u +%FT%TZ)
 
-jq --arg fid "$feature_id" \
+printf '%s' "$drafts" | jq --arg fid "$story_id" \
    --arg plat "$platform" \
    --arg ts "$NOW" '
   {
-    feature_id: $fid,
+    story_id: $fid,
     platform: $plat,
     synced_at: $ts,
     tickets: [
@@ -35,12 +50,16 @@ jq --arg fid "$feature_id" \
         url,
         title,
         description,
-        type,
+        story_type,
+        commit_type,
+        parent_epic_id,
+        parent_story_id,
         priority,
         status: (.status // "todo"),
         labels,
         assignees,
         milestone,
+        target_version,
         acceptance_criteria,
         tech_notes,
         files,
@@ -49,71 +68,93 @@ jq --arg fid "$feature_id" \
         wireframe_url,
         depends_on,
         estimated_size,
+        branch_name,
         updated_at: $ts
       } | with_entries(select(.value != null))
     ]
-  }' "$src" > "$dst"
+  }' > "$dst"
 ```
 
 ### B. Validate against schema
 
 ```bash
 ajv validate -s skills/_shared/schemas/tickets.schema.json \
-  -d ".snap/tickets/${feature_id}.json" \
-  --spec=draft2020 --strict=false
+  -d "$dst" --spec=draft2020 --strict=false
 ```
 
-If validation fails, restore the draft (keep both files) and mark progress
-`fail`. Surface the ajv error verbatim. Do **not** ack.
+If validation fails, **keep** `tickets.json` for debugging, mark progress
+`fail`, surface the ajv error verbatim, **and still purge the ephemeral
+subject** (decision #2). Do not ack.
 
-### C. Ack into manifest.refs.tickets
+### C. Ack into `manifest.refs.tickets`
+
+Skip under `--standalone` (no manifest).
 
 ```bash
-# Pick the first ticket URL as the "anchor" reference for the batch — the
-# canonical pointer is the tracker query; per-ticket URLs live in tickets.json.
 ANCHOR_URL=$(jq -r '.tickets[0].url // ""' "$dst")
 
 bash skills/_shared/sync-push.sh ack \
   --project-root="$PWD" \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --kind=tickets \
   --platform="$platform" \
   --url="$ANCHOR_URL" \
-  --no-trash    # tickets.json stays — it IS the cache (not staging)
+  --no-trash
 ```
 
-`sync-push.sh ack` updates `manifest.refs.tickets = { platform, url, synced_at,
-sync_status: "synced" }`. The `--no-trash` flag keeps `.snap/tickets/{fid}.json`
-in place (it is the persistent reference cache, not transient staging — unlike
-`.snap/PRDs/{fid}.md`).
+`sync-push.sh ack` updates
+`manifest.refs.tickets = { platform, url, synced_at, sync_status: "synced" }`.
+`--no-trash` keeps `tickets.json` in place (it IS the persistent cache,
+not staging).
 
 Re-validate manifest :
 ```bash
 ajv validate -s skills/_shared/schemas/manifest.schema.json \
-  -d ".snap/manifests/${feature_id}.manifest.json" \
+  -d ".snap/manifests/${story_id}.manifest.json" \
   --spec=draft2020 --strict=false
 ```
 
 ### D. State transition
 
-Update manifest `state` from `defined` → `ticketed` :
+Skip under `--standalone`. Update manifest `state` `defined → ticketed` :
 
 ```bash
 tmp=$(mktemp)
 jq --arg ts "$NOW" '.state = "ticketed" | .updated_at = $ts' \
-  ".snap/manifests/${feature_id}.manifest.json" > "$tmp" \
-  && mv "$tmp" ".snap/manifests/${feature_id}.manifest.json"
+  ".snap/manifests/${story_id}.manifest.json" > "$tmp" \
+  && mv "$tmp" ".snap/manifests/${story_id}.manifest.json"
 ```
 
-### E. Cleanup
+### E. Summary table
+
+Surface a markdown table to the user :
+
+```text
+| local_id | story_type   | platform_id | URL                                         | status   |
+|----------|--------------|-------------|---------------------------------------------|----------|
+| t-001    | epic         | #41         | https://github.com/o/r/issues/41            | done     |
+| t-002    | user-story   | #42         | https://github.com/o/r/issues/42            | done     |
+| t-003    | task         | —           | —                                           | blocked  |
+```
+
+Blocked rows include the parent-failure reason inline below the table.
+
+### F. Mandatory ephemeral purge (decision #2)
 
 ```bash
-trash ".snap/tickets/${feature_id}.draft.json"
+if [ "${KEEP_RUNTIME:-false}" = "true" ]; then
+  echo "WARN: --keep-runtime set — ephemeral subject ${SUBJECT_ID} preserved at $(bash skills/_shared/cache-runtime.sh path "$SUBJECT_ID" --project-root="$PWD")" >&2
+else
+  bash skills/_shared/cache-runtime.sh purge "$SUBJECT_ID" --project-root="$PWD"
+fi
 ```
 
-(Use `trash` per global rule, not `rm`.)
+The `--keep-runtime` flag (parsed in step-00) is a **debug-only** opt-out :
+its presence is surfaced in the summary so users can locate the cache for
+inspection. The step-00 EXIT trap also calls `purge` as a defence-in-depth
+in case this step itself fails — purge is idempotent.
 
-### F. Telemetry + progress
+### G. Telemetry + progress
 
 ```bash
 bash skills/_shared/telemetry.sh log \
@@ -122,12 +163,12 @@ bash skills/_shared/telemetry.sh log \
   --step-num=06 \
   --step-name=index \
   --status=ok \
-  --extra='{"tickets_count":'"$count"'}'
+  --extra='{"tickets_count":'"$count"',"blocked":'"$blocked_count"'}'
 
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=ticket \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=06 \
   --step-name=index \
   --status=ok
@@ -135,18 +176,24 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=ticket \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --status=ok
 ```
 
 ## Acceptance check
 
-- `.snap/tickets/${feature_id}.json` exists, validates, has ≥ 1 entry.
-- `manifest.refs.tickets.sync_status = "synced"`.
-- Manifest `state = "ticketed"`.
-- `.snap/tickets/${feature_id}.draft.json` removed.
-- `progress.json.in_flight` no longer contains a `ticket` entry for the
-  feature.
+- Normal mode :
+  - `.snap/tickets/${story_id}.json` exists, validates, has ≥ 1 entry.
+  - `manifest.refs.tickets.sync_status = "synced"`.
+  - Manifest `state = "ticketed"`.
+- Standalone mode :
+  - No `tickets.json` written, no manifest touched.
+  - Summary table surfaced.
+- **Always** :
+  - Summary table surfaced to the user (with blocked rows when present).
+  - `.snap/.runtime/<SUBJECT_ID>/` no longer exists, unless
+    `--keep-runtime` was set.
+  - `progress.json.in_flight` no longer contains a `ticket` entry.
 
 ## Next step
 

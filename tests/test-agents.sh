@@ -22,7 +22,7 @@ ok() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
 ko() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }
 
 VALID_SEVERITIES="none info minor major critical"
-KNOWN_TOOLS="Read Write Edit Bash Grep Glob WebFetch WebSearch Task TaskCreate TaskUpdate TaskList NotebookEdit"
+KNOWN_TOOLS="Read Write Edit Bash Grep Glob WebFetch WebSearch Task TaskCreate TaskUpdate TaskList NotebookEdit mcp__claude_ai_Context7__resolve-library-id mcp__claude_ai_Context7__query-docs"
 
 extract_frontmatter() {
   awk '
@@ -134,23 +134,47 @@ for file in "${files[@]}"; do
     continue
   fi
 
-  sev=$(echo "$json" | jq -r '.severity // empty')
-  fb=$(echo "$json"  | jq -r '.feedback_md // empty')
+  case "$base" in
+    snap-ticket-classifier)
+      tickets=$(echo "$json" | jq -r '.tickets // empty')
+      if [ -z "$tickets" ] || [ "$tickets" = "null" ]; then
+        ko "$base: example missing 'tickets' array"
+      else
+        ok "$base: tickets array present"
+      fi
+      first_type=$(echo "$json" | jq -r '.tickets[0].story_type // empty')
+      case "$first_type" in
+        epic|user-story|task|bug) ok "$base: story_type '$first_type' valid" ;;
+        "")                       ko "$base: example missing tickets[0].story_type" ;;
+        *)                        ko "$base: story_type '$first_type' not in {epic,user-story,task,bug}" ;;
+      esac
+      ;;
+    snap-ticket-digest)
+      tid=$(echo "$json" | jq -r '.ticket_id // empty')
+      brief=$(echo "$json" | jq -r '.brief_md // empty')
+      [ -n "$tid" ]   && ok "$base: ticket_id present" || ko "$base: example missing 'ticket_id'"
+      [ -n "$brief" ] && ok "$base: brief_md present" || ko "$base: example missing 'brief_md'"
+      ;;
+    *)
+      sev=$(echo "$json" | jq -r '.severity // empty')
+      fb=$(echo "$json"  | jq -r '.feedback_md // empty')
 
-  if [ -z "$sev" ]; then
-    ko "$base: example missing 'severity'"
-  else
-    case " $VALID_SEVERITIES " in
-      *" $sev "*) ok "$base: severity '$sev' valid" ;;
-      *)         ko "$base: severity '$sev' not in {$VALID_SEVERITIES}" ;;
-    esac
-  fi
+      if [ -z "$sev" ]; then
+        ko "$base: example missing 'severity'"
+      else
+        case " $VALID_SEVERITIES " in
+          *" $sev "*) ok "$base: severity '$sev' valid" ;;
+          *)          ko "$base: severity '$sev' not in {$VALID_SEVERITIES}" ;;
+        esac
+      fi
 
-  if [ -z "$fb" ]; then
-    ko "$base: example missing 'feedback_md'"
-  else
-    ok "$base: feedback_md present"
-  fi
+      if [ -z "$fb" ]; then
+        ko "$base: example missing 'feedback_md'"
+      else
+        ok "$base: feedback_md present"
+      fi
+      ;;
+  esac
 done
 
 echo ""

@@ -20,9 +20,9 @@ ko() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); ERRORS+=("$1"); }
 # init repo + push a fake remote ref so refs.prd exists in manifest
 init_repo_with_ref() {
   local dir="$1"
-  bash "$SETUP" --project-root="$dir" --feature-id=01-auth --feature-name="Auth" >/dev/null
+  bash "$SETUP" --project-root="$dir" --story-id=01-auth --story-name="Auth" >/dev/null
   mkdir -p "${dir}/.snap/PRDs" && echo "PRD" > "${dir}/.snap/PRDs/01-auth.md"
-  bash "$PUSH" ack --feature-id=01-auth --kind=prd --platform=affine --url=https://example.com/p --page-id=page-1 --project-root="$dir" >/dev/null
+  bash "$PUSH" ack --story-id=01-auth --kind=prd --platform=affine --url=https://example.com/p --page-id=page-1 --project-root="$dir" >/dev/null
 }
 
 echo "=== sync-fetch.sh tests ==="
@@ -32,7 +32,7 @@ echo ""
 echo "[1] plan with ref"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
-out=$(bash "$SCRIPT" plan --feature-id=01-auth --kind=prd --project-root="$DIR")
+out=$(bash "$SCRIPT" plan --story-id=01-auth --kind=prd --project-root="$DIR")
 [ "$(echo "$out" | jq -r '.ref_key')" = "prd" ] && ok "1.1 ref_key" || ko "1.1"
 [ "$(echo "$out" | jq -r '.ref.page_id')" = "page-1" ] && ok "1.2 ref.page_id passthrough" || ko "1.2"
 [ "$(echo "$out" | jq -r '.staging_target')" = "${DIR}/.snap/PRDs/01-auth.md" ] && ok "1.3 staging_target" || ko "1.3"
@@ -42,8 +42,8 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[2] plan no ref"
 DIR=$(setup_dir)
-bash "$SETUP" --project-root="$DIR" --feature-id=01-auth --feature-name="Auth" >/dev/null
-if bash "$SCRIPT" plan --feature-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
+bash "$SETUP" --project-root="$DIR" --story-id=01-auth --story-name="Auth" >/dev/null
+if bash "$SCRIPT" plan --story-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
   ko "2.1 should fail when refs.prd absent"
 else
   ok "2.1 missing ref rejected"
@@ -54,7 +54,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[3] plan no manifest"
 DIR=$(setup_dir)
-if bash "$SCRIPT" plan --feature-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
+if bash "$SCRIPT" plan --story-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
   ko "3.1 should fail"
 else
   ok "3.1 missing manifest rejected"
@@ -68,7 +68,7 @@ DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
 CONTENT=$(mktemp)
 echo "REMOTE_PRD" > "$CONTENT"
-out=$(bash "$SCRIPT" ack --feature-id=01-auth --kind=prd --content-file="$CONTENT" --project-root="$DIR")
+out=$(bash "$SCRIPT" ack --story-id=01-auth --kind=prd --content-file="$CONTENT" --project-root="$DIR")
 echo "$out" | grep -q "fetch-ack:01-auth:prd:synced" && ok "4.1 stdout" || ko "4.1 got: $out"
 [ -f "${DIR}/.snap/PRDs/01-auth.md" ] && ok "4.2 staging written" || ko "4.2"
 grep -q "REMOTE_PRD" "${DIR}/.snap/PRDs/01-auth.md" && ok "4.3 content preserved" || ko "4.3"
@@ -82,12 +82,12 @@ echo ""
 echo "[5] ack requires content"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
-if bash "$SCRIPT" ack --feature-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
+if bash "$SCRIPT" ack --story-id=01-auth --kind=prd --project-root="$DIR" 2>/dev/null; then
   ko "5.1 should reject"
 else
   ok "5.1 missing content-file rejected"
 fi
-if bash "$SCRIPT" ack --feature-id=01-auth --kind=prd --content-file=/nonexistent --project-root="$DIR" 2>/dev/null; then
+if bash "$SCRIPT" ack --story-id=01-auth --kind=prd --content-file=/nonexistent --project-root="$DIR" 2>/dev/null; then
   ko "5.2 should reject missing file"
 else
   ok "5.2 absent content file rejected"
@@ -99,7 +99,7 @@ echo ""
 echo "[6] fail"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
-out=$(bash "$SCRIPT" fail --feature-id=01-auth --kind=prd --note="fetch timeout" --project-root="$DIR")
+out=$(bash "$SCRIPT" fail --story-id=01-auth --kind=prd --note="fetch timeout" --project-root="$DIR")
 echo "$out" | grep -q "fetch-fail:01-auth:prd" && ok "6.1 stdout" || ko "6.1 got: $out"
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
 [ "$(jq -r '.refs.prd.sync_status' "$M")" = "error" ] && ok "6.2 error" || ko "6.2"
@@ -113,7 +113,7 @@ DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
 REMOTE_NEWER="2099-01-01T00:00:00Z"
-out=$(bash "$SCRIPT" check-mark --feature-id=01-auth --kind=prd --remote-edited="$REMOTE_NEWER" --project-root="$DIR")
+out=$(bash "$SCRIPT" check-mark --story-id=01-auth --kind=prd --remote-edited="$REMOTE_NEWER" --project-root="$DIR")
 echo "$out" | grep -q "dirty" && ok "7.1 dirty stdout" || ko "7.1 got: $out"
 [ "$(jq -r '.refs.prd.sync_status' "$M")" = "dirty" ] && ok "7.2 marked dirty" || ko "7.2"
 trash "$DIR" 2>/dev/null || true
@@ -124,7 +124,7 @@ echo "[8] check-mark up-to-date"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
-out=$(bash "$SCRIPT" check-mark --feature-id=01-auth --kind=prd --remote-edited="2000-01-01T00:00:00Z" --project-root="$DIR")
+out=$(bash "$SCRIPT" check-mark --story-id=01-auth --kind=prd --remote-edited="2000-01-01T00:00:00Z" --project-root="$DIR")
 echo "$out" | grep -q "up-to-date" && ok "8.1 stdout up-to-date" || ko "8.1 got: $out"
 [ "$(jq -r '.refs.prd.sync_status' "$M")" = "synced" ] && ok "8.2 stays synced" || ko "8.2"
 trash "$DIR" 2>/dev/null || true
@@ -134,7 +134,7 @@ echo ""
 echo "[9] invalid kind"
 DIR=$(setup_dir)
 init_repo_with_ref "$DIR"
-if bash "$SCRIPT" plan --feature-id=01-auth --kind=bogus --project-root="$DIR" 2>/dev/null; then
+if bash "$SCRIPT" plan --story-id=01-auth --kind=bogus --project-root="$DIR" 2>/dev/null; then
   ko "9.1 should reject"
 else
   ok "9.1 bad kind rejected"

@@ -2,7 +2,7 @@
 # resolve-template.sh — Resolve a template: config override > repo-native > bundled.
 #
 # Resolution order:
-#   1. Config override — templates.<key> in snapship.config.json. Resolved
+#   1. Config override — templates.<key> in snap.config.json. Resolved
 #      against project root; mustache-rendered (render-template.sh).
 #   2. Repo-native — host template under .github/.gitlab (ticket/pr only).
 #      Gated by templates.use_repo_native (default true). Filled as a scaffold
@@ -24,7 +24,7 @@
 #   resolve-template.sh --kind=aggregated-feedback
 #
 # Layout (bundled defaults):
-#   tickets/{user-story,bug,epic}/{github,gitlab,jira}.md
+#   tickets/{user-story,bug,epic,task}/{github,gitlab,jira}.md
 #   pr/{github,gitlab,default}.md
 #   review-thread/{github,gitlab,jira}.md
 #   aggregated-feedback.md
@@ -45,7 +45,7 @@ Resolve a template (config override > repo-native > bundled).
 
 Options:
   --kind=KIND               One of: ticket | pr | review-thread | aggregated-feedback
-  --type=TYPE               Required when kind=ticket. One of: user-story | bug | epic
+  --type=TYPE               Required when kind=ticket. One of: user-story | bug | epic | task
   --platform=PLATFORM       Required when kind in {ticket, pr, review-thread}.
                             ticket: github|gitlab|jira
                             pr: github|gitlab (falls back to default if absent)
@@ -62,7 +62,7 @@ Output (JSON on stdout):
   {"path":"...","source":"config|repo-native|bundled","render_mode":"mustache|scaffold"}
 
 Config keys per kind:
-  ticket           → templates.tickets.<type>     (user_story|bug|epic)
+  ticket           → templates.tickets.<type>     (user_story|bug|epic|task)
   pr               → templates.pr
   review-thread    → templates.review_thread
   aggregated-feedback → templates.aggregated_feedback
@@ -89,8 +89,8 @@ case "$KIND" in
     [ -n "$TYPE" ]     || { echo "ERROR: --type required for kind=ticket" >&2; exit 1; }
     [ -n "$PLATFORM" ] || { echo "ERROR: --platform required for kind=ticket" >&2; exit 1; }
     case "$TYPE" in
-      user-story|bug|epic) ;;
-      *) echo "ERROR: invalid --type='$TYPE' (expected: user-story|bug|epic)" >&2; exit 1 ;;
+      user-story|bug|epic|task) ;;
+      *) echo "ERROR: invalid --type='$TYPE' (expected: user-story|bug|epic|task)" >&2; exit 1 ;;
     esac
     case "$PLATFORM" in
       github|gitlab|jira) ;;

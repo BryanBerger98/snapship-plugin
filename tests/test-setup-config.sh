@@ -86,9 +86,9 @@ echo "[5] write basic"
 TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:o/r.git"
 out=$(bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true)
-[ -f "$TMP/snapship.config.json" ] && ok "5.1 file exists" || ko "5.1"
-[ "$out" = "$TMP/snapship.config.json" ] && ok "5.2 stdout = path" || ko "5.2"
-v=$(jq -r '.version' "$TMP/snapship.config.json")
+[ -f "$TMP/snap.config.json" ] && ok "5.1 file exists" || ko "5.1"
+[ "$out" = "$TMP/snap.config.json" ] && ok "5.2 stdout = path" || ko "5.2"
+v=$(jq -r '.version' "$TMP/snap.config.json")
 [ "$v" = "1.0" ] && ok "5.3 version 1.0" || ko "5.3 got $v"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -97,11 +97,11 @@ echo ""
 echo "[6] write no overwrite"
 TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:o/r.git"
-echo '{}' > "$TMP/snapship.config.json"
+echo '{}' > "$TMP/snap.config.json"
 bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true >/dev/null 2>&1
 rc=$?
 [ $rc -eq 2 ] && ok "6.1 exit 2 on existing" || ko "6.1 exit $rc"
-[ "$(cat "$TMP/snapship.config.json")" = "{}" ] && ok "6.2 file untouched" || ko "6.2"
+[ "$(cat "$TMP/snap.config.json")" = "{}" ] && ok "6.2 file untouched" || ko "6.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 # 7. write --force overwrites
@@ -109,9 +109,9 @@ echo ""
 echo "[7] write --force"
 TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:o/r.git"
-echo '{}' > "$TMP/snapship.config.json"
+echo '{}' > "$TMP/snap.config.json"
 bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true --force >/dev/null
-v=$(jq -r '.version' "$TMP/snapship.config.json")
+v=$(jq -r '.version' "$TMP/snap.config.json")
 [ "$v" = "1.0" ] && ok "7.1 force overwrite" || ko "7.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
@@ -122,9 +122,9 @@ TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:o/r.git"
 bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
   --tickets-platform=jira --lang=en >/dev/null
-[ "$(jq -r '.tickets.platform' "$TMP/snapship.config.json")" = "jira" ] && ok "8.1 tickets jira" || ko "8.1"
-[ "$(jq -r '.defaults.lang' "$TMP/snapship.config.json")" = "en" ] && ok "8.2 lang en" || ko "8.2"
-[ "$(jq -r '.repository.platform' "$TMP/snapship.config.json")" = "github" ] && ok "8.3 repo unchanged" || ko "8.3"
+[ "$(jq -r '.tickets.platform' "$TMP/snap.config.json")" = "jira" ] && ok "8.1 tickets jira" || ko "8.1"
+[ "$(jq -r '.defaults.lang' "$TMP/snap.config.json")" = "en" ] && ok "8.2 lang en" || ko "8.2"
+[ "$(jq -r '.repository.platform' "$TMP/snap.config.json")" = "github" ] && ok "8.3 repo unchanged" || ko "8.3"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 # 9. write: --from-answers merged
@@ -134,8 +134,8 @@ TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:o/r.git"
 bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true \
   --from-answers='{"ai":{"max_parallel_agents":3}}' >/dev/null
-[ "$(jq -r '.ai.max_parallel_agents' "$TMP/snapship.config.json")" = "3" ] && ok "9.1 nested merged" || ko "9.1"
-[ "$(jq -r '.repository.platform' "$TMP/snapship.config.json")" = "github" ] && ok "9.2 base preserved" || ko "9.2"
+[ "$(jq -r '.ai.max_parallel_agents' "$TMP/snap.config.json")" = "3" ] && ok "9.1 nested merged" || ko "9.1"
+[ "$(jq -r '.repository.platform' "$TMP/snap.config.json")" = "github" ] && ok "9.2 base preserved" || ko "9.2"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 # 10. auto-mode requires resolved fields
@@ -154,7 +154,7 @@ echo "[11] auto-mode resolved via flags"
 TMP=$(mktemp -d)
 bash "$SCRIPT" --write --project-root="$TMP" --available= --auto-mode=true \
   --repository-platform=github --tickets-platform=github --docs-platform=affine >/dev/null
-[ -f "$TMP/snapship.config.json" ] && ok "11.1 written" || ko "11.1"
+[ -f "$TMP/snap.config.json" ] && ok "11.1 written" || ko "11.1"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 # 12. Generated config validates against schema (when ajv-cli available)
@@ -164,7 +164,7 @@ if command -v ajv >/dev/null 2>&1; then
   TMP=$(mktemp -d)
   mk_repo "$TMP" "git@github.com:o/r.git"
   bash "$SCRIPT" --write --project-root="$TMP" --available=affine,frame0 --auto-mode=true >/dev/null
-  if ajv validate --spec=draft2020 --strict=false -s "$SCHEMA" -d "$TMP/snapship.config.json" >/dev/null 2>&1; then
+  if ajv validate --spec=draft2020 --strict=false -s "$SCHEMA" -d "$TMP/snap.config.json" >/dev/null 2>&1; then
     ok "12.1 validates against schema"
   else
     ko "12.1 schema validation failed"

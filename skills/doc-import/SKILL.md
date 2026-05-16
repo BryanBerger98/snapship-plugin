@@ -13,7 +13,7 @@ can lookup-or-create journey pages by slug.
 
 ## Prerequisite
 
-- `/snap:init` already run (`snapship.config.json` + `.snap/` exist)
+- `/snap:init` already run (`snap.config.json` + `.snap/` exist)
 - `documentation.platform` ∈ {affine, notion} (skip if `none`)
 - MCP server for that platform reachable in current session
 - `.snap/manifests/_taxonomy.json` empty (no `domains[]`) OR `--force` set
@@ -64,7 +64,7 @@ can lookup-or-create journey pages by slug.
 - `.snap/.backup/` archive (if `--backup`)
 - `progress.json` entry + telemetry event `doc-import`
 - **Not produced**: `Change Requests/*` (PRDs come via future `/snap:define`),
-  feature manifests (no `feature_id` exists yet)
+  feature manifests (no `story_id` exists yet)
 
 ## How to run a step
 

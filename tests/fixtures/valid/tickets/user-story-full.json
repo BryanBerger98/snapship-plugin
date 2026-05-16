@@ -1,0 +1,28 @@
+{
+  "story_id": "11-invoice-pdf",
+  "platform": "github",
+  "tickets": [
+    {
+      "local_id": "t-001",
+      "platform_id": "#101",
+      "url": "https://github.com/org/repo/issues/101",
+      "title": "Générer PDF facture mensuelle",
+      "description": "User Story enfant de l'Epic refonte facturation.",
+      "story_type": "user-story",
+      "commit_type": "feat",
+      "parent_epic_id": "#42",
+      "parent_story_id": null,
+      "priority": "P0",
+      "status": "todo",
+      "labels": ["billing", "pdf"],
+      "milestone": "Q3-2026",
+      "target_version": "2.1.0",
+      "branch_name": "feat/repo-101-invoice-pdf",
+      "acceptance_criteria": [
+        { "ac_id": "ac-1", "text": "PDF généré contient logo + montant TTC", "checked": false },
+        { "ac_id": "ac-2", "text": "Lien téléchargement expire après 24h", "checked": false }
+      ],
+      "estimated_size": "M"
+    }
+  ]
+}

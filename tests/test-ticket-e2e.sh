@@ -21,7 +21,7 @@ setup_dir() { mktemp -d -t snap-tk-XXXXXX; }
 
 write_config() {
   local d="$1" platform="$2"
-  cat > "${d}/snapship.config.json" <<JSON
+  cat > "${d}/snap.config.json" <<JSON
 {
   "version": "1.0",
   "tickets": { "platform": "${platform}" },
@@ -34,7 +34,7 @@ JSON
 # Pre-stage a feature workspace as if /define had been run.
 seed_feature() {
   local d="$1" fid="$2"
-  bash "$SETUP" --project-root="$d" --feature-id="$fid" --feature-name="Auth" --lang=en >/dev/null
+  bash "$SETUP" --project-root="$d" --story-id="$fid" --story-name="Auth" --lang=en >/dev/null
   cat > "${d}/.snap/PRDs/${fid}.md" <<'MD'
 # PRD — Auth
 
@@ -77,7 +77,7 @@ run_platform() {
   bash "$LOAD_CFG" --project-root="$DIR" >/dev/null 2>&1 \
     && ok "${platform}.00 load-config" \
     || ko "${platform}.00 load-config" "non-zero"
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=00 --step-name=init --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=00 --step-name=init --status=ok >/dev/null
 
   # step-01: load PRD (check sections present)
   for sec in "Problem" "Solution overview" "Acceptance criteria" "In scope" "Out of scope"; do
@@ -87,7 +87,7 @@ run_platform() {
     fi
   done
   ok "${platform}.01 prd-feature has all required sections"
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=01 --step-name=load --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=01 --step-name=load --status=ok >/dev/null
 
   # step-02: decompose — synthesize 2 stories from 2 AC
   cat > "$DRAFT" <<'JSON'
@@ -114,14 +114,14 @@ run_platform() {
 JSON
   draft_count=$(jq 'length' "$DRAFT")
   [ "$draft_count" = "2" ] && ok "${platform}.02 decompose drafted 2 stories" || ko "${platform}.02" "got $draft_count"
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=02 --step-name=decompose --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=02 --step-name=decompose --status=ok >/dev/null
 
   # step-03: enrich — stub context block + ticket type on each story
   jq 'map(. + {context: {codebase: "auth/index.ts:42 has createUser", docs: "", web: []}, type: "user-story"})' \
     "$DRAFT" > "$DIR/.tk.tmp" && mv "$DIR/.tk.tmp" "$DRAFT"
   enriched=$(jq '[.[] | select(.context != null and .type != null)] | length' "$DRAFT")
   [ "$enriched" = "2" ] && ok "${platform}.03 enrichment populated context" || ko "${platform}.03" "got $enriched"
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=03 --step-name=enrich --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=03 --step-name=enrich --status=ok >/dev/null
 
   # step-04: format — resolve template via resolve-template.sh (kind=ticket type=user-story)
   local tpl tpl_json
@@ -141,7 +141,7 @@ JSON
     [ -n "$body" ] && ok "${platform}.04 template rendered (no title placeholder)" \
       || ko "${platform}.04 template render failed" "empty"
   fi
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=04 --step-name=format --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=04 --step-name=format --status=ok >/dev/null
 
   # step-05: push (dry-run)
   pushed=0
@@ -165,18 +165,19 @@ JSON
     fi
   done < <(jq -c '.[]' "$DRAFT")
   [ "$pushed" = "2" ] && ok "${platform}.05 dry-run pushed 2 tickets" || ko "${platform}.05" "pushed=$pushed"
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=05 --step-name=push --status=skip --note="dry-run" >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=05 --step-name=push --status=skip --note="dry-run" >/dev/null
 
   # step-06: index — promote draft → tickets/{id}.json (schema-shaped)
   jq --arg fid "01-auth" --arg p "$platform" \
     '{
-      feature_id: $fid,
+      story_id: $fid,
       platform: $p,
       synced_at: "2026-05-09T00:00:00Z",
       tickets: [.[] | {
         local_id: .ticket_id,
         title: .title,
         status: "todo",
+        story_type: "user-story",
         labels: .labels,
         depends_on: .depends_on,
         files: .expected_files,
@@ -209,11 +210,11 @@ JSON
     && ok "${platform}.06c draft removed" \
     || ko "${platform}.06c" "draft persists"
 
-  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --feature-id=01-auth --step-num=06 --step-name=index --status=ok >/dev/null
-  bash "$PROGRESS" finish --project-root="$DIR" --skill=ticket --feature-id=01-auth --status=ok >/dev/null
+  bash "$PROGRESS" step --project-root="$DIR" --skill=ticket --story-id=01-auth --step-num=06 --step-name=index --status=ok >/dev/null
+  bash "$PROGRESS" finish --project-root="$DIR" --skill=ticket --story-id=01-auth --status=ok >/dev/null
 
   # resume after terminal — skill purged from in_flight → empty stdout
-  out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=ticket --feature-id=01-auth)
+  out=$(bash "$PROGRESS" resume --project-root="$DIR" --skill=ticket --story-id=01-auth)
   if [ -z "$out" ]; then
     ok "${platform}.07 resume after terminal returns empty (purged)"
   else

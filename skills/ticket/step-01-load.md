@@ -1,27 +1,82 @@
 ---
 step: 01-load
 next_step: 02-decompose
-description: Ensure PRD staging present (fetch from remote if needed), parse AC/scope/wireframes into context.
+description: Load PRD + live tracker context (Epics, milestones, versions) into ephemeral cache. `--standalone` skips PRD load.
 ---
 
 # step-01 — load
 
-Read the feature PRD and stage its content for decomposition. PRD remote =
-source of truth (set in `manifest.refs.prd`) ; local staging is rehydrated on
-demand.
+Read the feature PRD (skipped under `--standalone`) and snapshot the live
+tracker context (Epics, milestones, versions) into the ephemeral subject
+cache. **No persistent local cache of tracker state** (decision #3) — every
+run fetches fresh.
 
 ## Tasks
 
-1. **Ensure PRD staging present** — if `.snap/PRDs/${feature_id}.md` is missing
+### A. Standalone short-circuit (v1.2)
+
+If `--standalone` was set in step-00, skip subtasks 1-5 (PRD load) entirely
+and jump directly to **B. Live tracker fetch**. The raw user input collected
+at step-02 will be the only source of draft material.
+
+### B. Live tracker fetch (always — decision #3)
+
+Snapshot tracker context into the ephemeral subject cache so downstream steps
+(03b hierarchy clustering, 03c metadata, 05 push) operate on a frozen view.
+
+```bash
+# Capabilities first — gates which list-* calls are valid.
+caps=$(bash skills/_shared/tickets-adapter.sh \
+  --action=capabilities --platform="$platform")
+
+# Epics — always supported (every tracker has the concept).
+epics=$(bash skills/_shared/tickets-adapter.sh \
+  --action=list-epics --platform="$platform")
+
+milestones="[]"
+if [ "$(jq -r '.supports_milestone' <<<"$caps")" = "true" ]; then
+  milestones=$(bash skills/_shared/tickets-adapter.sh \
+    --action=list-milestones --platform="$platform")
+fi
+
+versions="[]"
+if [ "$(jq -r '.supports_version' <<<"$caps")" = "true" ]; then
+  versions=$(bash skills/_shared/tickets-adapter.sh \
+    --action=list-versions --platform="$platform")
+fi
+
+# Perf signal — > 50 Epics fetched warns the user (large trackers slow
+# clustering at step-03b).
+epic_count=$(jq 'length' <<<"$epics")
+[ "$epic_count" -gt 50 ] && \
+  echo "WARN: $epic_count Epics fetched — hierarchy clustering may be slow." >&2
+
+# Persist into ephemeral cache for downstream steps.
+jq -n --argjson c "$caps" --argjson e "$epics" \
+      --argjson m "$milestones" --argjson v "$versions" \
+      '{capabilities:$c, epics:$e, milestones:$m, versions:$v,
+        fetched_at:(now|todate)}' \
+  | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" \
+      tracker-context.json --project-root="$PWD"
+```
+
+Network failure on `list-*` is fatal for hierarchy mode (we can't propose
+clustering without the Epic list), but tolerable for `--standalone --auto`
+flows that emit only leaf tickets — let `tickets-adapter.sh` surface the
+retry-exhausted error and let the trap purge the subject on exit.
+
+### C. PRD load (normal mode only)
+
+1. **Ensure PRD staging present** — if `.snap/PRDs/${story_id}.md` is missing
    (it was trashed by `sync-push.sh ack` in `/snap:define` step-05), re-pull
    from remote :
 
    ```bash
    PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
-     --feature-id="$feature_id" --kind=prd --project-root="$PWD")
+     --story-id="$story_id" --kind=prd --project-root="$PWD")
    if [ ! -f "$PRD_STAGING" ]; then
      plan_json=$(bash skills/_shared/sync-fetch.sh plan \
-       --feature-id="$feature_id" --kind=prd --project-root="$PWD")
+       --story-id="$story_id" --kind=prd --project-root="$PWD")
      rc=$?
      [ "$rc" -ne 0 ] && {
        echo "ERROR: manifest has no refs.prd — run /snap:define first" >&2
@@ -31,16 +86,16 @@ demand.
      PRD_PAGE=$(jq -r '.ref.page_id // ""' <<<"$plan_json")
      PLATFORM=$(jq -r '.ref.platform' <<<"$plan_json")
 
-     # Pull via docs-adapter (model executes MCP, writes to /tmp/prd-${feature_id}.md)
+     # Pull via docs-adapter (model executes MCP, writes to /tmp/prd-${story_id}.md)
      bash skills/_shared/docs-adapter.sh \
        --action=get-page-content \
        --platform="$PLATFORM" \
        --page-id="$PRD_PAGE" \
-       --out=/tmp/prd-"$feature_id".md
+       --out=/tmp/prd-"$story_id".md
 
      bash skills/_shared/sync-fetch.sh ack \
-       --feature-id="$feature_id" --kind=prd \
-       --content-file=/tmp/prd-"$feature_id".md \
+       --story-id="$story_id" --kind=prd \
+       --content-file=/tmp/prd-"$story_id".md \
        --platform="$PLATFORM" --url="$PRD_URL" --page-id="$PRD_PAGE" \
        --project-root="$PWD"
    fi
@@ -61,7 +116,7 @@ demand.
    write yet) :
    ```json
    {
-     "feature_id": "01-auth",
+     "story_id": "01-auth",
      "feature_title": "...",
      "problem": "...",
      "solution_overview": "...",
@@ -90,7 +145,7 @@ demand.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=ticket \
-     --feature-id="$feature_id" \
+     --story-id="$story_id" \
      --step-num=01 \
      --step-name=load \
      --status=ok
@@ -98,8 +153,11 @@ demand.
 
 ## Acceptance check
 
-- `${PRD_STAGING}` exists and parses cleanly.
-- `acceptance_criteria` array has ≥ 1 entry.
+- `.snap/.runtime/<SUBJECT_ID>/tracker-context.json` exists and contains
+  `capabilities`, `epics`, `milestones`, `versions`, `fetched_at`.
+- Normal mode (non-`--standalone`) :
+  - `${PRD_STAGING}` exists and parses cleanly.
+  - `acceptance_criteria` array has ≥ 1 entry.
 
 ## Next step
 

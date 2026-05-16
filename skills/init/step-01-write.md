@@ -1,7 +1,7 @@
 ---
 step: 01-write
 next_step: null
-description: Materialize snapship.config.json, scaffold .snap/ via setup-snap-dir.sh, validate via load-config.sh. Terminal step.
+description: Materialize snap.config.json, scaffold .snap/ via setup-snap-dir.sh, validate via load-config.sh. Terminal step.
 terminal: true
 ---
 
@@ -25,13 +25,13 @@ Terminal step. Persist config + scaffold local workspace.
    bash skills/_shared/setup-config.sh "${ARGS[@]}"
    ```
    Exit codes :
-   - `0` → config written at `$PWD/snapship.config.json`.
+   - `0` → config written at `$PWD/snap.config.json`.
    - `1` → bad args / autonomous mode missing required field. Surface stderr to
      the user and stop. Do **not** scaffold `.snap/`.
    - `2` → existing config + no `--force`. Should never reach here (step-00
      guards it), but fail clean with the same message.
 
-2. **Scaffold `.snap/`** (idempotent — no feature_id at init time) :
+2. **Scaffold `.snap/`** (idempotent — no story_id at init time) :
    ```bash
    bash skills/_shared/setup-snap-dir.sh --project-root="$PWD"
    ```
@@ -59,14 +59,14 @@ Terminal step. Persist config + scaffold local workspace.
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
      --skill=init \
-     --feature-id=_global \
+     --story-id=_global \
      --step-num=01 \
      --step-name=write \
      --status=ok
    bash skills/_shared/progress.sh finish \
      --project-root="$PWD" \
      --skill=init \
-     --feature-id=_global \
+     --story-id=_global \
      --status=ok
    ```
 
@@ -82,7 +82,7 @@ Terminal step. Persist config + scaffold local workspace.
 
 ## Acceptance check
 
-- `snapship.config.json` exists at project root and parses as JSON.
+- `snap.config.json` exists at project root and parses as JSON.
 - `load-config.sh` exits 0.
 - `.snap/manifests/_taxonomy.json` exists and validates.
 - `.snap/progress.json` exists with `in_flight: []`.

@@ -9,18 +9,18 @@
 #      Si ack KO → sync-push.sh fail   (sync_status=error, garde staging)
 #
 # Subcommands:
-#   staging-path --feature-id=X --kind=prd|design-gallery|wireframes-gallery|tickets [--screen=NAME]
+#   staging-path --story-id=X --kind=prd|design-gallery|wireframes-gallery|tickets [--screen=NAME]
 #       stdout: chemin staging absolu (peut ne pas exister)
-#   plan         --feature-id=X --kind=K
+#   plan         --story-id=X --kind=K
 #       stdout: JSON {staging_path, manifest_path, kind, exists}
-#   ack          --feature-id=X --kind=K --platform=P --url=U
+#   ack          --story-id=X --kind=K --platform=P --url=U
 #                [--page-id=P] [--file-key=F] [--project-id=P] [--issue-number=N]
 #                [--no-trash]   # garde staging même après ack (debug)
 #       Update manifest.refs.<kind> { platform, url, ...ids, synced_at, sync_status=synced }
 #       Trash staging file (sauf --no-trash).
-#   fail         --feature-id=X --kind=K [--note=TEXT]
+#   fail         --story-id=X --kind=K [--note=TEXT]
 #       Update manifest.refs.<kind>.sync_status=error. Garde staging.
-#   mark         --feature-id=X --kind=K --status=local-only|pending|synced|dirty|error
+#   mark         --story-id=X --kind=K --status=local-only|pending|synced|dirty|error
 #       Update manifest.refs.<kind>.sync_status (helper standalone).
 #
 # Exit codes: 0=ok, 1=invalid arg, 2=fs/jq err
@@ -37,11 +37,11 @@ usage() {
 Usage: sync-push.sh <subcommand> [OPTIONS]
 
 Subcommands:
-  staging-path --feature-id=X --kind=K [--screen=NAME]
-  plan         --feature-id=X --kind=K
-  ack          --feature-id=X --kind=K --platform=P --url=U [--page-id|--file-key|--project-id|--issue-number=...] [--no-trash]
-  fail         --feature-id=X --kind=K [--note=TEXT]
-  mark         --feature-id=X --kind=K --status=local-only|pending|synced|dirty|error
+  staging-path --story-id=X --kind=K [--screen=NAME]
+  plan         --story-id=X --kind=K
+  ack          --story-id=X --kind=K --platform=P --url=U [--page-id|--file-key|--project-id|--issue-number=...] [--no-trash]
+  fail         --story-id=X --kind=K [--note=TEXT]
+  mark         --story-id=X --kind=K --status=local-only|pending|synced|dirty|error
 
 Kinds: prd, design-gallery, wireframes-gallery, tickets, design-file
 
@@ -69,7 +69,7 @@ NO_TRASH=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-root=*)  PROJECT_ROOT="${1#--project-root=}"; SNAP_DIR="${PROJECT_ROOT}/.snap" ;;
-    --feature-id=*)    FEATURE_ID="${1#--feature-id=}" ;;
+    --story-id=*)    FEATURE_ID="${1#--story-id=}" ;;
     --kind=*)          KIND="${1#--kind=}" ;;
     --screen=*)        SCREEN="${1#--screen=}" ;;
     --platform=*)      PLATFORM="${1#--platform=}" ;;
@@ -87,7 +87,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-[ -z "$FEATURE_ID" ] && { echo "ERROR: --feature-id required" >&2; exit 1; }
+[ -z "$FEATURE_ID" ] && { echo "ERROR: --story-id required" >&2; exit 1; }
 [ -z "$KIND" ] && { echo "ERROR: --kind required" >&2; exit 1; }
 
 case "$KIND" in
@@ -164,7 +164,7 @@ case "$CMD" in
       --arg mp "$MANIFEST" \
       --argjson ex "$exists" \
       --arg ref "$REF_KEY" '
-      {feature_id:$fid, kind:$kind, ref_key:$ref, staging_path:$sp, manifest_path:$mp, exists:$ex}'
+      {story_id:$fid, kind:$kind, ref_key:$ref, staging_path:$sp, manifest_path:$mp, exists:$ex}'
     ;;
 
   ack)

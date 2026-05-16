@@ -7,16 +7,16 @@
 
 ## How to use
 
-1. Each screen has an ID (`{{feature_id}}-{{screen_slug}}`) used by tickets and the per-feature PRD.
+1. Each screen has an ID (`{{story_id}}-{{screen_slug}}`) used by tickets and the per-feature PRD.
 2. Reviewers (`snap-code-reviewer-functional`) open the PNG paths via the Read tool to verify wireframe match.
 3. `/qa` Playwright structural-diff compares the PR's rendered DOM against these images.
 
 ## Screens by feature
 
 {{#features}}
-### {{feature_id}} · {{feature_title}}
+### {{story_id}} · {{feature_title}}
 
-PRD: [`PRDs/{{feature_id}}.md`](./PRDs/{{feature_id}}.md)
+PRD: [`PRDs/{{story_id}}.md`](./PRDs/{{story_id}}.md)
 
 {{#screens}}
 #### `{{screen_id}}` — {{screen_title}}
@@ -33,7 +33,7 @@ PRD: [`PRDs/{{feature_id}}.md`](./PRDs/{{feature_id}}.md)
 
 ## Conventions
 
-- Filenames: `{{feature_id}}-{{screen_slug}}-{{state}}.png` (e.g. `01-auth-signup-success.png`).
+- Filenames: `{{story_id}}-{{screen_slug}}-{{state}}.png` (e.g. `01-auth-signup-success.png`).
 - Resolution: 1440×900 desktop, 390×844 mobile (annotate at top-right).
 - Copy: real strings, no `Lorem ipsum`. If undecided, mark `<TBD>` so reviewers flag it.
 - Edits: re-export from Frame0; do **not** hand-edit PNGs.
@@ -43,7 +43,7 @@ PRD: [`PRDs/{{feature_id}}.md`](./PRDs/{{feature_id}}.md)
 | ID | Feature | State | Path |
 |----|---------|-------|------|
 {{#screen_index}}
-| `{{screen_id}}` | {{feature_id}} | {{state}} | `{{path}}` |
+| `{{screen_id}}` | {{story_id}} | {{state}} | `{{path}}` |
 {{/screen_index}}
 
 ---
@@ -53,9 +53,9 @@ Variables:
   {{product_name}}            string
   {{updated_at}}              ISO-8601
   {{frame0_export_dir}}       relative path
-  {{features}}                list — {feature_id, feature_title, screens:[...]}
+  {{features}}                list — {story_id, feature_title, screens:[...]}
   {{screens}}                 nested list — {screen_id, screen_title, screen_image_path,
                                               screen_states, screen_ctas, screen_tickets,
                                               screen_notes}
-  {{screen_index}}            flat list — {screen_id, feature_id, state, path}
+  {{screen_index}}            flat list — {screen_id, story_id, state, path}
 -->

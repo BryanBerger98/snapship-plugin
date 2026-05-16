@@ -5,7 +5,7 @@
 # penpot-helper.sh). Verifies cooperation: filter-ui-tickets → figma-helper
 # → render gallery → docs-adapter create → jq-patch tickets/{id}.json → ajv.
 #
-# Sub-suite A — feature-id scope. Sub-suite B — ticket-id scope.
+# Sub-suite A — story-id scope. Sub-suite B — ticket-id scope.
 
 set -uo pipefail
 
@@ -39,20 +39,20 @@ echo ""
 # Shared fixture: one feature, 3 UI tickets + 1 non-UI ticket.
 make_fixture() {
   local dir="$1"
-  bash "$SETUP" --project-root="$dir" --feature-id="01-auth" --feature-name="Auth" --lang=en >/dev/null
+  bash "$SETUP" --project-root="$dir" --story-id="01-auth" --story-name="Auth" --lang=en >/dev/null
   # Seed PRD ref so step-03 can use it as parent
   jq '.refs.prd = {platform:"affine", page_id:"DRY-GLOBAL-0", url:"https://docs.example/prd-global", sync_status:"synced"}' \
     "${dir}/.snap/manifests/01-auth.manifest.json" > "$dir/.m.tmp" \
     && mv "$dir/.m.tmp" "${dir}/.snap/manifests/01-auth.manifest.json"
   cat > "${dir}/.snap/tickets/01-auth.json" <<'JSON'
 {
-  "feature_id": "01-auth",
+  "story_id": "01-auth",
   "platform": "github",
   "tickets": [
-    {"local_id":"t-001","title":"Build signup screen","status":"todo","files":["src/components/Signup.tsx"]},
-    {"local_id":"t-002","title":"Verify email page","status":"todo","files":["src/pages/Verify.tsx"]},
-    {"local_id":"t-003","title":"Show error modal","status":"todo","files":["src/components/ErrorModal.tsx"]},
-    {"local_id":"t-099","title":"DB migration users","status":"todo","files":["db/001-users.sql"]}
+    {"local_id":"t-001","title":"Build signup screen","status":"todo","story_type":"user-story","files":["src/components/Signup.tsx"]},
+    {"local_id":"t-002","title":"Verify email page","status":"todo","story_type":"user-story","files":["src/pages/Verify.tsx"]},
+    {"local_id":"t-003","title":"Show error modal","status":"todo","story_type":"user-story","files":["src/components/ErrorModal.tsx"]},
+    {"local_id":"t-099","title":"DB migration users","status":"todo","story_type":"task","files":["db/001-users.sql"]}
   ]
 }
 JSON
@@ -89,9 +89,9 @@ run_mockup_loop() {
 }
 
 # ========================================================================
-# Sub-suite A — feature-id scope
+# Sub-suite A — story-id scope
 # ========================================================================
-echo "[A] feature-id scope — full pipeline (figma)"
+echo "[A] story-id scope — full pipeline (figma)"
 
 DIR_A="$TMP/proj-a"
 make_fixture "$DIR_A"
@@ -115,7 +115,7 @@ echo "$ui_json" | jq --argjson screens "$screens_a" \
   '{source:"tickets-only", target_tickets: [.[].local_id], ui_tickets: ., screens: $screens}' \
   > "$DRAFT_A"
 [ -f "$DRAFT_A" ] && ok "A.3 design-draft stashed in queues/" || ko "A.3" "missing draft"
-bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --feature-id="01-auth" \
+bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --story-id="01-auth" \
   --step-num=01 --step-name=source-resolve --status=ok >/dev/null
 
 pages_a=()
@@ -132,7 +132,7 @@ draft_a_pages=$(jq --argjson pages "$(printf '%s\n' "${pages_a[@]}" \
   .screens |= map(. as $s | .pages = ($pages | map(select(.screen_id == $s.screen_id) | {state, platform_page_id, asset_path, mode})))
 ' "$DRAFT_A")
 echo "$draft_a_pages" > "$DRAFT_A"
-bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --feature-id="01-auth" \
+bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --story-id="01-auth" \
   --step-num=02 --step-name=mockup --status=ok >/dev/null
 
 ctx=$(jq -n \
@@ -143,9 +143,9 @@ ctx=$(jq -n \
     updated_at: $now,
     design_platform: "figma",
     design_export_dir: ".snap/designs/01-auth",
-    feature_id: "01-auth",
+    story_id: "01-auth",
     features: [{
-      feature_id: "01-auth",
+      story_id: "01-auth",
       feature_title: "Auth",
       screens: ($screens | map({
         screen_id: .screen_id,
@@ -157,7 +157,7 @@ ctx=$(jq -n \
         screen_notes: "—"
       }))
     }],
-    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, feature_id: "01-auth", state, mode, path: .asset_path})) | flatten)
+    screen_index: ($screens | map(. as $s | (.pages // []) | map({screen_id: $s.screen_id, story_id: "01-auth", state, mode, path: .asset_path})) | flatten)
   }')
 
 gallery_md="${DESIGN_DIR_A}/gallery.md"
@@ -178,7 +178,7 @@ jq --arg url "$gallery_url" --arg ts "$NOW" \
   '.refs.design_gallery = {platform:"affine", page_id:"DRY-DG-0", url:$url, synced_at:$ts, sync_status:"synced"}' \
   "$MANIFEST_A" > "$DIR_A/.m.tmp" && mv "$DIR_A/.m.tmp" "$MANIFEST_A"
 
-bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --feature-id="01-auth" \
+bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --story-id="01-auth" \
   --step-num=03 --step-name=gallery --status=ok >/dev/null
 
 while IFS= read -r entry; do
@@ -212,12 +212,12 @@ else
   echo "  SKIP  A.13 ajv not installed"
 fi
 
-bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --feature-id="01-auth" \
+bash "$PROGRESS" step --project-root="$DIR_A" --skill=design --story-id="01-auth" \
   --step-num=04 --step-name=link --status=ok >/dev/null
 
 # Verify progress.json contains link step
 link_ok=$(bash "$PROGRESS" list --project-root="$DIR_A" \
-  | jq '[.[] | select(.skill == "design" and .feature_id == "01-auth") | .steps[] | select(.name == "link" and .status == "ok")] | length')
+  | jq '[.[] | select(.skill == "design" and .story_id == "01-auth") | .steps[] | select(.name == "link" and .status == "ok")] | length')
 [ "$link_ok" -ge 1 ] && ok "A.14 progress includes design step-04 link" || ko "A.14" "progress missing step-04 entry"
 
 # ========================================================================

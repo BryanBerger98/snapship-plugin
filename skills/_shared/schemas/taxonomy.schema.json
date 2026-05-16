@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/taxonomy.schema.json",
   "title": "_taxonomy.json",
-  "description": "Catalogue partagé .snap/manifests/_taxonomy.json — workspace remote root + domains + journeys. Remplace domains.json. v1.0.",
+  "description": "Catalogue partagé .snap/manifests/_taxonomy.json — workspace (vision/principles/north_star/remote root) + domains + journeys (steps/outcomes). v1.1.",
   "type": "object",
   "required": ["schema_version"],
   "additionalProperties": false,
@@ -14,7 +14,7 @@
     "workspace": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Racine documentation distante partagée par tous les manifests.",
+      "description": "Racine documentation distante + métadonnées produit (vision, principles, north_star). Édité par /define --mode=vision.",
       "properties": {
         "platform": {
           "type": "string",
@@ -23,7 +23,30 @@
         "workspace_id": { "type": "string" },
         "root_page_id": { "type": "string" },
         "root_url":     { "type": "string", "format": "uri" },
-        "synced_at":    { "type": "string", "format": "date-time" }
+        "synced_at":    { "type": "string", "format": "date-time" },
+        "vision": {
+          "type": "string",
+          "description": "Énoncé de vision produit (paragraphe). Édité via /define --mode=vision.",
+          "minLength": 1
+        },
+        "principles": {
+          "type": "array",
+          "description": "Principes produit guidant les décisions. Édité via /define --mode=vision.",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "north_star": {
+          "type": "object",
+          "description": "Métrique north-star + valeurs cibles. Édité via /define --mode=vision.",
+          "additionalProperties": false,
+          "required": ["metric"],
+          "properties": {
+            "metric":   { "type": "string", "minLength": 1 },
+            "current":  { "type": "string" },
+            "target":   { "type": "string" },
+            "horizon":  { "type": "string" }
+          }
+        }
       }
     },
     "domains": {
@@ -56,13 +79,43 @@
     "journey": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["page_id"],
+      "description": "Journey peut exister localement (édité via /define --mode=journey) sans page_id tant que /doc-update n'a pas publié.",
       "properties": {
         "title":     { "type": "string" },
         "page_id":   { "type": "string" },
         "url":       { "type": "string", "format": "uri" },
-        "synced_at": { "type": "string", "format": "date-time" }
-      }
+        "synced_at": { "type": "string", "format": "date-time" },
+        "state": {
+          "type": "string",
+          "description": "draft = édité localement, pas publié ; synced = publié remote (page_id présent).",
+          "enum": ["draft", "synced"]
+        },
+        "steps": {
+          "type": "array",
+          "description": "Étapes du parcours, ordre = séquence.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title"],
+            "properties": {
+              "title":       { "type": "string", "minLength": 1 },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "outcomes": {
+          "type": "array",
+          "description": "Résultats attendus du parcours.",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "synced" } }, "required": ["state"] },
+          "then": { "required": ["page_id"] }
+        }
+      ]
     }
   }
 }

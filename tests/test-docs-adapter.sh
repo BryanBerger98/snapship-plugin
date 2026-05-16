@@ -124,11 +124,11 @@ out=$(bash "$SCRIPT" --action=create --platform=notion --title=T --content="md" 
 echo ""
 echo "[16] apply-template includes template_vars"
 out=$(bash "$SCRIPT" --action=apply-template --platform=affine --template-name=prd_feature \
-  --page-id=p1 --template-vars='{"feature_id":"01-foo","title":"Foo"}')
+  --page-id=p1 --template-vars='{"story_id":"01-foo","title":"Foo"}')
 rc=$?
 [ $rc -eq 10 ]                                                                            && ok "16.1 exit 10" || ko "16.1"
 [ "$(echo "$out" | jq -r '.descriptor.params.template_name')" = "prd_feature" ]            && ok "16.2 tpl"     || ko "16.2"
-[ "$(echo "$out" | jq -r '.descriptor.params.template_vars.feature_id')" = "01-foo" ]      && ok "16.3 vars"    || ko "16.3"
+[ "$(echo "$out" | jq -r '.descriptor.params.template_vars.story_id')" = "01-foo" ]      && ok "16.3 vars"    || ko "16.3"
 [ "$(echo "$out" | jq -r '.descriptor.params.page_id')" = "p1" ]                           && ok "16.4 page_id" || ko "16.4"
 
 echo ""
@@ -180,7 +180,7 @@ out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=update --platform=notion --page-
 echo ""
 echo "[23] resolves platform + workspace from config"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",
@@ -197,7 +197,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[24] explicit --workspace-id overrides config"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",

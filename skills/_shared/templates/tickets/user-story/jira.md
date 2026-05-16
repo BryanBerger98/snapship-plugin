@@ -49,7 +49,7 @@ h2. References
 * Related: {{related_refs}}
 
 ----
-snap-feature: {{feature_id}}
+snap-feature: {{story_id}}
 snap-platform: jira
 snap-template-version: 1
 {{!--
@@ -73,7 +73,7 @@ Variables:
   {{size}}                    enum — xs|s|m|l
   {{confidence}}              enum — high|medium|low
   {{story_points}}            integer
-  {{feature_id}}              string
+  {{story_id}}              string
   {{feature_prd_link}}        URL or "—"
   {{epic_ref}}                Jira key or "—"
   {{related_refs}}            comma-separated keys

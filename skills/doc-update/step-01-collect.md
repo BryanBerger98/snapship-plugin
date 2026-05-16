@@ -143,7 +143,7 @@ bash skills/_shared/telemetry.sh log \
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=doc-update \
-  --feature-id="$FEATURE_ID" \
+  --story-id="$FEATURE_ID" \
   --step-num=01 \
   --step-name=collect \
   --status=ok

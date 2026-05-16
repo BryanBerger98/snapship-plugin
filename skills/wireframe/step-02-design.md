@@ -25,7 +25,7 @@ same action surface (`create-page`, `add-shapes`, `export-png`) so the loop
 below is platform-agnostic — only the export step differs per platform. Since
 v0.5 helpers are context-agnostic: pass resolved config values (`$api_port`,
 `$export_format`, `$figma_file_key`, …) explicitly — step-00 already resolved
-them from `snapship.config.json` and persisted them to skill state.
+them from `snap.config.json` and persisted them to skill state.
 
 ## Resolve export format (once, at start of step)
 
@@ -45,7 +45,7 @@ For each screen draft from step-01, and for each state in `states[]`:
 1. **Create page**: title encodes feature + screen + state so the resulting
    PNG filename stays unique and self-describing:
    ```bash
-   page_title="${feature_slug}-${screen_id}-${state}"
+   page_title="${story_slug}-${screen_id}-${state}"
    bash "$helper" create-page \
      --title="$page_title" \
      --project-root="$PWD"
@@ -81,7 +81,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    Supported `$fmt` values: `png|jpeg|webp` (Frame0's HTTP API surface — no
    `svg`/`pdf`; switch to `wireframes.platform = "penpot"` for SVG).
    ```bash
-   target=".snap/wireframes/${feature_id}/${page_title}.${fmt}"
+   target=".snap/wireframes/${story_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
@@ -97,7 +97,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    dispatcher invokes the tool. Output path must be absolute. Supported
    `$fmt` values: `png|svg` (no `jpeg`/`webp`/`pdf`).
    ```bash
-   target="$PWD/.snap/wireframes/${feature_id}/${page_title}.${fmt}"
+   target="$PWD/.snap/wireframes/${story_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
      --page-id="$page_id" \
      --output-path="$target" \
@@ -114,7 +114,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    The skill then invokes `save-export` to decode the base64 to disk.
    Supported `$fmt` values: `png|svg|jpg|pdf`. Default scale is `2`.
    ```bash
-   target=".snap/wireframes/${feature_id}/${page_title}.${fmt}"
+   target=".snap/wireframes/${story_id}/${page_title}.${fmt}"
 
    # Step 1: emit figma_execute descriptor (exit 10), MCP returns base64.
    exec_result=$(bash "$helper" export-png \
@@ -132,7 +132,7 @@ For each screen draft from step-01, and for each state in `states[]`:
    # exit 0 on success ({written:true,bytes:N}).
    ```
 
-4. **Cache descriptor result**: append to `.snap/wireframes/${feature_id}.draft.json`:
+4. **Cache descriptor result**: append to `.snap/wireframes/${story_id}.draft.json`:
    ```json
    {
      "screens": [
@@ -192,7 +192,7 @@ Platform-specific:
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=wireframe \
-  --feature-id="$feature_id" \
+  --story-id="$story_id" \
   --step-num=02 \
   --step-name=design \
   --status=ok

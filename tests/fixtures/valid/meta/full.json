@@ -1,6 +1,6 @@
 {
-  "feature_id": "02-dashboard",
-  "feature_name": "Dashboard analytics",
+  "story_id": "02-dashboard",
+  "story_name": "Dashboard analytics",
   "state": "developed",
   "priority": "must",
   "created_at": "2026-05-01T08:30:00Z",
@@ -20,7 +20,8 @@
   "branch_name": "feat/PROJ-12-dashboard-analytics",
   "preview_url": "https://staging.example.com/dashboard",
   "platform": "jira",
-  "epic_link": "PROJ-1",
+  "parent_epic_id": "PROJ-1",
+  "target_version": "1.4.0",
   "tags": ["analytics", "ui"],
   "retry_count": 0
 }

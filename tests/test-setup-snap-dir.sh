@@ -28,7 +28,7 @@ for sub in manifests PRDs designs wireframes tickets queues .doc-import; do
 done
 [ -f "${DIR}/.snap/manifests/_taxonomy.json" ] && ok "1.3 _taxonomy.json" || ko "1.3"
 [ -f "${DIR}/.snap/progress.json" ] && ok "1.4 progress.json" || ko "1.4"
-[ "$(jq -r '.schema_version' "${DIR}/.snap/manifests/_taxonomy.json")" = "1.0.0" ] && ok "1.5 taxonomy schema_version" || ko "1.5"
+[ "$(jq -r '.schema_version' "${DIR}/.snap/manifests/_taxonomy.json")" = "1.1.0" ] && ok "1.5 taxonomy schema_version" || ko "1.5"
 [ "$(jq -r '.schema_version' "${DIR}/.snap/progress.json")" = "1.0.0" ] && ok "1.6 progress schema_version" || ko "1.6"
 trash "$DIR" 2>/dev/null || true
 
@@ -47,11 +47,11 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[3] feature manifest"
 DIR=$(setup_dir)
-bash "$SCRIPT" --project-root="$DIR" --feature-id=01-auth --feature-name="Authentication" --lang=fr --green-field=true >/dev/null
+bash "$SCRIPT" --project-root="$DIR" --story-id=01-auth --story-name="Authentication" --lang=fr --green-field=true >/dev/null
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
 [ -f "$M" ] && ok "3.1 manifest created" || ko "3.1"
-[ "$(jq -r '.feature_id' "$M")" = "01-auth" ] && ok "3.2 feature_id" || ko "3.2"
-[ "$(jq -r '.feature_name' "$M")" = "Authentication" ] && ok "3.3 feature_name" || ko "3.3"
+[ "$(jq -r '.story_id' "$M")" = "01-auth" ] && ok "3.2 story_id" || ko "3.2"
+[ "$(jq -r '.story_name' "$M")" = "Authentication" ] && ok "3.3 story_name" || ko "3.3"
 [ "$(jq -r '.state' "$M")" = "defined" ] && ok "3.4 initial state" || ko "3.4"
 [ "$(jq -r '.lang' "$M")" = "fr" ] && ok "3.5 lang" || ko "3.5"
 [ "$(jq -r '.green_field' "$M")" = "true" ] && ok "3.6 green_field" || ko "3.6"
@@ -62,34 +62,34 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[4] feature manifest idempotent"
 DIR=$(setup_dir)
-bash "$SCRIPT" --project-root="$DIR" --feature-id=01-auth --feature-name="Authentication" >/dev/null
+bash "$SCRIPT" --project-root="$DIR" --story-id=01-auth --story-name="Authentication" >/dev/null
 M="${DIR}/.snap/manifests/01-auth.manifest.json"
 # Stamp a custom value
 jq '.state = "developed"' "$M" > /tmp/t.json && mv /tmp/t.json "$M"
-bash "$SCRIPT" --project-root="$DIR" --feature-id=01-auth --feature-name="Renamed" >/dev/null
+bash "$SCRIPT" --project-root="$DIR" --story-id=01-auth --story-name="Renamed" >/dev/null
 [ "$(jq -r '.state' "$M")" = "developed" ] && ok "4.1 state preserved" || ko "4.1"
-[ "$(jq -r '.feature_name' "$M")" = "Authentication" ] && ok "4.2 name preserved (not overwritten)" || ko "4.2"
+[ "$(jq -r '.story_name' "$M")" = "Authentication" ] && ok "4.2 name preserved (not overwritten)" || ko "4.2"
 trash "$DIR" 2>/dev/null || true
 
-# 5. bad feature-id rejected
+# 5. bad story-id rejected
 echo ""
-echo "[5] bad feature-id"
+echo "[5] bad story-id"
 DIR=$(setup_dir)
-if bash "$SCRIPT" --project-root="$DIR" --feature-id=BAD --feature-name=X 2>/dev/null; then
+if bash "$SCRIPT" --project-root="$DIR" --story-id=BAD --story-name=X 2>/dev/null; then
   ko "5.1 should reject"
 else
-  ok "5.1 bad feature-id rejected"
+  ok "5.1 bad story-id rejected"
 fi
 trash "$DIR" 2>/dev/null || true
 
-# 6. --feature-id requires --feature-name
+# 6. --story-id requires --story-name
 echo ""
-echo "[6] feature-id without name"
+echo "[6] story-id without name"
 DIR=$(setup_dir)
-if bash "$SCRIPT" --project-root="$DIR" --feature-id=01-auth 2>/dev/null; then
+if bash "$SCRIPT" --project-root="$DIR" --story-id=01-auth 2>/dev/null; then
   ko "6.1 should reject"
 else
-  ok "6.1 missing feature-name rejected"
+  ok "6.1 missing story-name rejected"
 fi
 trash "$DIR" 2>/dev/null || true
 

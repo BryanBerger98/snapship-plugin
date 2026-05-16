@@ -12,7 +12,7 @@ terminal: true
 1. **Pour chaque target ok**, appelle :
    ```bash
    bash skills/_shared/sync-fetch.sh ack \
-     --feature-id=$FID --kind=$KIND \
+     --story-id=$FID --kind=$KIND \
      --content-file=.snap/.fetch-cache/${FID}-${KIND}.content \
      --platform=$PLAT --url=$URL [--page-id=$PID | --file-key=$FKEY | --project-id=$PRJ]
    ```
@@ -31,15 +31,15 @@ terminal: true
    ✅ /snap:fetch — N targets resync'd
      01-auth.prd          : synced (notion://abc-123)
      01-auth.design_file  : synced (figma://...)
-     02-billing.tickets   : synced (linear://proj-xyz)
    ```
+   (`tickets` n'apparait plus en v1.2 — tracker = source unique.)
 
 4. **Telemetry + progress finish** :
    ```bash
    bash skills/_shared/telemetry.sh log --skill=fetch --step-num=03 --step-name=update --status=ok
-   bash skills/_shared/progress.sh step --skill=fetch --feature-id=_global \
+   bash skills/_shared/progress.sh step --skill=fetch --story-id=_global \
      --step-num=03 --step-name=update --status=ok
-   bash skills/_shared/progress.sh finish --skill=fetch --feature-id=_global --status=ok
+   bash skills/_shared/progress.sh finish --skill=fetch --story-id=_global --status=ok
    ```
 
 5. **Suggest next** :

@@ -19,7 +19,7 @@ populated `Product Docs/` hierarchy + `_taxonomy.json`, so that subsequent
 
 ## Prerequisites
 
-- `/snap:init` run (`snapship.config.json` + `.snap/` exist).
+- `/snap:init` run (`snap.config.json` + `.snap/` exist).
 - `documentation.platform ∈ {affine, notion}` (skipped if `none`).
 - MCP server for that platform reachable in the current session.
 - `_taxonomy.json` empty **or** `--force` (refuses to overwrite an existing import).
@@ -76,7 +76,7 @@ pages carry the `[snap-imported]` tag and are skipped on re-run.
 - `.snap/.backup/` (if `--backup`).
 - `progress.json` entry + `doc-import` telemetry event.
 - **Not produced**: `Change Requests/*` (PRDs come from `/snap:define`),
-  feature `manifest.json` (no `feature_id` exists yet).
+  feature `manifest.json` (no `story_id` exists yet).
 
 ## Next step
 
