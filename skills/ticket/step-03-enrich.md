@@ -1,7 +1,7 @@
 ---
 step: 03-enrich
-next_step: 04-format
-description: Run parallel agents (codebase, docs, websearch) to enrich each story body.
+next_step: 03b-hierarchy
+description: Run parallel agents (codebase, docs, websearch) to enrich each draft + classify `story_type` (epic/user-story/task/bug).
 ---
 
 # step-03 — enrich
@@ -74,24 +74,44 @@ Return: <≤ 200 words, the specific format>
    }
    ```
 
-4. **Classify ticket type** — for each story, set `type ∈ {user-story, bug, epic}`
-   based on title + AC + scope. Default `user-story`. Heuristic prompt for the
-   enrichment agent (or local rule-based classifier):
+4. **Classify `story_type`** — for each draft, set
+   `story_type ∈ {epic, user-story, task, bug}` based on title + AC + scope.
+   Default `user-story`. Heuristic (plug-in point for the
+   `snap-ticket-classifier` subagent in Phase H — see
+   [02-subagents-design](../../../.claude/plan/ticket-hierarchy-redesign/02-subagents-design.md)):
 
-   - **bug** — title contains "fix"/"bug"/"regression"/"crash"/"broken"; AC reads
-     like "should no longer …" / "stops failing when …"; story restores prior
-     behavior rather than adding capability.
-   - **epic** — story aggregates ≥ 3 child stories explicitly listed; spans ≥ 2
-     domains; `files` empty or extremely broad ("multiple modules").
-   - **user-story** — anything else (default).
+   - **epic** — aggregates ≥ 3 child stories explicitly listed ; spans ≥ 2
+     domains ; `files` empty or extremely broad. **Forbidden in `--standalone`
+     mode** (decision #5) — surface a fail-clean error and abort.
+   - **bug** — title contains "fix"/"bug"/"regression"/"crash"/"broken" ; AC
+     reads like "should no longer …" / "stops failing when …" ; story restores
+     prior behavior rather than adding capability.
+   - **task** — technical work without direct user value (build, CI tweak,
+     dependency bump, refactor that does not change behavior). Often a child
+     of a User Story or an Epic, but standalone tasks are allowed.
+   - **user-story** — anything else (default). Adds user-facing capability.
 
-   Persist `type` on each story before format step. step-04 reads it to pick the
-   right template.
+5. **Active challenge** : for every draft classified as `task` that has no
+   `parent_story_id` and no `parent_epic_id`, emit an explicit warning in the
+   summary surfaced to the user :
 
-5. **Update draft file** in-place:
-   `.snap/tickets/${story_id}.draft.json`.
+   > « Task `<title>` isolée — confirmer absence d'User Story parent ? »
 
-6. **Append progress**:
+   The user resolves the prompt at step-03b (hierarchy clustering). Do not
+   block here.
+
+6. **Detect standalone vs hierarchy** : load
+   `.snap/.runtime/<SUBJECT_ID>/tracker-context.json` ; if the Epic list is
+   non-empty, mark `hierarchy_hint=true` in the cached drafts so step-03b
+   surfaces possible parents.
+
+7. **Update drafts in ephemeral cache** :
+   ```bash
+   echo "$drafts_json" | bash skills/_shared/cache-runtime.sh write \
+     "$SUBJECT_ID" drafts.json --project-root="$PWD"
+   ```
+
+8. **Append progress**:
    ```bash
    bash skills/_shared/progress.sh step \
      --project-root="$PWD" \
@@ -111,9 +131,11 @@ Return: <≤ 200 words, the specific format>
 
 ## Acceptance check
 
-- Every story has a `context` block (possibly with empty fields).
-- Every story has `type ∈ {user-story, bug, epic}`.
+- Every draft has a `context` block (possibly with empty fields).
+- Every draft has `story_type ∈ {epic, user-story, task, bug}`.
+- `--standalone` mode : zero drafts with `story_type=epic` (refused — decision #5).
+- Drafts persisted in `.snap/.runtime/<SUBJECT_ID>/drafts.json`.
 
 ## Next step
 
-→ `step-04-format.md`
+→ `step-03b-hierarchy.md`

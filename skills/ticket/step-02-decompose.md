@@ -1,13 +1,34 @@
 ---
 step: 02-decompose
 next_step: 03-enrich
-description: Break feature into atomic stories (5-30min, 1-5 files) with one AC per story.
+description: Break feature PRD (or raw `--standalone` input) into atomic ticket candidates ; detect implicit multi-ticket inputs.
 ---
 
 # step-02 — decompose
 
-Convert the feature PRD into a list of atomic stories sized for `/develop` to land
-each in a single commit.
+Convert the feature PRD (normal mode) **or** the raw user input
+(`--standalone`) into a list of atomic ticket candidates sized for `/develop`
+to land each in a single commit.
+
+Drafts are written into the **ephemeral subject cache** at
+`.snap/.runtime/<SUBJECT_ID>/drafts.json` — purged at step-06 regardless of
+outcome (decision #2). No persistent draft file under `.snap/tickets/` is
+created until promotion at step-06.
+
+## Input source (v1.2)
+
+| Mode | Source |
+|---|---|
+| Normal | `acceptance_criteria` array from step-01 PRD extraction |
+| `--standalone` | Raw user input string (verbatim, `$USER_INPUT` in context) — split into multiple candidate tickets when the input contains conjunctions (`et`/`and`/`puis`/`then`), comma lists, bullet items (`- `/`* `/`1.`), or numbered phrasing |
+
+For `--standalone` the heuristic for **implicit multi-ticket** :
+
+- Split on bullet markers (`^\s*[-*]\s`, `^\s*\d+\.\s`).
+- Split on top-level conjunctions when each clause has its own verb phrase.
+- Single sentence → single candidate.
+- Always offer the user a chance to merge/split via `AskUserQuestion` before
+  writing drafts.
 
 ## Atomic-story heuristic
 
@@ -74,9 +95,14 @@ Reject any candidate story that:
    - "Looks right — proceed to enrichment"
    - "Edit the list" (loop back to A.1, with the current draft as starting point)
 
-6. **Stash** the draft tickets in
-   `.snap/tickets/${story_id}.draft.json` (cleared by step-06 on success).
-   Do **not** call the platform yet.
+6. **Stash drafts in ephemeral cache** :
+   ```bash
+   echo "$drafts_json" | bash skills/_shared/cache-runtime.sh write \
+     "$SUBJECT_ID" drafts.json --project-root="$PWD"
+   ```
+   Drafts live ONLY in `.snap/.runtime/<SUBJECT_ID>/drafts.json` ; auto-purged
+   by the step-00 trap. Do **not** call the platform yet, and do **not** write
+   any persistent file under `.snap/tickets/`.
 
 7. **Append progress**:
    ```bash
@@ -96,8 +122,11 @@ Reject any candidate story that:
 
 ## Acceptance check
 
-- ≥ 1 story per AC.
-- Every story has `local_id`, `title`, `ac_id`, `files`.
+- `.snap/.runtime/<SUBJECT_ID>/drafts.json` exists with ≥ 1 candidate.
+- Normal mode : ≥ 1 candidate per AC ; every entry has `local_id`, `title`,
+  `ac_id`, `files`.
+- `--standalone` mode : every candidate has `local_id`, `title` ; `ac_id`
+  may be absent (no PRD).
 
 ## Next step
 
