@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.1.0",
+  "journeys": {
+    "onboarding": {
+      "title": "Onboarding flow",
+      "state": "draft",
+      "steps": [
+        {"title": "Landing", "description": "Marketing page CTA"},
+        {"title": "Signup form"},
+        {"title": "Email confirmation"},
+        {"title": "First dashboard"}
+      ],
+      "outcomes": [
+        "Compte créé et confirmé",
+        "Première action métier réalisée"
+      ]
+    }
+  }
+}

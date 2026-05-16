@@ -99,6 +99,15 @@
       "type": ["string", "null"],
       "description": "Tracker ID de l'Epic parent de la User Story (cache local du lookup tracker). null = pas d'Epic parent."
     },
+    "parent_epic_title": {
+      "type": ["string", "null"],
+      "description": "Titre Epic parent à créer (mode pending). Consommé par /snap:ticket qui crée l'Epic puis vide ce champ. Mutually exclusive avec parent_epic_id (un seul des deux à la fois en pratique)."
+    },
+    "parent_epic_pending": {
+      "type": "boolean",
+      "default": false,
+      "description": "True quand l'Epic parent n'existe pas encore et doit être créé par /snap:ticket avant le link-parent."
+    },
     "target_version": {
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+",

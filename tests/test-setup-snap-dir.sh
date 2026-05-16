@@ -28,7 +28,7 @@ for sub in manifests PRDs designs wireframes tickets queues .doc-import; do
 done
 [ -f "${DIR}/.snap/manifests/_taxonomy.json" ] && ok "1.3 _taxonomy.json" || ko "1.3"
 [ -f "${DIR}/.snap/progress.json" ] && ok "1.4 progress.json" || ko "1.4"
-[ "$(jq -r '.schema_version' "${DIR}/.snap/manifests/_taxonomy.json")" = "1.0.0" ] && ok "1.5 taxonomy schema_version" || ko "1.5"
+[ "$(jq -r '.schema_version' "${DIR}/.snap/manifests/_taxonomy.json")" = "1.1.0" ] && ok "1.5 taxonomy schema_version" || ko "1.5"
 [ "$(jq -r '.schema_version' "${DIR}/.snap/progress.json")" = "1.0.0" ] && ok "1.6 progress schema_version" || ko "1.6"
 trash "$DIR" 2>/dev/null || true
 

@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.1.0",
+  "journeys": {
+    "broken": {
+      "title": "Broken journey",
+      "state": "synced"
+    }
+  }
+}

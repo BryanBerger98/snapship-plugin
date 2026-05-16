@@ -19,7 +19,9 @@ FEATURE_ID=""
 FEATURE_NAME=""
 LANG_DEFAULT=""
 GREEN_FIELD=""
-SCHEMA_VERSION="1.0.0"
+MANIFEST_SCHEMA_VERSION="1.0.0"
+TAXONOMY_SCHEMA_VERSION="1.1.0"
+PROGRESS_SCHEMA_VERSION="1.0.0"
 
 usage() {
   cat <<EOF
@@ -67,7 +69,7 @@ mkdir -p "${SNAP_DIR}/.doc-import/cache"
 
 # --- _taxonomy.json scaffold ---
 if [ ! -f "$TAXONOMY" ]; then
-  jq -n --arg v "$SCHEMA_VERSION" '{
+  jq -n --arg v "$TAXONOMY_SCHEMA_VERSION" '{
     schema_version: $v,
     workspace: {},
     domains: {},
@@ -77,7 +79,7 @@ fi
 
 # --- progress.json scaffold (gitignored) ---
 if [ ! -f "$PROGRESS_FILE" ]; then
-  jq -n --arg v "$SCHEMA_VERSION" '{schema_version: $v, in_flight: []}' > "$PROGRESS_FILE"
+  jq -n --arg v "$PROGRESS_SCHEMA_VERSION" '{schema_version: $v, in_flight: []}' > "$PROGRESS_FILE"
 fi
 
 # --- Per-feature manifest (optional) ---
@@ -96,7 +98,7 @@ if [ -n "$FEATURE_ID" ]; then
   if [ ! -f "$MANIFEST" ]; then
     NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     jq -n \
-      --arg v "$SCHEMA_VERSION" \
+      --arg v "$MANIFEST_SCHEMA_VERSION" \
       --arg fid "$FEATURE_ID" \
       --arg fname "$FEATURE_NAME" \
       --arg now "$NOW" \
