@@ -1,24 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/tickets.schema.json",
-  "title": "feature tickets.json",
-  "description": "Cache tickets feature — .snap/tickets/{story_id}.json. Source vérité = plateforme, cache local pour resume + offline reads.",
+  "title": "story tickets.json",
+  "description": "Cache éphémère tickets d'un sujet — .snap/.runtime/<subject-id>/tickets.json. Source de vérité = tracker (v1.2). Le cache est purgé en fin de skill (succès ou échec).",
   "type": "object",
   "required": ["story_id", "platform", "tickets"],
   "additionalProperties": false,
   "properties": {
     "story_id": {
       "type": "string",
-      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"
+      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$",
+      "description": "ID local stable de la User Story support du run (NN-slug). Pour /ticket --standalone, slug saisi user."
     },
     "platform": {
       "type": "string",
-      "enum": ["github", "gitlab", "jira"]
+      "enum": ["github", "gitlab", "jira"],
+      "description": "Plateforme tracker cible des tickets de ce cache."
     },
     "synced_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Dernière sync plateforme"
+      "description": "Dernière sync plateforme (informationnel, cache éphémère donc volatile)."
     },
     "tickets": {
       "type": "array",
@@ -28,12 +30,25 @@
   "$defs": {
     "ticket": {
       "type": "object",
-      "required": ["local_id", "title", "status"],
+      "required": ["local_id", "title", "status", "story_type"],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "story_type": { "const": "epic" } }, "required": ["story_type"] },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["branch_name"] },
+                { "required": ["commit_sha"] }
+              ]
+            }
+          }
+        }
+      ],
       "properties": {
         "local_id": {
           "type": "string",
-          "description": "ID local stable (ex: t-001) — généré avant push plateforme"
+          "description": "ID local stable (ex: t-001) — généré avant push plateforme."
         },
         "platform_id": {
           "type": "string",
@@ -42,7 +57,7 @@
         "url": {
           "type": "string",
           "format": "uri",
-          "description": "URL ticket plateforme après push"
+          "description": "URL ticket plateforme après push."
         },
         "title": {
           "type": "string",
@@ -50,10 +65,23 @@
           "maxLength": 255
         },
         "description": { "type": "string" },
-        "type": {
+        "story_type": {
+          "type": "string",
+          "enum": ["epic", "user-story", "task", "bug"],
+          "description": "Type sémantique ticket (v1.2). Pilote hiérarchie parent-enfant, mapping issue_type tracker, et capacité branche/commit (epic = ni branche ni commit)."
+        },
+        "commit_type": {
           "type": "string",
           "enum": ["feat", "fix", "chore", "refactor", "docs", "test", "perf", "build", "ci"],
-          "description": "Type conventional commit (utilisé par naming.commit_pattern)"
+          "description": "Type Conventional Commits utilisé pour les commits du ticket. Indépendant de story_type — défaut suggéré par agent (feat pour user-story, fix pour bug, etc.) overridable user."
+        },
+        "parent_epic_id": {
+          "type": ["string", "null"],
+          "description": "Tracker ID Epic parent (ex: PROJ-12, #34). null = pas de parent Epic. Tickets enfants : User Story, Task, Bug peuvent référencer un Epic."
+        },
+        "parent_story_id": {
+          "type": ["string", "null"],
+          "description": "Tracker ID ou local_id de la User Story parente. null = pas de parent US. Pertinent pour Task ou Bug enfant d'US."
         },
         "priority": {
           "type": "string",
@@ -71,10 +99,27 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "milestone": { "type": "string" },
+        "milestone": {
+          "type": "string",
+          "description": "ID/nom milestone tracker (GH/GitLab Milestone, Jira Sprint/Fix Version). Lookup live tracker — pas de cache local v1.2."
+        },
+        "target_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+",
+          "description": "Version release cible (semver). Optionnel et explicite ticket par ticket — pas d'héritage. Mappé adapter (GH Release, GitLab Tag, Jira Fix Version, Linear Release). Ignoré si plateforme n'expose pas supports_version."
+        },
         "story_points": {
           "type": "number",
           "minimum": 0
+        },
+        "business_goal": {
+          "type": "string",
+          "description": "Objectif business haut-niveau (Epic uniquement). Rempli step /ticket lorsque story_type=epic."
+        },
+        "success_metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Métriques de succès mesurables associées à l'Epic. Pertinent pour story_type=epic uniquement."
         },
         "acceptance_criteria": {
           "type": "array",
@@ -93,7 +138,7 @@
         "files": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Fichiers impactés (depuis explore-codebase enrich)"
+          "description": "Fichiers impactés (depuis explore-codebase enrich)."
         },
         "edge_cases": {
           "type": "array",
@@ -101,21 +146,21 @@
         },
         "wireframe_screen": {
           "type": "string",
-          "description": "Nom écran wireframe lié (si feature UI)"
+          "description": "Nom écran wireframe lié (si feature UI)."
         },
         "wireframe_url": {
           "type": "string",
           "format": "uri",
-          "description": "Lien Frame0 page ou AFFiNE gallery section"
+          "description": "Lien Frame0 page ou AFFiNE gallery section."
         },
         "design_screen": {
           "type": "string",
-          "description": "Nom écran maquette haute-fidélité lié (skill /design)"
+          "description": "Nom écran maquette haute-fidélité lié (skill /design)."
         },
         "design_url": {
           "type": "string",
           "format": "uri",
-          "description": "Lien page Penpot/Figma maquette haute-fidélité, ou AFFiNE design gallery section"
+          "description": "Lien page Penpot/Figma maquette haute-fidélité, ou AFFiNE design gallery section."
         },
         "design_mode": {
           "type": "string",
@@ -125,16 +170,20 @@
         "depends_on": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "local_id ou platform_id tickets bloquants"
+          "description": "local_id ou platform_id tickets bloquants."
         },
         "estimated_size": {
           "type": "string",
           "enum": ["XS", "S", "M", "L", "XL"]
         },
+        "branch_name": {
+          "type": "string",
+          "description": "Nom branche Git associée au ticket (renseigné par /develop step-02 via apply-naming.sh). Interdit si story_type=epic."
+        },
         "commit_sha": {
           "type": "string",
           "pattern": "^[0-9a-f]{7,40}$",
-          "description": "SHA commit atomique produit par /develop"
+          "description": "SHA commit atomique produit par /develop. Interdit si story_type=epic."
         },
         "developed_at": {
           "type": "string",
@@ -151,7 +200,7 @@
         "qa_cycles_used": {
           "type": "integer",
           "minimum": 0,
-          "description": "Compteur cycles dev↔qa (step-03)"
+          "description": "Compteur cycles dev↔qa (step-03)."
         },
         "qa_last_severity": {
           "type": "string",
@@ -163,7 +212,7 @@
         },
         "qa_blocked": {
           "type": "boolean",
-          "description": "Vrai si step-03/04 a échoué (cycles épuisés ou retrigger fail)"
+          "description": "Vrai si step-03/04 a échoué (cycles épuisés ou retrigger fail)."
         },
         "qa_retriggered": {
           "type": "boolean"
@@ -174,7 +223,7 @@
         },
         "qa_retrigger_verdicts": {
           "type": "object",
-          "description": "Verdicts des 3 reviewers post-QA (technical/functional/security)",
+          "description": "Verdicts des 3 reviewers post-QA (technical/functional/security).",
           "additionalProperties": {
             "type": "object",
             "properties": {

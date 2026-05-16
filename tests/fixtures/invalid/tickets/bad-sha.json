@@ -5,6 +5,7 @@
     {
       "local_id": "t-001",
       "title": "Login",
+      "story_type": "user-story",
       "status": "done",
       "commit_sha": "not-a-sha"
     }
