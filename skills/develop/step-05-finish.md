@@ -1,59 +1,71 @@
 ---
 step: 05-finish
-description: Close the run — manifest state advance, summary, propose `/qa`. Terminal step.
+description: Surface summary, purge ephemeral subject, hand off to /qa. Terminal step (no next).
 ---
 
 # step-05 — finish
 
-Wrap up: persist run state, emit summary, hand off to `/qa`.
+Wrap up : emit summary, hand off to `/qa`, mandatory ephemeral purge.
 
-This step has no `next_step` — it is terminal.
+v1.2 does **not** mutate any local `.snap/tickets/{story_id}.json` —
+the tracker is the single source of truth. Manifest state advance is moved
+to `step-99-post-merge.md` and only runs once the PR is merged.
 
 ## Tasks
 
-### A. Advance feature state
+### A. Surface summary
 
 ```bash
-tickets_file=".snap/tickets/${story_id}.json"
-queue_file=".snap/queues/${story_id}.develop.json"
-processed=$(jq '.processed | length' "$queue_file" 2>/dev/null || echo 0)
-total=$(jq '.tickets | length' "$tickets_file")
-all_done=$( [ "$processed" -eq "$total" ] && echo true || echo false )
+ticket_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" ticket.json \
+              --project-root="$PWD")
+commit_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" commit.json \
+              --project-root="$PWD")
+worktree_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" worktree.json \
+                --project-root="$PWD")
 
-manifest=".snap/manifests/${story_id}.manifest.json"
-current_state=$(jq -r '.state' "$manifest")
-new_state="$current_state"
-[ "$all_done" = "true" ] && new_state="developed"
+platform_id=$(jq -r '.platform_id' <<<"$ticket_json")
+title=$(jq -r       '.title'       <<<"$ticket_json")
+branch=$(jq -r      '.branch'      <<<"$worktree_json")
+sha=$(jq -r         '.commit_sha'  <<<"$commit_json")
 
-NOW=$(date -u +%FT%TZ)
-tmp=$(mktemp)
-jq --arg s "$new_state" --arg ts "$NOW" \
-  '.state = $s | .updated_at = $ts' \
-  "$manifest" > "$tmp" && mv "$tmp" "$manifest"
+cat <<EOF
+/develop done — ticket $platform_id:
+  - Title: $title
+  - Branch: $branch
+  - Commit: $sha
+  - PR: ${pr_url:-<not pushed>}
+  - Status: in_review
+
+Next:
+  - /qa --ticket=$platform_id   # validate AC + run regression
+EOF
 ```
 
-### B. Cleanup
+If the ticket has a `parent_epic_id`, hint at the auto-close step :
 
 ```bash
-trash "$queue_file" 2>/dev/null || true
-trash .snap/queues/${story_id}.impact-*.json 2>/dev/null || true
-trash .snap/queues/${story_id}.sync.json 2>/dev/null || true
-trash .snap/queues/${story_id}.pr-context.json 2>/dev/null || true
-trash .snap/queues/${story_id}.review-context.json 2>/dev/null || true
+parent_epic=$(jq -r '.parent_epic_id // ""' <<<"$ticket_json")
+if [ -n "$parent_epic" ]; then
+  cat <<EOF
+
+Note: parent Epic $parent_epic may be auto-closed post-merge
+      (see /develop --post-merge --ticket=$platform_id).
+EOF
+fi
 ```
 
-### C. Telemetry + progress
+### B. Telemetry + progress
 
 ```bash
 bash skills/_shared/telemetry.sh log \
   --project-root="$PWD" --skill=develop \
   --step-num=05 --step-name=finish --status=ok \
-  --extra='{"feature_state":"'"$new_state"'","tickets_processed":'"$processed"'}'
+  --extra='{"ticket":"'"$platform_id"'","commit":"'"$sha"'"}'
 
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
   --skill=develop \
-  --story-id="$story_id" \
+  --story-id="$TICKET_ID" \
   --step-num=05 \
   --step-name=finish \
   --status=ok
@@ -61,43 +73,38 @@ bash skills/_shared/progress.sh step \
 bash skills/_shared/progress.sh finish \
   --project-root="$PWD" \
   --skill=develop \
-  --story-id="$story_id" \
+  --story-id="$TICKET_ID" \
   --status=ok
 ```
 
-### D. Surface summary + hand-off
+### C. Mandatory ephemeral purge
 
-Print to stdout:
-
+```bash
+if [ "${KEEP_RUNTIME:-false}" = "true" ]; then
+  runtime_path=$(bash skills/_shared/cache-runtime.sh path "$SUBJECT_ID" \
+                 --project-root="$PWD")
+  echo "DEBUG: ephemeral subject preserved at $runtime_path (--keep-runtime)"
+else
+  bash skills/_shared/cache-runtime.sh purge "$SUBJECT_ID" \
+    --project-root="$PWD"
+fi
 ```
-/develop done — feature ${story_id}:
-  - Tickets processed: $processed / $total
-  - Branch: $branch
-  - PR: $pr_url
 
-Next: run `/qa` to validate against AC + wireframes + regression.
-```
-
-If `all_done = false` (loop interrupted, `next-ticket` skips):
-
-```
-Some tickets remain (todo: t-007, blocked: t-009).
-Re-run: `/develop --resume`.
-```
+Also clears the EXIT trap registered in step-00.
 
 ## Idempotence
 
 Re-running step-05 over an already-finished run rewrites the same fields
-(manifest state already `developed`, queue file already absent — `trash` is
-no-op). Safe under `/develop --resume`.
+(progress already `ok`, runtime already purged — `purge` is no-op).
 
 ## Acceptance check
 
-- Manifest `state` advanced (`developed` or remains at current).
-- Queue + transient files cleaned.
+- Summary printed.
 - `progress.json.in_flight` no longer contains a `develop` entry for the
-  feature.
+  ticket.
+- Ephemeral subject directory absent (unless `--keep-runtime`).
 
 ## Next step
 
 _None — terminal step. User invokes `/qa` next._
+_Post-merge action (Epic auto-close) is in `step-99-post-merge.md`._
