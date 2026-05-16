@@ -49,7 +49,16 @@ For each feature in priority order (`must` → `should` → `could`), ask:
 6. **Wireframe references** (optional — list of expected screen IDs; can be filled
    later by `/wireframe`).
 7. **Parent Epic** (v1.1 — concertation user) :
-   - `AskUserQuestion` :
+   - **Short-circuit CLI** : lire `cli_parent_epic_id` depuis le state :
+     ```bash
+     cli_epic=$(bash skills/_shared/define-state.sh get cli_parent_epic_id \
+       --project-root="$PWD")
+     ```
+     Si non vide → skip `AskUserQuestion`, reporter direct sur **toutes** les
+     features collectées dans ce run : `parent_epic_id = "$cli_epic"`,
+     `parent_epic_pending = false`. C'est l'objet du flag `--epic=` documenté
+     dans SKILL.md (« reporter l'ID Epic parent sur toutes les features »).
+   - Sinon (`cli_epic` vide), `AskUserQuestion` :
      > "Cette feature fait-elle partie d'un Epic parent ?"
      > - "Oui — j'ai déjà un Epic identifié (saisir l'ID plateforme)"
      > - "Oui — l'Epic n'existe pas encore (sera créé par `/snap:ticket`)"
@@ -64,8 +73,6 @@ For each feature in priority order (`must` → `should` → `could`), ask:
      {"parent_epic_id": "AUTH-1"}   // mode "existant"
      {"parent_epic_title": "Authentication platform", "parent_epic_pending": true}  // mode "à créer"
      ```
-   - Si flag CLI `--epic=PARENT_EPIC_ID` passé en step-00, skip la question
-     et reporter directement la valeur.
 
 8. **Domains impacted** (v0.2 — multi-select `AskUserQuestion` + free input):
    - Read existing domains from cache:

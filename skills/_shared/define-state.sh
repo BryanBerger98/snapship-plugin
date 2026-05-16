@@ -14,7 +14,8 @@
 #                         are preserved. Safe to call from multiple steps.
 #   set KEY VALUE         Set a top-level scalar key (vision, north_star_metric,
 #                         north_star_current, north_star_target, target_horizon,
-#                         lang, define_mode, codebase_mode, active_story_id).
+#                         lang, define_mode, codebase_mode, active_story_id,
+#                         cli_parent_epic_id).
 #   get KEY               Print scalar value (empty if unset).
 #   add-persona JSON      Append a persona object {persona_name, persona_role,
 #                         persona_goals, persona_pains, persona_tools}.
@@ -118,6 +119,7 @@ cmd_init() {
         define_mode: $define_mode,
         codebase_mode: $codebase_mode,
         active_story_id: $feature,
+        cli_parent_epic_id: "",
         vision: "",
         north_star_metric: "",
         north_star_current: "",
@@ -155,7 +157,7 @@ cmd_set() {
   local key="$1" val="$2"
   case "$key" in
     vision|north_star_metric|north_star_current|north_star_target|target_horizon|\
-lang|define_mode|codebase_mode|active_story_id) ;;
+lang|define_mode|codebase_mode|active_story_id|cli_parent_epic_id) ;;
     *) echo "ERROR: unsupported key: $key" >&2; return 2 ;;
   esac
   local f tmp

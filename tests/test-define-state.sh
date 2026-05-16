@@ -49,6 +49,16 @@ else
 fi
 trash "$DIR3" 2>/dev/null || true
 
+# 1quater. cli_parent_epic_id is a settable scalar (N4)
+DIR4=$(setup_dir)
+bash "$SCRIPT" init --project-root="$DIR4"
+F4="${DIR4}/.snap/.define-state.json"
+[ "$(jq -r '.cli_parent_epic_id' "$F4")" = "" ] && ok "1.10 cli_parent_epic_id default empty" || ko "1.10"
+bash "$SCRIPT" set cli_parent_epic_id "AUTH-1" --project-root="$DIR4"
+got=$(bash "$SCRIPT" get cli_parent_epic_id --project-root="$DIR4")
+[ "$got" = "AUTH-1" ] && ok "1.11 cli_parent_epic_id round-trip" || ko "1.11 got $got"
+trash "$DIR4" 2>/dev/null || true
+
 trash "$DIR" 2>/dev/null || true
 
 # 2. set/get scalar

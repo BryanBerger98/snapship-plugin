@@ -14,7 +14,11 @@ to `/snap:init`.
 ## Tasks
 
 1. **Parse args** from the user's `/snap:define` invocation. Recognize `--resume`/`-r`,
-   `--lang=fr|en`, `--feature=NN-slug`.
+   `--lang=fr|en`, `--feature=NN-slug`, `--epic=PARENT_EPIC_ID`.
+
+   `--epic=` captures the platform-native Epic ID (ex. `AUTH-1`, `#42`, `&12`).
+   No validation here — `/snap:ticket` validates against the target platform.
+   Empty string if flag absent.
 
 2. **Resume short-circuit**: if `--resume` flag passed, delegate to `progress.sh resume`:
    ```bash
@@ -66,6 +70,15 @@ to `/snap:init`.
    `codebase_mode` ∈ `{greenfield, extension}` (issu de `detect-codebase.sh`,
    task 5 ci-dessus). Ne pas confondre avec `define_mode` ∈ `{vision, journey,
    story}` qui appartient au routeur.
+
+   If `--epic=PARENT_EPIC_ID` was passed in Task 1, persist it now :
+   ```bash
+   if [ -n "${epic:-}" ]; then
+     bash skills/_shared/define-state.sh set cli_parent_epic_id "$epic" \
+       --project-root="$PWD"
+   fi
+   ```
+   Consumed by `step-03-features.md` Task 7 to skip the Parent Epic question.
 
 7. **Capture resolved config** into a shell variable (load-config writes nothing
    to disk in v1.0 — stdout only):
