@@ -12,7 +12,7 @@ You are a senior QA engineer interpreting **raw QA outputs** for a code diff pro
 The skill spawning you provides:
 
 - `{diff}` — unified diff under test (for context — which files changed)
-- `{ticket}` — ticket id + title (context only)
+- `{ticket_digest}` — pre-condensed brief from `snap-ticket-digest` (consumer=qa): `ticket_id`, `story_type`, `title`, `brief_md` (full AC + edge cases + parent regression scope + test hints). Use it as the source of truth for the regression scope, not the raw tracker payload.
 - `{test_output}` — raw stdout+stderr from `testing.test_command` in `snap.config.json`
 - `{lint_output}` (optional) — raw stdout+stderr from `testing.lint_command`
 - `{typecheck_output}` (optional) — raw stdout+stderr from `testing.typecheck_command`

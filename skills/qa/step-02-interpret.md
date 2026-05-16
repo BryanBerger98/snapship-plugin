@@ -13,11 +13,12 @@ flaky-vs-real, and authors `qa_feedback_md` for the developer.
 
 ### A. Build the prompt
 
-Per ticket, assemble:
+Per ticket, assemble — reuse the digest already cached at step-00-init
+(consumer=qa) instead of re-reading the raw tracker payload :
 
 ```json
 {
-  "ticket": {full ticket from tickets.json},
+  "ticket_digest": <contents of .snap/.runtime/<subject>/digest.json>,
   "diff": "git show $sha",
   "regression": {scope, exit_code, log (truncated to 8KB), retry_log if any},
   "wireframe": {screen_id, diff_pct, threshold_pct, png_local, png_ref},
@@ -27,13 +28,18 @@ Per ticket, assemble:
 }
 ```
 
+When `digest.json` is absent (digest spawn failed at step-00-init), fall
+back to inlining the raw ticket under a `ticket_raw` field — the reviewer
+agent file documents both shapes.
+
 ### B. Spawn the agent
 
-Use the `Task` tool with `subagent_type="snap-code-reviewer-qa"` (definition at
-`agents/snap-code-reviewer-qa.md`). The reviewer has read-only tools.
+Use the `Agent` tool with `subagent_type="snap-code-reviewer-qa"`
+(definition at `agents/snap-code-reviewer-qa.md`). The reviewer has
+read-only tools.
 
 ```
-Task({
+Agent({
   description: "QA review t-001 cycle 0",
   subagent_type: "snap-code-reviewer-qa",
   prompt: <the JSON above + standing instructions from the agent file>

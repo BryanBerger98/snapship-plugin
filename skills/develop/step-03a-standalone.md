@@ -63,9 +63,15 @@ agent). Hard error after 3 → emit progress `fail`, surface diff, stop.
 ## Phase 2 — Reviews (parallel, 1 message N Agent calls)
 
 Issue **one** message containing **three** Agent calls (technical, functional,
-security) so they execute concurrently. Each reviewer receives the same
-`payload_json` (kind: `ticket_digest` or `ticket_raw`) so their critique
-references the same source of truth as the developer.
+security) so they execute concurrently. **The orchestrator (this step) spawns
+`snap-ticket-digest` once at step-01-fetch (consumer=developer)** ; reviewers
+re-use the same condensed payload — subagents do not nest, so the orchestrator
+centralises the digest spawn.
+
+Pass the digest under the `{ticket_digest}` input field of every reviewer
+prompt (verbatim copy of `digest.json` when available, otherwise the merged
+`payload_json` fallback). Each reviewer receives the same brief so their
+critiques reference the same source of truth as the developer.
 
 ```
 { "severity": "minor|major|critical|none", "feedback_md": "..." }

@@ -12,7 +12,7 @@ You are a senior application security engineer performing a **security review** 
 The skill spawning you provides:
 
 - `{diff}` — unified diff to review (already constrained to the ticket scope)
-- `{ticket}` — ticket id + title + description (context only — do **not** check AC; that is the functional reviewer's job)
+- `{ticket_digest}` — pre-condensed brief from `snap-ticket-digest` (consumer=reviewer): `ticket_id`, `story_type`, `title`, `brief_md` (AC + scope_hints + parent context). Context only — do **not** check AC fulfilment; that is the functional reviewer's job.
 - `{conventions}` — content of `CLAUDE.md` / `CONTRIBUTING.md` / security policies if present
 - `{dep_audit}` (optional) — raw output of dependency audit (`npm audit`, `pip-audit`, `bundle audit`, etc.)
 - `{repo_root}` — absolute path of the repo (for spot-reads only)
