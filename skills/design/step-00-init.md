@@ -34,8 +34,8 @@ Bootstrap a `/design` run. Targets one ticket or every UI ticket of a feature.
 
 4. **Require config + load + resolve platform**:
    ```bash
-   [ -f "$PWD/snapship.config.json" ] || {
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   [ -f "$PWD/snap.config.json" ] || {
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
@@ -100,7 +100,7 @@ returned `id` to `$ds_file_id`. Mismatch → halt with binding error.
 
 Same check as `/wireframe figma`. Figma Desktop + Desktop Bridge plugin
 connected (WebSocket ports 9223–9232 auto-discovered by `figma-console-mcp`).
-Token chargé depuis `.env.snapship` racine projet (jamais depuis shell env
+Token chargé depuis `.env.snap` racine projet (jamais depuis shell env
 directement — secrets isolés per-project, gitignored). Clé par défaut
 `FIGMA_ACCESS_TOKEN`, override via `design.figma.token_env`.
 
@@ -108,7 +108,7 @@ directement — secrets isolés per-project, gitignored). Clé par défaut
 ds_token=$(bash skills/_shared/load-env.sh \
   --project-root="$PWD" --key="$ds_token_env" 2>/dev/null || true)
 if [ -z "$ds_token" ]; then
-  echo "ERROR: $ds_token_env absent de $PWD/.env.snapship." >&2
+  echo "ERROR: $ds_token_env absent de $PWD/.env.snap." >&2
   echo "Créer le fichier avec: $ds_token_env=figd_<votre-pat-figma>" >&2
   echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1

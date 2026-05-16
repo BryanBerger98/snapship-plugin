@@ -29,8 +29,8 @@ feature.
 
 4. **Require config + load**:
    ```bash
-   [ -f "$PWD/snapship.config.json" ] || {
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   [ -f "$PWD/snap.config.json" ] || {
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")

@@ -40,8 +40,8 @@ Each skill advances the manifest. Skills refuse to run when the prerequisite sta
 
 | Helper                    | Purpose                                                |
 | ------------------------- | ------------------------------------------------------ |
-| `load-config.sh`          | Resolve `snapship.config.json` → stdout (no cache file) |
-| `load-env.sh`             | Parse `.env.snapship` for tokens                       |
+| `load-config.sh`          | Resolve `snap.config.json` → stdout (no cache file) |
+| `load-env.sh`             | Parse `.env.snap` for tokens                       |
 | `progress.sh`             | `start | step | finish | resume` — central progress log |
 | `sync-push.sh` / `sync-fetch.sh` | Write-through outbox + replay refs (remote sync) |
 | `setup-snap-dir.sh`       | Scaffold `.snap/` at init                              |

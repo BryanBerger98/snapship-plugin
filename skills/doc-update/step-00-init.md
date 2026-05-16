@@ -12,8 +12,8 @@ Validate prerequisites. Fail loud, fail early.
 
 1. **Require `/snap:init`** — exit early if missing:
    ```bash
-   if [ ! -f "$PWD/snapship.config.json" ]; then
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   if [ ! -f "$PWD/snap.config.json" ]; then
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    fi
    ```

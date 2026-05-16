@@ -3,7 +3,7 @@
 The plugin resolves templates via `_shared/resolve-template.sh`, which returns
 a JSON object `{path, source, render_mode}`. Three sources, in priority order:
 
-1. **Config override** — explicit path in `snapship.config.json` →
+1. **Config override** — explicit path in `snap.config.json` →
    `templates.*`. `render_mode=mustache`.
 2. **Repo-native** — host markdown template under `.github`/`.gitlab`
    (`ISSUE_TEMPLATE`, `PULL_REQUEST_TEMPLATE`, `issue_templates`,
@@ -68,7 +68,7 @@ Rules:
 
 ## User override
 
-`templates` section in `snapship.config.json` (all fields optional, default
+`templates` section in `snap.config.json` (all fields optional, default
 `null`):
 
 ```json

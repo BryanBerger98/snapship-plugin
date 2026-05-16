@@ -200,7 +200,7 @@ OUT=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=list-pages --query=x 2>&1)
 echo ""
 echo "[14] export_format défaut interne png, config projet ignorée"
 CFG_DIR=$(mktemp -d)
-cat > "$CFG_DIR/snapship.config.json" <<'EOF'
+cat > "$CFG_DIR/snap.config.json" <<'EOF'
 {"version":"1.0","wireframes":{"platform":"penpot","export_format":"svg"}}
 EOF
 # Sans --format: helper utilise défaut interne png (ignore config)

@@ -335,7 +335,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[26] platform resolved from config.tickets.platform"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",

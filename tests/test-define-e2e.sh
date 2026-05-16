@@ -21,7 +21,7 @@ setup_dir() { mktemp -d -t snap-e2e-XXXXXX; }
 
 write_config_none() {
   local d="$1"
-  cat > "${d}/snapship.config.json" <<'JSON'
+  cat > "${d}/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "documentation": { "platform": "none" },
@@ -114,7 +114,7 @@ fcount=$(bash "$STATE" list-features --project-root="$DIR" | wc -l | tr -d ' ')
 [ "$fcount" = "1" ] && ok "1.6 features list yields 1 entry" || ko "1.6 got $fcount"
 
 # step-05 publish: platform=none → skip
-platform=$(jq -r '.documentation.platform' "$DIR/snapship.config.json")
+platform=$(jq -r '.documentation.platform' "$DIR/snap.config.json")
 if [ "$platform" = "none" ]; then
   bash "$PROGRESS" step --project-root="$DIR" --skill=define --feature-id=_global \
     --step-num=05 --step-name=publish --status=skip --note="documentation.platform=none" >/dev/null

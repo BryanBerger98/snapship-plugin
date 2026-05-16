@@ -253,7 +253,7 @@ OUT=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=list-pages --query=x 2>&1)
 echo ""
 echo "[16] export-png défaut interne png/scale=2, config ignorée"
 CFG_DIR=$(mktemp -d)
-cat > "$CFG_DIR/snapship.config.json" <<'EOF'
+cat > "$CFG_DIR/snap.config.json" <<'EOF'
 {"version":"1.0","wireframes":{"platform":"figma","export_format":"svg"}}
 EOF
 OUT=$(bash "$SCRIPT" --action=export-png --shape-id=s --output-path=/abs/x.png 2>&1)

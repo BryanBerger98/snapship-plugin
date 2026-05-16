@@ -1,14 +1,14 @@
 ---
 step: 00-init
 next_step: 01-vision
-description: Parse args, require snapship.config.json, detect codebase, branch greenfield vs extension.
+description: Parse args, require snap.config.json, detect codebase, branch greenfield vs extension.
 ---
 
 # step-00 — init
 
 Validate that the workspace was bootstrapped (`/snap:init`) and decide which
 path to follow. **Config bootstrap is not handled here** — if
-`snapship.config.json` is missing, this step exits early and points the user back
+`snap.config.json` is missing, this step exits early and points the user back
 to `/snap:init`.
 
 ## Tasks
@@ -31,10 +31,10 @@ to `/snap:init`.
    `.snap/manifests/*.manifest.json` filenames — "01" or "auth" → first match.
    Ambiguous → surface candidate list and re-prompt.
 
-3. **Require config**: `snapship.config.json` must exist at `$PWD`. If absent,
+3. **Require config**: `snap.config.json` must exist at `$PWD`. If absent,
    abort early with:
    ```
-   ERROR: snapship.config.json not found at <PWD>.
+   ERROR: snap.config.json not found at <PWD>.
    Run /snap:init first to bootstrap the workspace.
    ```
    Do not scaffold, do not write progress. Just exit.

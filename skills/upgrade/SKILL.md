@@ -42,7 +42,7 @@ schémas, chemins, et formats. Idempotent — peut être re-exécuté.
 
 - `.snap/` migré au schéma cible.
 - `.snap.bak-v{from}-{ts}/` backup (sauf `--dry-run`).
-- `snapship.config.json.version` = version cible.
+- `snap.config.json.version` = version cible.
 - Telemetry entrées `/upgrade step-NN ... — ok`.
 
 ## Détection de version
@@ -50,7 +50,7 @@ schémas, chemins, et formats. Idempotent — peut être re-exécuté.
 Source de vérité (par priorité) :
 1. `.snap/manifests/_taxonomy.json.schema_version`
 2. `.snap/manifests/*.manifest.json.schema_version` (premier trouvé)
-3. `snapship.config.json.version`
+3. `snap.config.json.version`
 4. Si `.claude/product/` existe et `.snap/` absent → `0.6.0` présumé.
 
 ## How to run a step

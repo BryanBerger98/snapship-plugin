@@ -180,7 +180,7 @@ out=$(SNAP_DRY_RUN=true bash "$SCRIPT" --action=update --platform=notion --page-
 echo ""
 echo "[23] resolves platform + workspace from config"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",
@@ -197,7 +197,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[24] explicit --workspace-id overrides config"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 {
   "$schema": "./skills/_shared/schemas/config.schema.json",
   "version": "1.0",

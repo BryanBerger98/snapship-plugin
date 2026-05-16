@@ -41,7 +41,7 @@ the UI tickets with no `design_url` via `AskUserQuestion`.
 Desktop Bridge plugin as `/snap:wireframe figma`.
 
 > **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
-> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
+> a token in `.env.snap` (key `FIGMA_ACCESS_TOKEN`, override
 > `design.figma.token_env`).
 
 ## Syntax

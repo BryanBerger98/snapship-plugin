@@ -75,7 +75,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq required" >&2; exit 2; }
 
 # Resolve required/optional from config if not provided explicitly
 if [ "$USE_CONFIG" != "false" ] && [ -z "$REQUIRED_CSV" ] && [ -z "$OPTIONAL_CSV" ]; then
-  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+  if [ -x "${SCRIPT_DIR}/load-config.sh" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     REQUIRED_CSV=$(echo "$CFG" | jq -r '(.ai.mcp_servers_required // []) | join(",")')
     OPTIONAL_CSV=$(echo "$CFG" | jq -r '(.ai.mcp_servers_optional // []) | join(",")')

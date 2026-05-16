@@ -15,7 +15,7 @@ headings per screen and image rows per state. Optional — skipped if
 ### A. Skip on platform=none
 
 Read platform deterministically from the resolved config (NEVER from the user
-`snapship.config.json` directly):
+`snap.config.json` directly):
 
 ```bash
 PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")

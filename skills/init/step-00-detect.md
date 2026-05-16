@@ -17,10 +17,10 @@ Probe the environment and resolve answers for every required config field.
    `.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, or
    `composer.json`). If none found, ask the user to confirm before proceeding.
 
-3. **Existing config guard** : if `$PWD/snapship.config.json` exists and `--force`
+3. **Existing config guard** : if `$PWD/snap.config.json` exists and `--force`
    is not passed, abort with :
    ```
-   ERROR: snapship.config.json already exists. Re-run with --force to overwrite,
+   ERROR: snap.config.json already exists. Re-run with --force to overwrite,
    or run /snap:define to start a feature.
    ```
    Do **not** write progress; just exit.

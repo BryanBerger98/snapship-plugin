@@ -33,8 +33,8 @@ once and downstream steps pass values explicitly.
 
 4. **Require config + load + resolve platform**:
    ```bash
-   [ -f "$PWD/snapship.config.json" ] || {
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   [ -f "$PWD/snap.config.json" ] || {
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
@@ -151,15 +151,15 @@ If `$figma_file_key` empty: `AskUserQuestion` "Use this Figma file: <name>
 (<id>)?" — Yes / No / Save to config. "Save to config" writes
 `wireframes.figma.{file_key,file_name}`.
 
-Also load the token from `.env.snapship` at project root (clé par défaut
+Also load the token from `.env.snap` at project root (clé par défaut
 `FIGMA_ACCESS_TOKEN`, override via `wireframes.figma.token_env`). Le fichier
-`.env.snapship` est gitignored — secrets isolés per-project. `figma-console-mcp`
+`.env.snap` est gitignored — secrets isolés per-project. `figma-console-mcp`
 lit la var env pour ses fallbacks REST :
 ```bash
 figma_token=$(bash skills/_shared/load-env.sh \
   --project-root="$PWD" --key="$figma_token_env" 2>/dev/null || true)
 if [ -z "$figma_token" ]; then
-  echo "ERROR: $figma_token_env absent de $PWD/.env.snapship." >&2
+  echo "ERROR: $figma_token_env absent de $PWD/.env.snap." >&2
   echo "Créer le fichier avec: $figma_token_env=figd_<votre-pat-figma>" >&2
   echo "Token généré via Figma → Settings → Personal access tokens." >&2
   exit 1

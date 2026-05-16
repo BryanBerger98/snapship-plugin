@@ -25,7 +25,7 @@ same action surface (`create-page`, `add-shapes`, `export-png`) so the loop
 below is platform-agnostic — only the export step differs per platform. Since
 v0.5 helpers are context-agnostic: pass resolved config values (`$api_port`,
 `$export_format`, `$figma_file_key`, …) explicitly — step-00 already resolved
-them from `snapship.config.json` and persisted them to skill state.
+them from `snap.config.json` and persisted them to skill state.
 
 ## Resolve export format (once, at start of step)
 

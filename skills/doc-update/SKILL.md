@@ -14,7 +14,7 @@ are the living spec; this skill keeps them current.
 
 ## Prerequisite
 
-- `/snap:init` already run (`snapship.config.json` exists)
+- `/snap:init` already run (`snap.config.json` exists)
 - `documentation.platform` ∈ {affine, notion} (skip if `none`)
 - MCP for that platform reachable
 - Feature manifest (`.snap/manifests/${feature_id}.manifest.json`) has `state == "qa-validated"` and `refs.prd.page_id` populated

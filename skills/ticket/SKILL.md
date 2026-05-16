@@ -11,7 +11,7 @@ need to break the PRD into atomic tickets ready for `/snap:develop`.
 
 ## Prerequisite
 
-- `/snap:init` ran and `tickets.platform != "none"` in `snapship.config.json`.
+- `/snap:init` ran and `tickets.platform != "none"` in `snap.config.json`.
   If `none`, this skill **blocks** with:
 
   ```

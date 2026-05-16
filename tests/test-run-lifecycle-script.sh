@@ -22,11 +22,11 @@ mk_project() {
   local dir="$1" hook="$2" path="$3"
   mkdir -p "$dir"
   if [ -n "$hook" ] && [ -n "$path" ]; then
-    cat > "$dir/snapship.config.json" <<EOF
+    cat > "$dir/snap.config.json" <<EOF
 { "version": "1.0", "lifecycle_scripts": { "${hook}": "${path}" } }
 EOF
   else
-    cat > "$dir/snapship.config.json" <<'EOF'
+    cat > "$dir/snap.config.json" <<'EOF'
 { "version": "1.0" }
 EOF
   fi
@@ -138,7 +138,7 @@ echo ""
 echo "[9] absolute path"
 TMP=$(mktemp -d)
 mk_hook_script "$TMP/abs.sh" 'echo ABS'
-cat > "$TMP/snapship.config.json" <<EOF
+cat > "$TMP/snap.config.json" <<EOF
 { "version": "1.0", "lifecycle_scripts": { "pre_wireframe": "${TMP}/abs.sh" } }
 EOF
 out=$(bash "$SCRIPT" --hook=pre_wireframe --project-root="$TMP")

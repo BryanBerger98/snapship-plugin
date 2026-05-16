@@ -40,7 +40,7 @@ snapship-plugin/
 └── CHANGELOG.md  README.md  LICENSE  NOTICE
 ```
 
-User-facing config lives at the **downstream project root**, not here: `snapship.config.json`, `.snap/manifests/`, `.snap/tickets/`, `.snap/progress.json`, `.env.snapship`. The plugin repo itself has no `.snap/`.
+User-facing config lives at the **downstream project root**, not here: `snap.config.json`, `.snap/manifests/`, `.snap/tickets/`, `.snap/progress.json`, `.env.snap`. The plugin repo itself has no `.snap/`.
 
 ## Required runtime
 
@@ -86,7 +86,7 @@ Helpers that touch state or platforms (`progress.sh`, `taxonomy-state.sh`, `load
 ## Hard rules
 
 - **Never `rm`.** Use `trash` for any deletion — reversible via system trash. The repo's helpers and tests already follow this; matching it is required.
-- **Never commit secrets.** `.env.snapship` is gitignored on downstream projects; tokens for Figma/Notion/AFFiNE belong there, never inline in `snapship.config.json`.
+- **Never commit secrets.** `.env.snap` is gitignored on downstream projects; tokens for Figma/Notion/AFFiNE belong there, never inline in `snap.config.json`.
 - **Never skip pre-commit hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
 - **Don't drift docs.** `docs/usage/` is for plugin users, `docs/contributing/` is for plugin developers. Don't mix audiences.
 

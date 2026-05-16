@@ -87,7 +87,7 @@ out=$(SNAP_MCP_AVAILABLE="x,y" bash "$SCRIPT" --required=a --available=a --no-co
 echo ""
 echo "[9] config-driven required"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'EOF'
+cat > "$TMP/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "ai": {
@@ -113,7 +113,7 @@ trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 echo ""
 echo "[11] --no-config skip"
 TMP=$(mktemp -d)
-cat > "$TMP/snapship.config.json" <<'EOF'
+cat > "$TMP/snap.config.json" <<'EOF'
 { "version": "1.0", "ai": { "mcp_servers_required": ["nope"] } }
 EOF
 out=$(bash "$SCRIPT" --project-root="$TMP" --available=anything --no-config)

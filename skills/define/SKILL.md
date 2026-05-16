@@ -12,7 +12,7 @@ exists.
 ## Prerequisite
 
 Run `/snap:init` once per project first. This skill exits early if
-`snapship.config.json` is missing.
+`snap.config.json` is missing.
 
 ## When to use
 
@@ -29,7 +29,7 @@ reads steps in order; the model reads only the active step's body.
 
 | # | Step | Purpose |
 |---|------|---------|
-| 00 | `step-00-init.md`     | Parse args, require `snapship.config.json`, detect codebase, branch greenfield vs extension |
+| 00 | `step-00-init.md`     | Parse args, require `snap.config.json`, detect codebase, branch greenfield vs extension |
 | 01 | `step-01-vision.md`   | Ask vision + north star metric |
 | 02 | `step-02-personas.md` | Ask 1-N personas |
 | 03 | `step-03-features.md` | Ask features list with priorities, domains, impacted journeys |

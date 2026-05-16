@@ -23,7 +23,7 @@ distinguishes two paths:
 ## Prerequisites
 
 `/snap:init` run once. The skill exits immediately if
-`snapship.config.json` is missing.
+`snap.config.json` is missing.
 
 ## Syntax
 
@@ -43,7 +43,7 @@ distinguishes two paths:
 
 | #  | Step                  | Role                                                                       |
 | -- | --------------------- | -------------------------------------------------------------------------- |
-| 00 | `step-00-init.md`     | Parses args, requires `snapship.config.json`, detects the codebase, branches greenfield vs extension. |
+| 00 | `step-00-init.md`     | Parses args, requires `snap.config.json`, detects the codebase, branches greenfield vs extension. |
 | 01 | `step-01-vision.md`   | Asks about the vision and north-star metric.                               |
 | 02 | `step-02-personas.md` | Asks about 1 to N personas.                                                |
 | 03 | `step-03-features.md` | Asks for the feature list with priorities.                                 |

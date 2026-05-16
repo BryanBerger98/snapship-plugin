@@ -22,7 +22,7 @@ Keep the functional docs **alive** and up to date after shipping.
 
 ## Prerequisites
 
-- `/snap:init` run (`snapship.config.json` exists).
+- `/snap:init` run (`snap.config.json` exists).
 - `documentation.platform ∈ {affine, notion}` (skipped if `none`).
 - MCP for that platform reachable.
 - The feature has a `manifest.json` with `state == "qa-validated"` and `prd.page_id`

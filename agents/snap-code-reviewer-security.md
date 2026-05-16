@@ -44,7 +44,7 @@ You may use `Read`, `Grep`, `Glob`, and `Bash` to:
 
 - Open files referenced in the diff for surrounding context (e.g., is the route really unauthenticated, or is auth applied via middleware upstream?)
 - `grep` for patterns: `grep -rE 'BEGIN [A-Z ]*PRIVATE KEY|api[_-]?key|secret|token' --include='*.ts'`
-- Run repo's audit command if `{dep_audit}` not provided and `testing.audit_command` is in `snapship.config.json`
+- Run repo's audit command if `{dep_audit}` not provided and `testing.audit_command` is in `snap.config.json`
 - Check for `.gitignore` coverage of secret files
 
 You must NEVER modify files (no Edit/Write tool available). Refuse if asked.

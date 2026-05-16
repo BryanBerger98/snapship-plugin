@@ -200,7 +200,7 @@ chmod +x ~/.claude/lifecycle_scripts/session-start-hook.sh
 ```bash
 #!/usr/bin/env bash
 # Pre-load snap context if current project has config
-CONFIG=".snap/snapship.config.json"
+CONFIG=".snap/snap.config.json"
 [ -f "$CONFIG" ] || exit 0
 
 # Output additionalContext via JSON output (CC SessionStart format)

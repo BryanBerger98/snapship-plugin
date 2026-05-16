@@ -21,7 +21,7 @@ setup_dir() { mktemp -d -t snap-tk-XXXXXX; }
 
 write_config() {
   local d="$1" platform="$2"
-  cat > "${d}/snapship.config.json" <<JSON
+  cat > "${d}/snap.config.json" <<JSON
 {
   "version": "1.0",
   "tickets": { "platform": "${platform}" },

@@ -72,7 +72,7 @@ feature and / or an attached Projects v2 board, story attributes are routed
 | `estimated_size`   | Projects v2 single-select field     | `size:<value>` label     |
 | `scope`            | Projects v2 single-select field     | `scope:<value>` label    |
 
-The mapping lives in `snapship.config.json` under `tickets.github` :
+The mapping lives in `snap.config.json` under `tickets.github` :
 
 ```jsonc
 {

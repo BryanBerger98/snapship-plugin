@@ -13,7 +13,7 @@ can lookup-or-create journey pages by slug.
 
 ## Prerequisite
 
-- `/snap:init` already run (`snapship.config.json` + `.snap/` exist)
+- `/snap:init` already run (`snap.config.json` + `.snap/` exist)
 - `documentation.platform` ∈ {affine, notion} (skip if `none`)
 - MCP server for that platform reachable in current session
 - `.snap/manifests/_taxonomy.json` empty (no `domains[]`) OR `--force` set

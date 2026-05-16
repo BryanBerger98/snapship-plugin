@@ -27,8 +27,8 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
    if [ -z "$CUR" ] && ls .snap/manifests/*.manifest.json >/dev/null 2>&1; then
      CUR=$(jq -r '.schema_version // ""' .snap/manifests/*.manifest.json | head -1)
    fi
-   if [ -z "$CUR" ] && [ -f snapship.config.json ]; then
-     CUR=$(jq -r '.version // ""' snapship.config.json)
+   if [ -z "$CUR" ] && [ -f snap.config.json ]; then
+     CUR=$(jq -r '.version // ""' snap.config.json)
    fi
    if [ -z "$CUR" ] && [ -d .claude/product ]; then
      CUR="0.6.0"   # presumé
@@ -50,7 +50,7 @@ Identifie où on part, où on va, et quelles migrations enchaîner.
      `$CUR` vers `$TARGET`. Versions disponibles : ...".
 
 5. **Détecte conditions** activant décisions optionnelles :
-   - `tickets_platform_missing` : `jq -r '.tickets.platform // ""' snapship.config.json`
+   - `tickets_platform_missing` : `jq -r '.tickets.platform // ""' snap.config.json`
      vide ou `inherit` non résolu.
    - `daemon_referenced` : grep `--loop=daemon` ou `daemon.sh` dans `.claude/`,
      `scripts/`, `*.sh`, `Makefile`, `package.json`.

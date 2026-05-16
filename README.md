@@ -27,7 +27,7 @@ SnapShip is a Claude Code plugin that turns a one-line feature idea into a shipp
 
 | Slash             | What it does                                                       | Primary storage                          |
 | ----------------- | ------------------------------------------------------------------ | ---------------------------------------- |
-| `/snap:init`      | Bootstraps the workspace (config + `.snap/`). Run once per project. | `snapship.config.json` at project root   |
+| `/snap:init`      | Bootstraps the workspace (config + `.snap/`). Run once per project. | `snap.config.json` at project root   |
 | `/snap:define`    | Interactive PRD brainstorm — product + features.                    | AFFiNE / Notion (PRD + journey pages)    |
 | `/snap:ticket`    | Breaks a feature PRD into tickets fit for your platform.            | Tickets platform + `tickets.json`        |
 | `/snap:wireframe` | Multi-screen low-fi wireframes, linked to tickets.                  | Wireframe platform + gallery doc         |
@@ -84,7 +84,7 @@ claude
 /snap:qa       01-auth-email
 ```
 
-> 💡 `/snap:init` reads `.git/config`, active MCP servers, and your project layout — then writes `snapship.config.json` and scaffolds `.snap/`. Every other skill refuses to run without that config and points back to `/snap:init`.
+> 💡 `/snap:init` reads `.git/config`, active MCP servers, and your project layout — then writes `snap.config.json` and scaffolds `.snap/`. Every other skill refuses to run without that config and points back to `/snap:init`.
 
 📂 Install + prerequisites → [docs/usage/install.md](docs/usage/install.md)
 🎬 Full walkthrough → [docs/usage/getting-started.md](docs/usage/getting-started.md)
@@ -122,7 +122,7 @@ Full specs in [`docs/`](docs/README.md) — split between **usage** (for plugin 
 | ----------------------------------------------------- | ---------------------------------------------------------- |
 | [install.md](docs/usage/install.md)                   | Install paths (marketplace + clone) + prerequisites        |
 | [getting-started.md](docs/usage/getting-started.md)   | First `/snap:init` then first feature                      |
-| [configuration.md](docs/usage/configuration.md)       | `snapship.config.json` schema                              |
+| [configuration.md](docs/usage/configuration.md)       | `snap.config.json` schema                              |
 | [workflow.md](docs/usage/workflow.md)                 | Platform detection + integration                           |
 | [modes.md](docs/usage/modes.md)                       | Flags `-a`, telemetry, `--dry-run`, hooks                  |
 | [mcp-refs.md](docs/usage/mcp-refs.md)                 | Frame0, AFFiNE, code-review-graph, Playwright references   |

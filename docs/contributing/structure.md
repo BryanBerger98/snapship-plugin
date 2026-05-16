@@ -75,8 +75,8 @@ snapship-plugin/  (plugin repo)
 │   │       └── step-05-finish.md
 │   │
 │   └── _shared/
-│       ├── load-config.sh                  # parse snapship.config.json + apply defaults/inheritance + validate schema
-│       ├── setup-config.sh                 # auto-generate snapship.config.json (first run)
+│       ├── load-config.sh                  # parse snap.config.json + apply defaults/inheritance + validate schema
+│       ├── setup-config.sh                 # auto-generate snap.config.json (first run)
 │       ├── detect-platforms.sh             # detect available MCP/CLI (auth check at runtime)
 │       ├── detect-test-commands.sh         # auto-detect testing commands
 │       ├── tickets-adapter.sh              # ticket CRUD (route MCP|CLI based on config.tickets.platform)
@@ -112,7 +112,7 @@ snapship-plugin/  (plugin repo)
 │       │   │   └── wireframes-gallery.md
 │       │   └── session-start-hook.sh.tpl    # opt-in SessionStart hook (pre-load config)
 │       ├── schemas/                        # bundled JSON Schemas for runtime validation
-│       │   ├── config.schema.json          # snapship.config.json
+│       │   ├── config.schema.json          # snap.config.json
 │       │   ├── manifest.schema.json            # manifests/{id}.manifest.json
 │       │   ├── tickets.schema.json         # features/{id}/tickets.json
 │       │   └── domains.schema.json         # .snap/manifests/_taxonomy.json
@@ -133,7 +133,7 @@ AFFiNE/Notion = primary docs source. Local = cache + progress only. Config lives
 
 ```
 <project_root>/
-├── snapship.config.json            # Unified config (extends bundled defaults)
+├── snap.config.json            # Unified config (extends bundled defaults)
 └── .snap/
     ├── index.md                    # Track features (state + page IDs)
     ├── _taxonomy.json                # cache domain + journey → page IDs (persistent)

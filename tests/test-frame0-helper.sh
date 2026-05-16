@@ -400,7 +400,7 @@ out=$(bash "$SCRIPT" --action=export-png --page-id=p --output-path="$TMP/x.png" 
 
 echo ""
 echo "[43b] export-png defaults to port 58320 sans --api-port (config ignorée)"
-cat > "$TMP/snapship.config.json" <<'JSON'
+cat > "$TMP/snap.config.json" <<'JSON'
 { "$schema":"./skills/_shared/schemas/config.schema.json","version":"1.0",
   "wireframes":{ "platform":"frame0","frame0":{"api_port":59999} } }
 JSON

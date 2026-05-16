@@ -20,7 +20,7 @@ trap cleanup EXIT
 make_env() {
   local dir="$1"
   mkdir -p "$dir"
-  cat > "$dir/.env.snapship" <<'EOF'
+  cat > "$dir/.env.snap" <<'EOF'
 # Snapship secrets — gitignored
 FIGMA_ACCESS_TOKEN=figd_plain123
 QUOTED_DOUBLE="value with spaces"
@@ -108,7 +108,7 @@ echo ""
 echo "[12] first-match-wins"
 D2="$TMPDIR_BASE/p2"
 mkdir -p "$D2"
-cat > "$D2/.env.snapship" <<'EOF'
+cat > "$D2/.env.snap" <<'EOF'
 DUP=first
 DUP=second
 EOF

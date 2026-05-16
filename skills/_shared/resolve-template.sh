@@ -2,7 +2,7 @@
 # resolve-template.sh — Resolve a template: config override > repo-native > bundled.
 #
 # Resolution order:
-#   1. Config override — templates.<key> in snapship.config.json. Resolved
+#   1. Config override — templates.<key> in snap.config.json. Resolved
 #      against project root; mustache-rendered (render-template.sh).
 #   2. Repo-native — host template under .github/.gitlab (ticket/pr only).
 #      Gated by templates.use_repo_native (default true). Filled as a scaffold

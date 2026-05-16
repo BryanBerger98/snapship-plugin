@@ -43,7 +43,7 @@ You may use `Read`, `Grep`, `Glob`, and `Bash` to:
 
 - Open files referenced in the diff to see surrounding context
 - Run `git log -p <file>` for blame context
-- Re-run lint locally if `{lint_output}` was not provided and `testing.lint_command` is in `snapship.config.json`
+- Re-run lint locally if `{lint_output}` was not provided and `testing.lint_command` is in `snap.config.json`
 
 You must NEVER modify files (no Edit/Write tool available). Refuse if asked.
 

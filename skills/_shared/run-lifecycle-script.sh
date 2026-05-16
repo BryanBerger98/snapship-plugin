@@ -97,7 +97,7 @@ emit_json() {
 }
 
 # Load config
-if [ ! -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+if [ ! -f "${PROJECT_ROOT}/snap.config.json" ]; then
   emit_json "false" "" "0" "0" "no config"
   exit 0
 fi

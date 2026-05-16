@@ -10,7 +10,7 @@ Everything you need to install, configure, and ship features with SnapShip.
 
 ## ⚙️ Configure
 
-- [Configuration](configuration.md) — `snapship.config.json` schema, defaults, secrets
+- [Configuration](configuration.md) — `snap.config.json` schema, defaults, secrets
 - [Workflow](workflow.md) — platform detection, integration, error handling
 - [Modes](modes.md) — flags `-a`, telemetry, `--dry-run`, hooks
 - [MCP references](mcp-refs.md) — supported MCP servers (Frame0, AFFiNE, Playwright, …)

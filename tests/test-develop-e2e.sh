@@ -60,7 +60,7 @@ JSON
 # Mark manifest as ticketed
 jq '.state = "ticketed"' "$MANIFEST" > "$DIR/.m.tmp" && mv "$DIR/.m.tmp" "$MANIFEST"
 
-cat > "${DIR}/snapship.config.json" <<'JSON'
+cat > "${DIR}/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "repository": {"platform": "github", "default_branch": "main"},

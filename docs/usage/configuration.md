@@ -1,4 +1,4 @@
-# Config — `snapship.config.json`
+# Config — `snap.config.json`
 
 **Location:** project root (committable, shared with team).
 
@@ -232,11 +232,11 @@ MCP/CLI handle independently:
 
 ## First-run auto-generation
 
-1. `_shared/setup-config.sh` runs if `snapship.config.json` is absent
+1. `_shared/setup-config.sh` runs if `snap.config.json` is absent
 2. Parses `.git/config` → extracts remote URL → detects repo platform + URLs
 3. Tries active MCP servers → proposes match (atlassian, github, notion, affine, frame0)
 4. AskUserQuestion mapping for ambiguous cases + critical fields (jira.project_key if JIRA, workspace_id, root_page_id, template_ids)
-5. Generates `snapship.config.json` with detected sections
+5. Generates `snap.config.json` with detected sections
 6. User can edit afterwards (config = source of truth, no re-detection)
 
 ## Per-step section auto-discovery
@@ -293,17 +293,17 @@ MCP/CLI handle independently:
 // No auto-link (different platforms) — design.figma requires separate binding
 ```
 
-## Secrets: `.env.snapship`
+## Secrets: `.env.snap`
 
-Secrets (Figma PAT, other tokens) **do not live in `snapship.config.json`**
-(commit-friendly). They are read from `.env.snapship` at the project root
+Secrets (Figma PAT, other tokens) **do not live in `snap.config.json`**
+(commit-friendly). They are read from `.env.snap` at the project root
 (gitignored by default).
 
 **Format:** `KEY=VALUE` per line. Comments `#`. Quotes `"…"` / `'…'`
 stripped automatically. No shell substitution.
 
 ```bash
-# .env.snapship — gitignored, per-project secrets
+# .env.snap — gitignored, per-project secrets
 FIGMA_ACCESS_TOKEN=figd_abc123def456
 # OPENAI_API_KEY="sk-…"
 ```

@@ -28,17 +28,17 @@
    - qa: qa_cycles_max + severity_threshold + retrigger_review
    - defaults: lang (FR/EN)
 5. AskUserQuestion confirm (shows preview)
-6. Write `snapship.config.json` at root
+6. Write `snap.config.json` at root
 ```
 
 Idempotent: if partial config exists, only proposes update for incomplete sections.
 
 ## Runtime check (config present) — `detect-platforms.sh`
 
-**Source of truth = `snapship.config.json`.** No re-detection except auth check.
+**Source of truth = `snap.config.json`.** No re-detection except auth check.
 
 ```
-1. Read snapship.config.json (via load-config.sh)
+1. Read snap.config.json (via load-config.sh)
 2. For each configured platform:
    - MCP server active? (check MCP listing)
    - Otherwise CLI available? (which + auth check)

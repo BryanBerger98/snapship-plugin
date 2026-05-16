@@ -15,8 +15,8 @@ Bootstrap a `/snap:ticket` run for a single feature.
 
 2. **Require config + load** :
    ```bash
-   [ -f "$PWD/snapship.config.json" ] || {
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   [ -f "$PWD/snap.config.json" ] || {
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    }
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
@@ -49,7 +49,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
      #
      # On "configure": run detect-github-fields.sh, AskUserQuestion to map
      # type/priority/size/scope, write the resulting tickets.github.* block into
-     # snapship.config.json (atomic write via tmp + mv), reload CONFIG_JSON.
+     # snap.config.json (atomic write via tmp + mv), reload CONFIG_JSON.
      #
      # On "skip": write `{"tickets":{"github":{"enabled":false}}}` so the
      # prompt never reappears. apply-github-metadata.sh respects this flag and

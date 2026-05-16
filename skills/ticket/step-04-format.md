@@ -25,7 +25,7 @@ explicit config override > repo-native (`.github`/`.gitlab`) > bundled default.
    ```
    `story_type ∈ {user-story, bug, epic}` (defaulted to `user-story` in step-03).
    The resolver returns JSON `{path, source, render_mode}`:
-   - `source=config` → `templates.tickets.<type>` override in `snapship.config.json`.
+   - `source=config` → `templates.tickets.<type>` override in `snap.config.json`.
    - `source=repo-native` → a host issue template under `.github/ISSUE_TEMPLATE/`
      or `.gitlab/issue_templates/` (filename matched to the ticket type). Gated
      by `templates.use_repo_native` (default true); JIRA has no repo-native

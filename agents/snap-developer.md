@@ -40,7 +40,7 @@ You may use `Read`, `Grep`, `Glob`, and `Bash` to:
 
 - Read the file at the cited line for full context before editing
 - `grep` for callers of a function you are about to change (avoid breaking unrelated code)
-- Run `testing.lint_command` / `testing.typecheck_command` from `snapship.config.json` after edits
+- Run `testing.lint_command` / `testing.typecheck_command` from `snap.config.json` after edits
 
 ## Third-party library lookup (mandatory)
 

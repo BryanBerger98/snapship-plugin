@@ -10,10 +10,10 @@ Validate prerequisites and parse args. Fail loud, fail early.
 
 ## Tasks
 
-1. **Require `/snap:init`** — exit early if `snapship.config.json` missing:
+1. **Require `/snap:init`** — exit early if `snap.config.json` missing:
    ```bash
-   if [ ! -f "$PWD/snapship.config.json" ]; then
-     echo "ERROR: snapship.config.json not found. Run /snap:init first." >&2
+   if [ ! -f "$PWD/snap.config.json" ]; then
+     echo "ERROR: snap.config.json not found. Run /snap:init first." >&2
      exit 1
    fi
    ```

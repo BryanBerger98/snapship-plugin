@@ -33,7 +33,7 @@ On exit:
 
 ```
 <project>/
-  snapship.config.json     # ← committable, shared with team
+  snap.config.json     # ← committable, shared with team
   .snap/                   # ← local workspace
     manifests/             # ← committed (platform references)
     tickets/               # ← committed (ticket cache)
@@ -41,7 +41,7 @@ On exit:
     progress.json          # ← gitignored (runtime state)
 ```
 
-> Re-init later: `/snap:init --force` (rewrites `snapship.config.json`,
+> Re-init later: `/snap:init --force` (rewrites `snap.config.json`,
 > **preserves** `.snap/`).
 
 ## 2. `/snap:define` — first feature

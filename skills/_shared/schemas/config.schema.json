@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/config.schema.json",
-  "title": "snapship.config.json",
+  "title": "snap.config.json",
   "description": "Configuration projet snap — racine projet, committable, partagée équipe.",
   "type": "object",
   "required": ["version"],

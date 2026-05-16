@@ -161,7 +161,7 @@ echo ""
 echo "[20] config-driven naming"
 TMP=$(mktemp -d)
 mkdir -p "$TMP/.claude/product"
-cat > "$TMP/snapship.config.json" <<'EOF'
+cat > "$TMP/snap.config.json" <<'EOF'
 {
   "version": "1.0",
   "tools": {

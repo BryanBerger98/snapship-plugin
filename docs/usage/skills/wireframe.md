@@ -31,7 +31,7 @@ The skill is platform-agnostic at the orchestration layer: step-00 resolves
 the `$helper` variable.
 
 > **Figma**: requires Figma Desktop running, the Desktop Bridge plugin active, and
-> a token in `.env.snapship` (key `FIGMA_ACCESS_TOKEN`, override
+> a token in `.env.snap` (key `FIGMA_ACCESS_TOKEN`, override
 > `wireframes.figma.token_env`). step-00 halts if `figma.fileKey` doesn't match
 > `wireframes.figma.file_key`.
 

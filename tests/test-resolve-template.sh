@@ -117,7 +117,7 @@ mkdir -p "$DIR/tpl"
 cp "${TPL_FIXTURES}/custom-user-story.md" "$DIR/tpl/us.md"
 cp "${TPL_FIXTURES}/custom-bug.md"        "$DIR/tpl/bug.md"
 
-cat > "$DIR/snapship.config.json" <<JSON
+cat > "$DIR/snap.config.json" <<JSON
 {
   "version": "1.0",
   "templates": {
@@ -152,7 +152,7 @@ cp "${TPL_FIXTURES}/custom-pr.md"                  "$DIR/tpl/pr.md"
 cp "${TPL_FIXTURES}/custom-review-thread.md"       "$DIR/tpl/rt.md"
 cp "${TPL_FIXTURES}/custom-aggregated-feedback.md" "$DIR/tpl/agg.md"
 
-cat > "$DIR/snapship.config.json" <<JSON
+cat > "$DIR/snap.config.json" <<JSON
 {
   "version": "1.0",
   "templates": {
@@ -185,7 +185,7 @@ echo ""
 echo "[5] absolute path override"
 DIR=$(setup_dir)
 ABS_TPL="${TPL_FIXTURES}/custom-pr.md"
-cat > "$DIR/snapship.config.json" <<JSON
+cat > "$DIR/snap.config.json" <<JSON
 {
   "version": "1.0",
   "templates": { "pr": "${ABS_TPL}" }
@@ -200,7 +200,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[6] override → missing file"
 DIR=$(setup_dir)
-cat > "$DIR/snapship.config.json" <<'JSON'
+cat > "$DIR/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "templates": { "pr": "tpl/does-not-exist.md" }
@@ -214,7 +214,7 @@ trash "$DIR" 2>/dev/null || true
 echo ""
 echo "[7] explicit null in config"
 DIR=$(setup_dir)
-cat > "$DIR/snapship.config.json" <<'JSON'
+cat > "$DIR/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "templates": {
@@ -287,7 +287,7 @@ DIR=$(setup_dir)
 mkdir -p "$DIR/.github/ISSUE_TEMPLATE" "$DIR/tpl"
 printf 'repo bug\n'    > "$DIR/.github/ISSUE_TEMPLATE/bug_report.md"
 cp "${TPL_FIXTURES}/custom-bug.md" "$DIR/tpl/bug.md"
-cat > "$DIR/snapship.config.json" <<'JSON'
+cat > "$DIR/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "templates": { "tickets": { "bug": "tpl/bug.md" } }
@@ -304,7 +304,7 @@ echo "[10] use_repo_native=false"
 DIR=$(setup_dir)
 mkdir -p "$DIR/.github/ISSUE_TEMPLATE"
 printf 'repo bug\n' > "$DIR/.github/ISSUE_TEMPLATE/bug_report.md"
-cat > "$DIR/snapship.config.json" <<'JSON'
+cat > "$DIR/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "templates": { "use_repo_native": false }
@@ -321,7 +321,7 @@ echo "[11] use_repo_native=true (explicit)"
 DIR=$(setup_dir)
 mkdir -p "$DIR/.github/ISSUE_TEMPLATE"
 printf 'repo bug\n' > "$DIR/.github/ISSUE_TEMPLATE/bug_report.md"
-cat > "$DIR/snapship.config.json" <<'JSON'
+cat > "$DIR/snap.config.json" <<'JSON'
 {
   "version": "1.0",
   "templates": { "use_repo_native": true }

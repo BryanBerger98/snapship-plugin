@@ -142,7 +142,7 @@ fi
 case "$MODE" in auto|cli|mcp) ;; *) echo "ERROR: bad --mode: $MODE" >&2; exit 2 ;; esac
 
 # Resolve platform from config when omitted
-if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
   if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')

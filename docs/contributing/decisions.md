@@ -11,7 +11,7 @@
 | AFFiNE                | MCP `affine-mcp-server` (DAWNCR0W, 84 tools) — primary product docs source                                                          |
 | Docs templates        | Native AFFiNE template pages (UI), referenced by template_id                                                                        |
 | Generated AFFiNE pages | Global PRD, feature PRD, feature wireframes gallery                                                                                |
-| AFFiNE workspace      | 1 per code project, mapped via `snapship.config.json` (`documentation.workspace`)                                                    |
+| AFFiNE workspace      | 1 per code project, mapped via `snap.config.json` (`documentation.workspace`)                                                    |
 | PRD source of truth   | AFFiNE (primary) — minimal local                                                                                                    |
 | Tickets source of truth | Primary platform, local cache                                                                                                     |
 | Local storage         | `.snap/` minimal (cache + progress + meta)                                                                                          |
@@ -25,7 +25,7 @@
 | `/develop`            | Standalone (1 ticket = 1 dev/review cycle) + `--loop=session` (epic/feature)                                                        |
 | Chaining              | Manual (suggestion at end of skill)                                                                                                 |
 | Tickets sync          | Local draft → batch review → push                                                                                                   |
-| Config                | `snapship.config.json` at project root (extends bundled defaults)                                                                   |
+| Config                | `snap.config.json` at project root (extends bundled defaults)                                                                   |
 | Auth                  | None in config — MCP/CLI handle it (gh auth, glab auth, $AFFINE_API_TOKEN)                                                          |
 | Config sections       | `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `defaults` |
 
@@ -33,11 +33,11 @@
 
 ### Config bootstrap: dedicated `/snap:init` skill
 
-**Choice:** dedicated `/snap:init` skill (steps `step-00-detect.md` + `step-01-write.md`) handles `snapship.config.json` creation. All other skills (define/ticket/wireframe/develop/qa) exit early with `ERROR: snapship.config.json not found. Run /snap:init first.` if config missing.
+**Choice:** dedicated `/snap:init` skill (steps `step-00-detect.md` + `step-01-write.md`) handles `snap.config.json` creation. All other skills (define/ticket/wireframe/develop/qa) exit early with `ERROR: snap.config.json not found. Run /snap:init first.` if config missing.
 
 **Why:** separation of concerns, loud fail-fast > silent fallback, explicit init (1× per project).
 
-**How to apply:** adding a new skill = add the guard `[ -f "$PWD/snapship.config.json" ] || exit 1` at the start of step-00.
+**How to apply:** adding a new skill = add the guard `[ -f "$PWD/snap.config.json" ] || exit 1` at the start of step-00.
 
 ### Config `$schema`: GitHub raw URL
 

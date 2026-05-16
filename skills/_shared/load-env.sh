@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# load-env.sh — read `.env.snapship` at project root (KEY=VALUE format).
+# load-env.sh — read `.env.snap` at project root (KEY=VALUE format).
 #
 # Usage:
 #   bash load-env.sh --project-root=PATH --key=NAME
-#     → print value of NAME from <PATH>/.env.snapship on stdout. Exit 1 if file
+#     → print value of NAME from <PATH>/.env.snap on stdout. Exit 1 if file
 #       missing or key absent.
 #   bash load-env.sh --project-root=PATH
 #     → print all non-comment KEY=VALUE lines on stdout (suitable for `eval`).
@@ -37,7 +37,7 @@ if [ -z "$PROJECT_ROOT" ]; then
   exit 2
 fi
 
-ENV_FILE="$PROJECT_ROOT/.env.snapship"
+ENV_FILE="$PROJECT_ROOT/.env.snap"
 if [ ! -f "$ENV_FILE" ]; then
   echo "load-env.sh: $ENV_FILE not found" >&2
   exit 1

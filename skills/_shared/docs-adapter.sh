@@ -120,7 +120,7 @@ case "$ACTION" in
 esac
 
 # Resolve platform + workspace from config when omitted.
-if { [ -z "$PLATFORM" ] || [ -z "$WORKSPACE_ID" ]; } && [ -f "${PROJECT_ROOT}/snapship.config.json" ]; then
+if { [ -z "$PLATFORM" ] || [ -z "$WORKSPACE_ID" ]; } && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
   if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
     [ -z "$PLATFORM" ]     && PLATFORM=$(echo "$CFG"     | jq -r '.documentation.platform // ""')
