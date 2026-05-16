@@ -15,9 +15,6 @@
 # Legacy resolved-config cache (pre-v1.0.0)
 .config-resolved.json
 
-# Legacy product cache (pre-v1.0.0)
-.claude/product/
-
 # OS junk
 .DS_Store
 Thumbs.db
@@ -42,6 +39,9 @@ pnpm-debug.log*
 # Test artifacts
 .bats-tmp/
 coverage/
+
+# Claude code
+.claude
 
 # code-review-graph DB (auto-généré par MCP)
 .code-review-graph/
