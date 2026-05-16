@@ -1,21 +1,38 @@
 ---
 name: qa
-description: Validate developed tickets — run regression (scope=impacted via code-review-graph), wireframe diff (Playwright vs Frame0), spawn code-reviewer-qa, cycle dev fixes via amend, optional retrigger of /develop reviewers.
+description: Validate one developed ticket — fetch ticket live (tracker = source), apply story_type filters (task/bug skip UI checks, Epic refused), run regression (scope=impacted via code-review-graph), wireframe diff (Playwright vs Frame0), spawn code-reviewer-qa, cycle dev fixes via amend, optional retrigger of /develop reviewers.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Task
 ---
 
-# /qa — validate developed tickets skill
+# /qa — validate developed ticket skill (v1.2)
 
-Run after `/develop` produced a commit (or several). Validates against AC,
-regression, wireframe match, and security/functional drift introduced after
-the dev phase.
+Run after `/develop` produced a commit. Validates against AC, regression,
+wireframe match (when applicable per `story_type`), and security/functional
+drift introduced after the dev phase.
 
 ## When to use
 
-- A ticket has `commit_sha` set and `status="in_review"` in tickets.json.
-- The repo has a `test_command` resolved (or detectable via
+- Ticket has `commit_sha` set and `status="in_review"` on the tracker.
+- Repo has a `test_command` resolved (or detectable via
   `detect-test-commands.sh`).
 - Optionally: Frame0 wireframes exist for UI tickets — enables wireframe diff.
+
+## story_type filters (v1.2)
+
+`/qa` applies filters before running checks — checks are gated by `story_type` :
+
+| story_type | wireframe_check | design_check | regression |
+|------------|-----------------|--------------|------------|
+| `user-story` | enabled (config) | enabled (config) | full |
+| `task` | skipped | skipped | full |
+| `bug` | skipped | conditional¹ | full |
+| `epic` | refused — exit 20 |||
+
+¹ Bug visual : `design_check` kept when ticket has label `visual` / `ui-bug`
+OR `wireframe_url` set. Otherwise skipped.
+
+Epic refusal is a double-safety check (`/develop` already refuses Epic at
+step-01). Hint emitted : run `/qa --ticket=<child-id>` on each child instead.
 
 ## Pipeline
 
@@ -31,14 +48,18 @@ the dev phase.
 ## Args
 
 ```
-/qa                            # AskUserQuestion: which ticket / feature?
-/qa <ticket-id>                # validate one ticket
-/qa <story-id>               # validate every in_review ticket in feature
+/qa --ticket=<platform_id>     # validate one ticket (mandatory in v1.2)
 /qa --resume | -r              # resume via progress.sh resume
 /qa --dry-run                  # collect-only; no fix loop, no amend
 /qa --no-wireframe-check       # skip wireframe diff even if config enables it
 /qa --retrigger                # force step-04 even if config.retrigger_review=false
+/qa --no-doc-update            # skip post-success /snap:doc-update auto-trigger
+/qa --keep-runtime             # preserve .snap/.runtime/<subject-id>/ on exit
 ```
+
+`--ticket=` regex per platform:
+- `github|gitlab` : `^#?[0-9]+$` (e.g. `#42`, `42`)
+- `jira|linear`   : `^[A-Z][A-Z0-9_]+-[0-9]+$` (e.g. `AUTH-12`, `ENG-99`)
 
 ## Configuration (config.qa)
 
@@ -72,13 +93,15 @@ the dev phase.
 
 ## Outputs
 
-- Each validated ticket: `status="qa-validated"`, `qa_validated_at` set in
-  `.snap/tickets/${story_id}.json`.
-- Feature manifest state advanced to `qa-validated` when all targeted tickets
-  pass.
+- Validated ticket: tracker patched with `status="qa-validated"`,
+  `qa_validated_at` timestamp set via `tickets-adapter.sh patch-ticket`.
 - Ticket platform body amended with QA verdict (per-platform template).
 - `progress.json` step entries.
 - Optional: re-review summary appended (when retrigger ran).
+
+v1.2: no local `.snap/tickets/` writes — tracker is the single source of
+truth (decision 3). Ephemeral `.snap/.runtime/<subject-id>/` is purged on
+exit unless `--keep-runtime` is set.
 
 ## Resume protocol
 
