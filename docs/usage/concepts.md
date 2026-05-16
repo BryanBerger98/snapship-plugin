@@ -375,3 +375,200 @@ Fields:
 - PRD frozen after creation (immutable, never re-touched)
 - user_journey slug free, human page title
 - `/snap:doc-import` skill for bootstrap from existing AFFiNE doc (3 strategies: synthesize default, copy, move)
+
+# v1.2 Hierarchy concepts
+
+Ticket model in v1.2 splits the legacy "feature" entity into four
+`story_type` values and pushes everything that used to live in
+`.snap/tickets/` to the tracker as the single source of truth. The
+concepts below describe the resulting parent-child rules, worktree
+resolution, ephemeral cache, the orthogonal Milestone/Version axes, and
+the per-platform capability matrix.
+
+## Hierarchy
+
+Four `story_type` values, enforced by `tickets.schema.json`:
+
+| Type | Role | Branch + Commit | Develop / QA |
+|------|------|-----------------|--------------|
+| `epic` | Pure project-management grouping (business goal + success metrics) | No | No |
+| `user-story` | Deliverable user-value unit | Yes | Yes |
+| `task` | Technical unit (refactor, infra, perf) | Yes | Yes |
+| `bug` | Defect to fix | Yes | Yes |
+
+### Parent-child matrix
+
+| Child \\ Parent | (none) | `epic` | `user-story` | `task` | `bug` |
+|-----------------|--------|--------|--------------|--------|-------|
+| `epic`          | refused (standalone forbidden) | n/a | n/a | n/a | n/a |
+| `user-story`    | allowed (standalone) | allowed | n/a | n/a | n/a |
+| `task`          | allowed (standalone) | allowed | allowed | n/a | allowed |
+| `bug`           | allowed (standalone) | allowed | allowed | n/a | **refused** |
+
+- An Epic always has a parent of `(none)` is **refused** — Epic
+  standalone is meaningless without children.
+- `bug` parent of `bug` is **refused** — promote one of them to
+  `user-story` if you need that nesting.
+- `task` is the only type that can attach under another `task`-equivalent
+  parent (`bug`), to represent sub-fixes of a bug.
+
+### Concrete examples
+
+```
+Epic PROJ-12 "Self-serve onboarding"
+├── User Story PROJ-13 "Email signup"
+│   └── Task PROJ-14 "Add /signup route"
+├── User Story PROJ-15 "OAuth signup"
+└── Bug PROJ-16 "Welcome email fails on Gmail"
+    └── Task PROJ-17 "Fix DKIM header"
+
+User Story PROJ-20 "Profile edit"           (standalone, no Epic)
+└── Task PROJ-21 "Schema migration profile.phone"
+
+Task PROJ-30 "Upgrade Node 20"              (standalone)
+Bug  PROJ-31 "Date picker off-by-one"       (standalone)
+```
+
+Schema enforcement is intentionally minimal: a single `allOf` rule
+forbids `branch_name` / `commit_sha` when `story_type=epic`. All other
+parent-child checks happen in `/snap:ticket` at runtime against the
+tracker, not at schema-validation time, to avoid false positives during
+incremental drafting.
+
+## Worktree resolution by `story_type`
+
+`worktree-helper.sh resolve` returns one of two strategies — `dedicated`
+or `reuse` — based on the ticket's `story_type` and parent chain:
+
+| Ticket | Parent | Strategy | Branch | Path |
+|--------|--------|----------|--------|------|
+| `user-story` | any | `dedicated` | own | `{worktree.path}/{branch_name}` |
+| `bug` | any | `dedicated` | own | `{worktree.path}/{branch_name}` |
+| `task` | `user-story` | `reuse` | parent US branch | `{worktree.path}/{parent_branch}` |
+| `task` | `epic` | `dedicated` | own | `{worktree.path}/{branch_name}` |
+| `task` | `bug` | `dedicated` | own | `{worktree.path}/{branch_name}` |
+| `task` | (none) | `dedicated` | own | `{worktree.path}/{branch_name}` |
+| `epic` | n/a | refused (exit 1) | — | — |
+
+Rationale: Tasks under a User Story collaborate on the same deliverable
+and share a single PR, so they share the worktree. Tasks under an Epic
+(which has no branch) or under a Bug (separate fix) get their own
+worktree and PR.
+
+`defaults.worktree` config schema (v1.2):
+
+```json
+{
+  "path": "./.worktrees",
+  "default_root": "{branch_name}",
+  "destroy": "after_merge"
+}
+```
+
+The v1.1 `subtask_root` field is removed — the strategy is now
+fully derived from `story_type` and the parent chain. `destroy` keeps
+its enum `after_develop | after_review | after_merge`.
+
+## Ephemeral intra-run cache
+
+`.snap/.runtime/<subject-id>/` is a per-skill-invocation scratch space
+managed by `cache-runtime.sh`. It replaces the v1.1 persistent
+`.snap/tickets/<story_id>.json` cache.
+
+### Lifecycle
+
+```
+skill start  →  cache-runtime.sh id-gen     # generate subject-id
+              →  cache-runtime.sh init <id>  # mkdir .snap/.runtime/<id>/
+              →  trap 'cache-runtime.sh purge <id>' EXIT
+              →  ... skill body fetches tracker, drafts, validates ...
+skill end    →  EXIT trap fires            # trash .snap/.runtime/<id>/
+```
+
+The directory is purged on every exit path — success, error, signal —
+so a crash leaves no stale state. The tracker is the only source of
+truth at the next invocation.
+
+### Contents
+
+Filenames written by skills (bare names, no subdirs):
+
+| File | Producer | Role |
+|------|----------|------|
+| `tickets.json` | `/snap:ticket` | Draft tickets array, schema = `tickets.schema.json` |
+| `parent.json` | `/snap:ticket`, `/snap:develop` | Resolved parent ticket fetched from tracker |
+| `refs.json` | `/snap:develop` | Linked doc/code references from the ticket |
+| `digest.json` | `/snap:qa` | QA reviewer aggregate verdict |
+
+`subject-id` is generated as `<prefix>-YYYYMMDDTHHMMSS-XXXXXX` (e.g.
+`ticket-20260516T120000-a3f9c1`), giving each invocation a unique
+scratch dir. Two concurrent `/snap:ticket` runs on the same story
+therefore never collide.
+
+### Guarantees
+
+- `.snap/.runtime/` is gitignored — never committed.
+- Cache is never read across invocations — every skill re-fetches from
+  the tracker.
+- Drafts lost on crash are acceptable: the tracker still holds the
+  authoritative state, and the user re-invokes the skill.
+
+## Milestone vs Version
+
+Milestones and versions are **orthogonal** — both can attach to any
+ticket, but they answer different questions and map to different
+tracker fields.
+
+| Axis | Question | Cardinality | Example | Tracker field |
+|------|----------|-------------|---------|---------------|
+| `milestone` | _When is this delivered?_ | One per ticket | `Q1-2026`, `sprint-42` | GH Milestone, GitLab Milestone, Jira Sprint, Linear Cycle |
+| `target_version` | _Which release ships it?_ | One per ticket (semver) | `1.2.0`, `2.0.0-beta.3` | GH Release tag, GitLab Tag, Jira Fix Version, Linear Release |
+
+A milestone is a delivery container — a dated checkpoint, often a sprint
+or a quarterly objective. A version is a semver label attached to a
+release artifact (Git tag, distributable build, customer-visible
+package). The same ticket can have `milestone="Q1-2026"` **and**
+`target_version="1.2.0"` — they encode different facets and round-trip
+to different tracker APIs.
+
+`target_version` is explicit per ticket — there is no silent inheritance
+from parent Epic or User Story. Leave it empty when the ticket is not
+release-gated.
+
+## Capability flags per platform
+
+`tickets-adapter.sh capabilities` returns a JSON object per platform
+listing supported features. Skills read it before invoking a
+capability-gated action; missing capabilities degrade gracefully with a
+single warning instead of an error.
+
+| Capability | GitHub | GitLab | Jira | Linear |
+|------------|--------|--------|------|--------|
+| `supports_epic` (parent-child links) | yes | yes | yes | yes |
+| `supports_milestone` (native milestone API) | yes | yes | yes | yes |
+| `supports_version` (release / fixVersion field) | **no** | yes | yes | yes |
+| `supports_epic_auto_close` (close parent when all children done) | **no** | yes | yes | yes |
+| Native Issue Type (Story / Bug / Task / Epic) | yes (via `gh issue create --type`) | label-based | yes | yes |
+| Projects v2 custom fields | yes | n/a | n/a | n/a |
+
+### Graceful degradation
+
+- **GitHub `target_version`**: GH has no first-class fixVersion field.
+  When `target_version` is set, the adapter looks up a matching Git tag /
+  Release and links it from the issue body if found, otherwise emits a
+  single `WARN: supports_version=false on github — target_version ignored`
+  per run.
+- **GitHub Epic auto-close**: `close-epic` on GH appends a marker
+  comment but leaves the issue open — closing remains manual.
+- **GitHub Issue Type + Projects v2**: when `tickets.github.issue_types`
+  is configured, the adapter routes `story_type` to the native Issue Type
+  and (if `tickets.github.project` is set) writes the Projects v2 field
+  (Status, Iteration, Priority, etc.). Without that config, falls back
+  to plain labels.
+- **Linear Release**: capability is `true` only if the workspace has at
+  least one Release configured. Adapter probes on first use; if absent,
+  warns and ignores `target_version`.
+- **Unsupported action on a platform**: adapter returns
+  `{ok:false, error:"capability_missing"}` and the calling skill skips
+  the action with a single user-visible warning. The run continues —
+  capability-gated calls never abort the skill.
