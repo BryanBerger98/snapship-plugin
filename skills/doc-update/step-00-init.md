@@ -19,12 +19,23 @@ Validate prerequisites. Fail loud, fail early.
    ```
 
 2. **Parse args** from `/snap:doc-update`:
-   - `--feature=NN-slug` (required; partial-match on `story_id`)
-   - `--mode=diff|rewrite` (optional; overrides `documentation.auto_update_mode`)
+   - `--feature=NN-slug` (partial-match on `story_id`) — feature mode
+   - `--epic=<platform_id>` — Epic-ship mode (v1.2)
+   - `--mode=diff|rewrite` (feature mode only; overrides
+     `documentation.auto_update_mode`)
    - `--dry-run` (default false)
    - `-a` / `--auto` (default false)
 
-   Reject unknown `--mode` values.
+   Validation :
+   - `--feature` ET `--epic` mutuellement exclusifs. Exactement un des deux
+     requis.
+   - Reject unknown `--mode` values.
+   - In `--epic` mode, `--mode` is ignored (the section is generated, not
+     diff-patched).
+
+   If `--epic=<id>` provided, **jump directly to step-01b (Epic ship)** and
+   skip feature-mode validation (steps 3, 5, 8 below). Step-01b is the
+   terminal step for Epic-ship mode.
 
 3. **Resolve feature**:
    ```bash
