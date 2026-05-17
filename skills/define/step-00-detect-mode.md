@@ -13,6 +13,24 @@ le handler approprié :
 - `journey` → `step-00-journey-edit.md` (édit `_taxonomy.json.{domains[].journeys,journeys}`)
 - `story` → `step-00-story-init.md` (flow PRD livrable, default)
 
+## Fast path — `--mode=` explicite (T7)
+
+Si l'invocation contient `--mode=<vision|journey|story>` **et** ne contient
+**pas** `--resume`, le routeur **n'exécute pas** la détection. Concrètement :
+
+- **Skip Phase B** (lexicon load + scoring) — pas de `Read _keywords.json`.
+- **Skip Phase C** (confirmation user) — pas de `AskUserQuestion`.
+- Set `$define_mode = $mode_arg` et passe directement à Phase D (init state) →
+  E (progress) → F (branch).
+
+C'est le chemin par défaut quand l'utilisateur connaît son intent (souvent via
+un raccourci `/snap:define --mode=vision …`). Lire l'ensemble du fichier reste
+nécessaire (Claude charge le step en atomique), mais l'exécution short-circuit
+B + C — aucun token dépensé en concertation, aucune question posée.
+
+Tout autre cas (pas de `--mode=`, ou `--mode=` invalide, ou `--resume` actif
+sans mode cached) → flow complet A → B → C → D → E → F.
+
 ## Inputs
 
 - `RAW_INPUT` : message libre user fourni à `/snap:define`.
@@ -23,13 +41,20 @@ le handler approprié :
 
 ### A. Parse args
 
-1. Parse `--mode=` → si présent et ∈ {vision, journey, story} → bypass détection, jump direct au handler.
+1. Parse `--mode=` :
+   - Si présent et ∈ {vision, journey, story} **et** `--resume` absent →
+     **fast path** : set `define_mode="$mode_arg"`, **skip B et C**, passe
+     directement à Phase D avec `--define-mode="$define_mode"`.
+   - Si présent mais hors {vision, journey, story} → abort avec message
+     pointant vers les valeurs valides.
 2. Si `--resume` présent **avec** un `define_mode` cached dans
-   `.snap/.define-state.json` → réutiliser le mode caché et reprendre via
-   `progress.sh resume`.
-3. Sinon : passer à la détection LLM (étape B).
+   `.snap/.define-state.json` → réutiliser le mode caché, skip B et C, et
+   reprendre via `progress.sh resume`.
+3. Si `--resume` présent **sans** `define_mode` cached → état corrompu :
+   abort avec instruction de relancer sans `--resume`.
+4. Sinon (pas de `--mode=`, pas de `--resume`) → flow complet, passer à B.
 
-### B. Détection LLM (concertation)
+### B. Détection LLM (concertation) — _skipped on fast path_
 
 1. **Charger le lexique** via `Read` : `skills/define/_keywords.json`. Fichier
    versionné (`version: 1`) contenant `categories.{vision,journey,story}.{fr,en}`.
@@ -53,7 +78,7 @@ modification du lexique se fait là — le test `test-define-mode-detection.sh`
 charge le même fichier et vérifie ≥ 90 % de classement correct sur un
 corpus 10 FR + 10 EN par mode.
 
-### C. Confirmation user
+### C. Confirmation user — _skipped on fast path_
 
 Via `AskUserQuestion` (multiSelect: false) :
 
@@ -107,8 +132,13 @@ Set `next_step` runtime variable accordingly. The frontmatter default
 ## Acceptance check
 
 - `.snap/.define-state.json` contains `define_mode ∈ {vision, journey, story}`.
-- `progress.json` has step 00 detect-mode with `status=ok`.
-- User confirmed the mode (or `--mode=` was explicit).
+- `progress.json` has **exactly one** step-00 detect-mode entry with
+  `status=ok` (fast path = one entry ; no detection loop, no second entry
+  after confirmation).
+- User confirmed the mode (or `--mode=` was explicit — no confirmation prompt
+  fired in that case).
+- Fast path observable signal : zero `AskUserQuestion` and zero
+  `Read _keywords.json` for the step-00 invocation.
 
 ## Failure handling
 
