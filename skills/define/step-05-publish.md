@@ -1,6 +1,6 @@
 ---
 step: 05-publish
-description: Push PRD pages to {prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}; tag with domains; ensure domain + journey pages exist (idempotent). Ack refs into manifests via sync-push.sh; cache page IDs in _taxonomy.json. Trash PRD staging on ack. Terminal step.
+description: Push PRD pages to {prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}; tag with domains; ensure domain + journey pages exist (idempotent). Delegates the MCP sequence to the snap-publisher sub-agent. Terminal step.
 ---
 
 # step-05 — publish
@@ -11,20 +11,25 @@ Final step. Three responsibilities :
    `{prd_root}/{YYYY}/{MM-YYYY}/{NN-feature}`, tagged with impacted domains.
 2. **Functional doc skeleton** — idempotent `lookup-or-create-page` for every
    domain + impacted journey referenced by features. New journey pages start
-   empty; populated by `/snap:doc-update` post-ship.
+   empty ; populated by `/snap:doc-update` post-ship.
 3. **Sync refs** — ack the PRD push into the manifest via `sync-push.sh ack`
    (trashes staging file, updates `refs.prd`). Persist domain + journey page
    IDs to `_taxonomy.json` via `taxonomy-state.sh`.
+
+The MCP-heavy sequence (steps 1–8) is delegated to the **snap-publisher**
+sub-agent — subprocesses can emit `docs-adapter.sh` descriptors but cannot
+invoke MCP themselves. This step orchestrates : skip-check, brief build,
+sub-agent dispatch, outcome parse, telemetry.
 
 Terminal step — no `next_step`.
 
 ## Inputs
 
-- `.snap/PRDs/{fid}.md` (staging — trashed on ack)
-- `.snap/manifests/{fid}.manifest.json` (state=`defined`)
+- `.snap/PRDs/{fid}.md` (staging — trashed on ack by sub-agent).
+- `.snap/manifests/{fid}.manifest.json` (state=`defined`).
 - `CONFIG_JSON` shell var (from step-00) → `documentation.platform`,
   `documentation.paths.{functional_root,prd_root}`, `documentation.workspace.id`.
-  On `--resume`, hydrate from the persisted snapshot (T3) before reading:
+  On `--resume`, hydrate from the persisted snapshot (T3) :
   ```bash
   if [ -z "${CONFIG_JSON:-}" ] || [ "$CONFIG_JSON" = "{}" ]; then
     CONFIG_JSON=$(bash skills/_shared/define-state.sh get-config-snapshot --project-root="$PWD")
@@ -33,7 +38,7 @@ Terminal step — no `next_step`.
     CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
   fi
   ```
-- `.snap/manifests/_taxonomy.json` (cache of domain + journey page IDs)
+- `.snap/manifests/_taxonomy.json` (cache of domain + journey page IDs).
 
 ## Tasks
 
@@ -43,7 +48,7 @@ Terminal step — no `next_step`.
 PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
 ```
 
-- `$PLATFORM == "none"` → log notice, mark `progress.sh step --status=skip`, stop.
+- `$PLATFORM == "none"` → log notice, `progress.sh step --status=skip`, stop.
 - `$PLATFORM ∉ {affine, notion}` → abort with error pointing to `/snap:init`.
 
 ### B. Read paths
@@ -52,292 +57,62 @@ PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
 FUNCTIONAL_ROOT=$(jq -r '.documentation.paths.functional_root' <<<"$CONFIG_JSON")
 PRD_ROOT=$(jq -r '.documentation.paths.prd_root' <<<"$CONFIG_JSON")
 WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' <<<"$CONFIG_JSON")
-
-YEAR=$(date -u +%Y)
-MONTH_YEAR=$(date -u +%m-%Y)
 ```
 
 Both roots are guaranteed non-empty when `$PLATFORM != "none"` (load-config
 injects defaults).
 
-### C. Per feature — main loop
-
-Every `docs-adapter.sh` call returns a JSON envelope :
-
-```json
-{ "page_id": "<platform-id>", "url": "https://…" }   // ok
-{ "error":   "<reason>" }                              // failure
-```
-
-Before consuming any field, validate the response via
-`skills/_shared/check-mcp-response.sh JSON KEY`. It exits 1 if the JSON is
-malformed, the envelope carries an `.error`, or the requested key is absent /
-null / empty.
-
-**Retry policy** — transient failures (`rate-limit`, `timeout`, `5xx`, `network`,
-`transient`, `server-error`, `502/503/504`) are retried via
-`skills/_shared/retry-policy.sh REASON ATTEMPT` with exponential backoff
-(`SNAP_MCP_RETRY_MAX`, `SNAP_MCP_RETRY_BASE_MS`). Non-retryable reasons
-(`auth-fail`, `not-found`, `malformed-json`, `missing/empty KEY`,
-`schema-fail`, …) abort immediately. Each MCP write follows the reference
-pattern documented in `docs/contributing/scripts.md` (retry-policy section) :
-
-```bash
-attempt=0
-while :; do
-  attempt=$((attempt + 1))
-  MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh ...)
-  if VALUE=$(bash skills/_shared/check-mcp-response.sh \
-       "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-    break
-  fi
-  if ! bash skills/_shared/retry-policy.sh \
-       "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-    bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-      --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-    bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
-      --story-id="$fid" --step-num=05 --step-name=publish --status=fail
-    continue   # or `continue 2` / `continue 3` from inner sub-loops
-  fi
-done
-```
-
-The contract (success/error envelopes, response shapes) is documented in
-`docs/contributing/scripts.md` (docs-adapter section).
+### C. Per feature — dispatch to snap-publisher
 
 For each manifest in `.snap/manifests/*.manifest.json` (skip `_taxonomy.json`) :
 
-```bash
-fid=$(jq -r '.story_id' "$MANIFEST")
-```
-
-1. **Skip if already synced** (idempotent re-run) :
+1. **Prepare brief** (shell-pure, skip-check inside) :
    ```bash
-   PRD_STATUS=$(jq -r '.refs.prd.sync_status // ""' "$MANIFEST")
-   if [ "$PRD_STATUS" = "synced" ]; then
-     echo "skip $fid (refs.prd.sync_status=synced)"
+   BRIEF=$(bash skills/_shared/publish-prd.sh prepare \
+     --project-root="$PWD" --manifest="$MANIFEST")
+   fid=$(echo "$BRIEF" | jq -r '.fid')
+   skip=$(echo "$BRIEF" | jq -r '.skip')
+   ```
+
+2. **Skip already-synced features** (idempotent re-run) :
+   ```bash
+   if [ "$skip" = "true" ]; then
+     reason=$(echo "$BRIEF" | jq -r '.skip_reason')
+     echo "skip $fid ($reason)"
+     bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
+       --story-id="$fid" --step-num=05 --step-name=publish --status=skip
      continue
    fi
    ```
 
-2. **Compute path + tags** :
+3. **Build agent prompt** :
    ```bash
-   PRD_PATH="${PRD_ROOT}/${YEAR}/${MONTH_YEAR}/${fid}"
-   DOMAINS_JSON=$(jq -c '.domains // []' "$MANIFEST")
+   PROMPT=$(bash skills/_shared/publish-prd.sh build-agent-prompt \
+     --brief="$BRIEF" \
+     --platform="$PLATFORM" --workspace-id="$WORKSPACE_ID" \
+     --functional-root="$FUNCTIONAL_ROOT" --prd-root="$PRD_ROOT" \
+     --project-root="$PWD")
    ```
 
-3. **Create PRD parent path** (idempotent recursive, retry-wrapped) :
+4. **Dispatch to snap-publisher** via the Agent tool with
+   `subagent_type=snap-publisher`. The sub-agent runs the full MCP sequence
+   (create-page-tree → create PRD → set-page-tags → lookup-or-create
+   functional_root + per-domain + per-journey → `sync-push.sh ack` → manifest
+   schema validation) and returns a single JSON fence.
+
+5. **Parse the outcome** (last JSON fence) :
    ```bash
-   attempt=0
-   while :; do
-     attempt=$((attempt + 1))
-     MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
-       --action=create-page-tree \
-       --platform="$PLATFORM" \
-       --workspace-id="$WORKSPACE_ID" \
-       --path="${PRD_ROOT}/${YEAR}/${MONTH_YEAR}")
-     if MONTH_PARENT_ID=$(bash skills/_shared/check-mcp-response.sh \
-          "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-       break
-     fi
-     if ! bash skills/_shared/retry-policy.sh \
-          "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-       bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-         --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-       bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
-         --story-id="$fid" --step-num=05 --step-name=publish --status=fail
-       continue 2
-     fi
-   done
+   STATUS=$(echo "$AGENT_OUTPUT" | jq -r '.status')
+   RETRIES=$(echo "$AGENT_OUTPUT" | jq -r '.retries // 0')
+   REASON=$(echo "$AGENT_OUTPUT" | jq -r '.reason // empty')
    ```
 
-4. **Create the PRD page** (always new — `story_id` is unique, retry-wrapped) :
-   ```bash
-   PRD_STAGING=$(bash skills/_shared/sync-push.sh staging-path \
-     --story-id="$fid" --kind=prd --project-root="$PWD")
-   attempt=0
-   while :; do
-     attempt=$((attempt + 1))
-     MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
-       --action=create \
-       --platform="$PLATFORM" \
-       --parent-id="$MONTH_PARENT_ID" \
-       --title="$(jq -r .story_name "$MANIFEST")" \
-       --content-file="$PRD_STAGING")
-     if PRD_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
-          "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-       break
-     fi
-     if ! bash skills/_shared/retry-policy.sh \
-          "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-       bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-         --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-       bash skills/_shared/progress.sh step --project-root="$PWD" --skill=define \
-         --story-id="$fid" --step-num=05 --step-name=publish --status=fail
-       continue 2
-     fi
-   done
-   # `url` is on the same successful envelope — no retry (page already created).
-   if ! PRD_URL=$(bash skills/_shared/check-mcp-response.sh \
-        "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
-     bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-       --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
-     continue
-   fi
-   ```
-
-5. **Tag the PRD page with impacted domains** :
-   ```bash
-   bash skills/_shared/docs-adapter.sh \
-     --action=set-page-tags \
-     --platform="$PLATFORM" \
-     --page-id="$PRD_PAGE_ID" \
-     --tags="$DOMAINS_JSON"
-   ```
-
-6. **Lookup-or-create domain pages** (idempotent, retry-wrapped) :
-   ```bash
-   attempt=0
-   while :; do
-     attempt=$((attempt + 1))
-     MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
-       --action=lookup-or-create-page \
-       --platform="$PLATFORM" \
-       --workspace-id="$WORKSPACE_ID" \
-       --title="$FUNCTIONAL_ROOT")
-     if FROOT_ID=$(bash skills/_shared/check-mcp-response.sh \
-          "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-       break
-     fi
-     if ! bash skills/_shared/retry-policy.sh \
-          "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-       bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-         --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-       continue 2
-     fi
-   done
-
-   for domain in $(echo "$DOMAINS_JSON" | jq -r '.[]'); do
-     existing=$(bash skills/_shared/taxonomy-state.sh get-domain "$domain" \
-       --project-root="$PWD")
-     if [ -z "$existing" ]; then
-       DOMAIN_TITLE=$(jq -r --arg fid "$fid" --arg d "$domain" '
-         .features[] | select(.story_id == $fid)
-         | .impacted_journeys[] | select(.domain == $d)
-         | .domain_title // $d
-       ' .snap/.define-state.json | head -1)
-       attempt=0
-       while :; do
-         attempt=$((attempt + 1))
-         MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
-           --action=lookup-or-create-page \
-           --platform="$PLATFORM" \
-           --parent-id="$FROOT_ID" \
-           --title="$DOMAIN_TITLE")
-         if DOMAIN_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
-              "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-           break
-         fi
-         if ! bash skills/_shared/retry-policy.sh \
-              "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-           bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-             --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-           continue 3
-         fi
-       done
-       # `url` on same envelope — no retry.
-       if ! DOMAIN_URL=$(bash skills/_shared/check-mcp-response.sh \
-            "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
-         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
-         continue 2
-       fi
-
-       bash skills/_shared/taxonomy-state.sh add-domain \
-         "$domain" "$DOMAIN_TITLE" "$DOMAIN_PAGE_ID" "$DOMAIN_URL" \
-         --project-root="$PWD"
-     fi
-   done
-   ```
-
-7. **Lookup-or-create journey pages** (idempotent, retry-wrapped) :
-   ```bash
-   for entry in $(jq -c '.impacted_journeys[]' "$MANIFEST"); do
-     domain=$(echo "$entry" | jq -r '.domain')
-     jslug=$(echo "$entry"  | jq -r '.journey_slug')
-     jtitle=$(jq -r --arg fid "$fid" --arg d "$domain" --arg s "$jslug" '
-       .features[] | select(.story_id == $fid)
-       | .impacted_journeys[] | select(.domain == $d and .journey_slug == $s)
-       | .journey_title // $s
-     ' .snap/.define-state.json | head -1)
-
-     existing=$(bash skills/_shared/taxonomy-state.sh get-journey \
-       "$domain" "$jslug" --project-root="$PWD")
-     if [ -z "$existing" ]; then
-       DOMAIN_PARENT_ID=$(bash skills/_shared/taxonomy-state.sh get-domain "$domain" \
-         --project-root="$PWD" | jq -r '.page_id')
-
-       attempt=0
-       while :; do
-         attempt=$((attempt + 1))
-         MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh \
-           --action=lookup-or-create-page \
-           --platform="$PLATFORM" \
-           --parent-id="$DOMAIN_PARENT_ID" \
-           --title="$jtitle")
-         if JOURNEY_PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
-              "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
-           break
-         fi
-         if ! bash skills/_shared/retry-policy.sh \
-              "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
-           bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-             --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
-           continue 3
-         fi
-       done
-       # `url` on same envelope — no retry.
-       if ! JOURNEY_URL=$(bash skills/_shared/check-mcp-response.sh \
-            "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
-         bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
-           --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
-         continue 2
-       fi
-
-       bash skills/_shared/taxonomy-state.sh add-journey \
-         "$domain" "$jslug" "$jtitle" "$JOURNEY_PAGE_ID" "$JOURNEY_URL" \
-         --project-root="$PWD"
-     fi
-   done
-   ```
-
-   New journey pages are intentionally **empty** — `/snap:doc-update` populates
-   them after `/snap:qa` validates the feature.
-
-8. **Ack PRD push** — updates `manifest.refs.prd` and trashes the staging file
-   in one atomic helper call :
-   ```bash
-   bash skills/_shared/sync-push.sh ack \
-     --project-root="$PWD" \
-     --story-id="$fid" \
-     --kind=prd \
-     --platform="$PLATFORM" \
-     --url="$PRD_URL" \
-     --page-id="$PRD_PAGE_ID"
-   ```
-   Sets `refs.prd = { platform, url, page_id, synced_at, sync_status: "synced" }`
-   and trashes `.snap/PRDs/{fid}.md` (cf. core philosophy : remote = source of
-   truth, local staging only).
-
-9. **Validate manifest after ack** :
-   ```bash
-   ajv validate \
-     -s skills/_shared/schemas/manifest.schema.json \
-     -d ".snap/manifests/${fid}.manifest.json" \
-     --spec=draft2020 --strict=false
-   ```
-   On failure, mark `refs.prd.sync_status=error` via `sync-push.sh fail` and
-   stop (bug, not transient).
+   - `status == "ok"` → step-level progress = `ok`. Telemetry log includes
+     `retries`.
+   - `status == "skip"` → already-synced detected mid-flight ; progress = `skip`.
+   - `status == "fail"` → the sub-agent already called `sync-push.sh fail`.
+     Set `progress.sh step --status=fail` ; continue to next manifest (the
+     orchestrator must not abort the whole loop on one bad feature).
 
 ### D. Telemetry
 
@@ -348,25 +123,18 @@ bash skills/_shared/telemetry.sh log \
   --step-num=05 \
   --step-name=publish \
   --status=ok \
-  --extra="{\"features\":$N, \"platform\":\"$PLATFORM\"}"
+  --extra="{\"features\":$N, \"platform\":\"$PLATFORM\", \"retries_total\":$TOTAL_RETRIES}"
 ```
 
 ### E. Progress
 
 ```bash
 bash skills/_shared/progress.sh step \
-  --project-root="$PWD" \
-  --skill=define \
-  --story-id=_global \
-  --step-num=05 \
-  --step-name=publish \
-  --status=ok
+  --project-root="$PWD" --skill=define --story-id=_global \
+  --step-num=05 --step-name=publish --status=ok
 
 bash skills/_shared/progress.sh finish \
-  --project-root="$PWD" \
-  --skill=define \
-  --story-id=_global \
-  --status=ok
+  --project-root="$PWD" --skill=define --story-id=_global --status=ok
 ```
 
 ### F. Cleanup transient state
@@ -379,29 +147,28 @@ bash skills/_shared/define-state.sh wipe --project-root="$PWD"
 
 ## Failure handling
 
-- **MCP transient errors mid-loop** (`rate-limit`, `timeout`, `5xx`, `network`,
-  `transient`, `server-error`, `502/503/504`) : the retry-wrapped pattern from
-  section C handles backoff automatically via `skills/_shared/retry-policy.sh`
-  (config: `SNAP_MCP_RETRY_MAX` default 2, `SNAP_MCP_RETRY_BASE_MS` default
-  500ms). On exhaustion the loop calls `sync-push.sh fail --kind=prd
-  --story-id="$fid"` (sets `refs.prd.sync_status=error`, keeps staging) and
-  `progress.sh step --status=fail`. `/snap:define --resume` then skips features
-  whose `refs.prd.sync_status=synced` and retries the failed ones.
+- **Sub-agent returns `status=fail`** : the sub-agent owns the manifest
+  failure path (`sync-push.sh fail --kind=prd`, sets `refs.prd.sync_status=error`,
+  keeps staging). The orchestrator only marks per-step progress and continues.
+- **MCP transient errors** : handled inside the sub-agent via
+  `retry-policy.sh` with exponential backoff (`SNAP_MCP_RETRY_MAX` default 2,
+  `SNAP_MCP_RETRY_BASE_MS` default 500ms). Retries are reported in the agent
+  outcome `retries` field for telemetry.
 - **MCP non-retryable errors** (`auth-fail`, `not-found`, `malformed-json`,
-  `missing/empty <KEY>`, `schema-fail`, …) : retry-policy aborts on first
-  failure (no backoff). Same `sync-push.sh fail` + `progress.sh fail` flow.
-- **Schema validation failure on manifest** : mark `refs.prd.sync_status=error`,
-  `progress.sh step --status=fail`, stop (do not continue — bug not transient).
-- **Mid-loop partial success** : `/snap:define --resume` re-enters step-05 and
-  skips features already synced.
+  `missing/empty <KEY>`, `schema-fail`) : abort the sub-agent for that feature
+  (no backoff). Same `sync-push.sh fail` flow ; `/snap:define --resume` retries.
+- **Mid-loop partial success** : `/snap:define --resume` re-enters step-05 ;
+  features with `refs.prd.sync_status=synced` are skipped by `publish-prd.sh
+  prepare` (`brief.skip=true`).
 
 ## What this step does NOT do
 
 - ❌ Push a "global PRD" page (v0.1 concept dropped — see `docs/contributing/decisions.md`).
 - ❌ Modify domain pages with a "modification log" entry (would bloat).
-- ❌ Link journey ↔ PRD (journey is a clean spec; PRD = external archive).
+- ❌ Link journey ↔ PRD (journey is a clean spec ; PRD = external archive).
 - ❌ Populate journey body for new journeys (deferred to `/snap:doc-update`).
-- ❌ Keep PRD staging file after ack (trashed by `sync-push.sh ack`).
+- ❌ Keep PRD staging file after ack (trashed by `sync-push.sh ack` inside the sub-agent).
+- ❌ Invoke MCP directly from this step (subprocesses cannot — see `docs-adapter.sh` header).
 
 ## Acceptance check
 

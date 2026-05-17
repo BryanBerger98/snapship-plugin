@@ -155,6 +155,18 @@ for file in "${files[@]}"; do
       [ -n "$tid" ]   && ok "$base: ticket_id present" || ko "$base: example missing 'ticket_id'"
       [ -n "$brief" ] && ok "$base: brief_md present" || ko "$base: example missing 'brief_md'"
       ;;
+    snap-publisher)
+      status=$(echo "$json" | jq -r '.status // empty')
+      fid=$(echo "$json"    | jq -r '.fid // empty')
+      retries=$(echo "$json" | jq -r '.retries // empty')
+      case "$status" in
+        ok|skip|fail) ok "$base: status '$status' valid" ;;
+        "")           ko "$base: example missing 'status'" ;;
+        *)            ko "$base: status '$status' not in {ok,skip,fail}" ;;
+      esac
+      [ -n "$fid" ]     && ok "$base: fid present"     || ko "$base: example missing 'fid'"
+      [ -n "$retries" ] && ok "$base: retries present" || ko "$base: example missing 'retries'"
+      ;;
     *)
       sev=$(echo "$json" | jq -r '.severity // empty')
       fb=$(echo "$json"  | jq -r '.feedback_md // empty')

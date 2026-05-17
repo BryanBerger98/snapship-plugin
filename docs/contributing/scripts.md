@@ -48,6 +48,35 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # testable in isolation (cf. tests/test-manifest-state.sh).
 ```
 
+## publish-prd.sh
+
+```bash
+# Shell-pure helpers backing /snap:define step-05 publish (T1 / Phase 17).
+# The MCP-driven sequence (create-page-tree → create PRD → set-page-tags →
+# lookup-or-create functional_root + per-domain + per-journey → ack manifest)
+# is delegated to agents/snap-publisher.md (subprocesses cannot invoke MCP).
+# This helper keeps the non-MCP plumbing : skip-check + path/title compute +
+# agent-prompt builder.
+#
+# Subcommands:
+#   prepare --project-root=PATH --manifest=PATH
+#     stdout JSON {fid, skip, skip_reason, story_name, priority, year,
+#                  month_year, prd_path, prd_staging, domains,
+#                  impacted_journeys, domain_titles, journey_titles}.
+#     skip=true ↔ manifest.refs.prd.sync_status == "synced".
+#
+#   build-agent-prompt --brief=JSON --platform=X --workspace-id=Y \
+#                      --functional-root=Z --prd-root=W --project-root=PWD
+#     stdout: plain-text prompt embedding the brief, resolved paths, and the
+#     step-by-step MCP sequence. The skill feeds this prompt to the
+#     snap-publisher sub-agent.
+#
+# Exit codes: 0 ok / 1 runtime (manifest/state missing, jq failure) /
+#             2 usage (missing flag, invalid JSON brief).
+#
+# Tests: tests/test-publish-prd.sh
+```
+
 ## progress.sh
 
 ```bash
