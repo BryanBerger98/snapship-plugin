@@ -11,7 +11,7 @@
 #     "issue_types": [ { "id": "IT_xxx", "name": "Feature", "description": "" }, ... ],
 #     "projects": [
 #       {
-#         "id": "PVT_xxx", "number": 12, "title": "SnapShip Project", "url": "...",
+#         "id": "PVT_xxx", "title": "SnapShip Project",
 #         "fields": [
 #           { "id": "PVTSSF_xxx", "name": "Priority", "data_type": "SINGLE_SELECT",
 #             "options": [ { "id": "opt_xxx", "name": "P0" }, ... ] },
@@ -107,7 +107,7 @@ PROJECTS_QUERY='query($owner:String!,$name:String!){
   repository(owner:$owner,name:$name){
     projectsV2(first:20){
       nodes{
-        id number title url
+        id title
         fields(first:50){
           nodes{
             __typename
@@ -133,7 +133,7 @@ fi
 PROJECTS=$(echo "$PR_RAW" | jq -c '
   (.data.repository.projectsV2.nodes // [])
   | map({
-      id, number, title, url,
+      id, title,
       fields: ((.fields.nodes // [])
         | map(select(.id != null and .name != null))
         | map({

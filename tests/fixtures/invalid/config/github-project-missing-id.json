@@ -4,7 +4,6 @@
     "platform": "github",
     "github": {
       "project": {
-        "number": 12,
         "title": "Missing id field"
       }
     }

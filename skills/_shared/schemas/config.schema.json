@@ -145,12 +145,6 @@
                   "type": "string",
                   "description": "Project v2 node ID (PVT_xxx)."
                 },
-                "number": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "description": "Project number visible dans l'URL (informationnel)."
-                },
-                "url": { "type": "string", "format": "uri" },
                 "title": { "type": "string" },
                 "fields": {
                   "type": "object",

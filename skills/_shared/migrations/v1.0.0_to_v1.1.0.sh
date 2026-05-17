@@ -12,7 +12,7 @@
 #       "fields_map":        { "priority": { "field_id": "...", "field_name": "...",
 #                                            "values": { "must": {"option_id":"...","option_name":"P0"} } },
 #                              "size":     { ... }, "scope": { ... } },
-#       "project_selection": { "id": "PVT_xxx", "number": 12, "url": "...", "title": "..." }
+#       "project_selection": { "id": "PVT_xxx", "title": "..." }
 #     }
 #   SNAP_DRY_RUN=true             (optional) print actions only
 #
@@ -141,7 +141,7 @@ if [ "$DEC_PROJECT_LINK" != "skip" ]; then
     PROJECT_BLOCK=$(jq -nc \
       --argjson sel "$PROJECT_SEL" \
       --argjson fmap "$FIELDS_MAP" '
-      ($sel | {id, number, url, title})
+      ($sel | {id, title})
       | . + (if ($fmap | length) > 0 then {fields: $fmap} else {} end)')
   fi
 fi

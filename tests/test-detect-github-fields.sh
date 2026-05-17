@@ -197,7 +197,7 @@ echo "$out" | jq -e '.issue_types | any(.name=="Bug")'     >/dev/null && ok "6.8
 echo "$out" | jq -e '.issue_types | any(.name=="Epic")'    >/dev/null && ok "6.9 Epic present" || ko "6.9"
 [ "$(echo "$out" | jq -r '.projects | length')" = "1" ] && ok "6.10 1 project" || ko "6.10"
 [ "$(echo "$out" | jq -r '.projects[0].id')" = "PVT_1" ] && ok "6.11 project.id" || ko "6.11"
-[ "$(echo "$out" | jq -r '.projects[0].number')" = "12" ] && ok "6.12 project.number" || ko "6.12"
+[ "$(echo "$out" | jq -r '.projects[0].title')" = "Widgets Roadmap" ] && ok "6.12 project.title" || ko "6.12"
 [ "$(echo "$out" | jq -r '.projects[0].fields | length')" = "3" ] && ok "6.13 3 fields" || ko "6.13"
 # single-select keeps options; title field still listed but no options
 echo "$out" | jq -e '.projects[0].fields[] | select(.name=="Priority") | .options | length == 2' >/dev/null \

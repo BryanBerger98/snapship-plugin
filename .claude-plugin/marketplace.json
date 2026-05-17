@@ -12,7 +12,7 @@
       "name": "snap",
       "source": "./",
       "description": "Workflow produit Claude Code: 6 skills enchaînables (define → ticket → wireframe → design → develop → qa).",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "homepage": "https://github.com/BryanBerger98/snapship-plugin",
       "license": "MIT",
       "keywords": [

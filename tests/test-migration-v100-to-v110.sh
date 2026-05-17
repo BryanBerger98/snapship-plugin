@@ -174,7 +174,7 @@ CFG="${DIR}/snapship.config.json"
 [ "$(jq -r '.tickets.github.issue_types.bug' "$CFG")" = "Bug" ] && ok "6.4 bug→Bug" || ko "6.4"
 [ "$(jq -r '.tickets.github.issue_types.epic' "$CFG")" = "Epic" ] && ok "6.5 epic→Epic" || ko "6.5"
 [ "$(jq -r '.tickets.github.project.id' "$CFG")" = "PVT_kwHO1" ] && ok "6.6 project.id" || ko "6.6"
-[ "$(jq -r '.tickets.github.project.number' "$CFG")" = "12" ] && ok "6.7 project.number" || ko "6.7"
+[ "$(jq '.tickets.github.project | has("number")' "$CFG")" = "false" ] && ok "6.7 project.number stripped" || ko "6.7"
 [ "$(jq -r '.tickets.github.project.title' "$CFG")" = "Roadmap" ] && ok "6.8 project.title" || ko "6.8"
 # No fields_map passed → project should NOT have fields key
 [ "$(jq '.tickets.github.project | has("fields")' "$CFG")" = "false" ] && ok "6.9 no fields without map" || ko "6.9"
@@ -238,7 +238,7 @@ SNAP_PROJECT_ROOT="$DIR" SNAP_GH_BIN="$TMPGH/gh" \
   SNAP_DECISIONS_JSON="$DEC" bash "$SCRIPT" >/dev/null 2>&1
 CFG="${DIR}/snapship.config.json"
 [ "$(jq -r '.tickets.github.project.id' "$CFG")" = "PVT_USER" ] && ok "9.1 explicit id" || ko "9.1"
-[ "$(jq -r '.tickets.github.project.number' "$CFG")" = "99" ] && ok "9.2 explicit number" || ko "9.2"
+[ "$(jq '.tickets.github.project | has("number")' "$CFG")" = "false" ] && ok "9.2 number not persisted" || ko "9.2"
 trash "$DIR" 2>/dev/null || rm -rf "$DIR"
 trash "$TMPGH" 2>/dev/null || rm -rf "$TMPGH"
 

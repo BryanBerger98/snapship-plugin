@@ -5,6 +5,18 @@ All notable changes to snapship-plugin documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-05-17
+
+### Removed
+
+- **Schema** : `tickets.github.project.number` et `tickets.github.project.url`
+  retirés de `config.schema.json` — clés informationnelles jamais consommées
+  par `apply-github-metadata.sh`. Migration `v1.0.0_to_v1.1.0.sh` cesse de les
+  écrire ; `detect-github-fields.sh` cesse de les projeter. Configs downstream
+  qui contiendraient ces clés héritées de l'ancienne migration : exécuter
+  `jq 'del(.tickets.github.project.number, .tickets.github.project.url)'`
+  sur `snap.config.json` avant le prochain chargement.
+
 ## [1.2.0] — 2026-05-16
 
 **Product rename `snapship` → `snap`.** Config file, env file, manifest
