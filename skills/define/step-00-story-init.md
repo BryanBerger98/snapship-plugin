@@ -83,19 +83,17 @@ to `/snap:init`.
    ```
    Consumed by `step-03-features.md` Task 7 to skip the Parent Epic question.
 
-6. **Capture resolved config** into a shell variable **and** persist a
-   snapshot in `.define-state.json` so step-04/05 survive a `--resume` after
-   process exit (T3):
+6. **Capture resolved config** into a shell variable for this step's downstream
+   reads :
    ```bash
    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
-   bash skills/_shared/define-state.sh set-config-snapshot "$CONFIG_JSON" \
-     --project-root="$PWD"
    ```
    Fail loud on non-zero exit. `.snap/` already exists (scaffolded by
-   `/snap:init`). Subsequent steps read fields via `jq -r '...' <<<"$CONFIG_JSON"`
-   in the same process **or** hydrate from
-   `define-state.sh get-config-snapshot` on resume (fallback to a fresh
-   `load-config.sh` if the snapshot is empty / corrupt).
+   `/snap:init`). Subsequent steps **always re-run `load-config.sh`** — the
+   config is the single source of truth (cf. `CLAUDE.md` rule
+   « Remote platforms are sources of truth »). Persisting a snapshot would
+   freeze stale values when the user edits `snap.config.json` between
+   `/snap:define` and `/snap:define --resume`.
 
 7. **Mode branch**:
    - `has_codebase = false` → **greenfield** path: full vision walkthrough
@@ -127,7 +125,7 @@ to `/snap:init`.
 | `lang` | `--lang` or detected | step-04 (template rendering) |
 | `story_id` | `--story` or chosen later | step-03 onward |
 | `codebase_mode` | `greenfield` \| `extension` | step-01..03 |
-| `CONFIG_JSON` | `load-config.sh` stdout (mirrored to `.define-state.json.config_snapshot`) | step-04/05 (paths, platform) |
+| `CONFIG_JSON` | `load-config.sh` stdout (re-loaded by each step that needs it) | step-04/05 (paths, platform) |
 
 ## Acceptance check
 

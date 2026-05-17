@@ -83,23 +83,6 @@ trash "$DIR4" 2>/dev/null || true
 
 trash "$DIR" 2>/dev/null || true
 
-# 1quinquies. config_snapshot round-trip (T3 / Phase 19)
-DIR_CS=$(setup_dir)
-bash "$SCRIPT" init --project-root="$DIR_CS"
-F_CS="${DIR_CS}/.snap/.define-state.json"
-[ "$(jq -c '.config_snapshot' "$F_CS")" = "{}" ] && ok "1.12 config_snapshot defaults to {}" || ko "1.12"
-SNAP='{"documentation":{"platform":"affine","paths":{"prd_root":"PRDs","functional_root":"Functional"}}}'
-bash "$SCRIPT" set-config-snapshot "$SNAP" --project-root="$DIR_CS"
-got=$(bash "$SCRIPT" get-config-snapshot --project-root="$DIR_CS")
-[ "$(echo "$got" | jq -r '.documentation.platform')" = "affine" ] && ok "1.13 set/get-config-snapshot round-trip" || ko "1.13 got $got"
-# Reject non-object payload
-if bash "$SCRIPT" set-config-snapshot '"scalar"' --project-root="$DIR_CS" 2>/dev/null; then
-  ko "1.14 should reject scalar payload"
-else
-  ok "1.14 set-config-snapshot rejects non-object"
-fi
-trash "$DIR_CS" 2>/dev/null || true
-
 # 2. set/get scalar
 echo ""
 echo "[2] set/get"

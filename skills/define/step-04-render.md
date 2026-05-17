@@ -19,17 +19,12 @@ The v0.2 `meta.json` is **dropped** in v1.0 — replaced by
 
 - `.snap/.define-state.json` — populated by steps 01-03.
 - `skills/_shared/templates/docs-defaults/prd-feature.md` — per-feature PRD template.
-- `CONFIG_JSON` — resolved config captured in step-00 (read via `jq -r ... <<<"$CONFIG_JSON"`).
-  On `--resume` the shell var is gone — hydrate from the persisted snapshot:
+- `CONFIG_JSON` — **always re-loaded** from `snap.config.json` at step entry
+  (config = single source of truth, never snapshotted) :
   ```bash
-  if [ -z "${CONFIG_JSON:-}" ] || [ "$CONFIG_JSON" = "{}" ]; then
-    CONFIG_JSON=$(bash skills/_shared/define-state.sh get-config-snapshot --project-root="$PWD")
-  fi
-  if [ -z "$CONFIG_JSON" ] || [ "$CONFIG_JSON" = "{}" ]; then
-    # Snapshot empty/corrupt → re-resolve (fallback safe).
-    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
-  fi
+  CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
   ```
+  Read fields via `jq -r ... <<<"$CONFIG_JSON"`.
 
 ## Tasks
 

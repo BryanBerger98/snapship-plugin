@@ -27,17 +27,13 @@ Terminal step — no `next_step`.
 
 - `.snap/PRDs/{fid}.md` (staging — trashed on ack by sub-agent).
 - `.snap/manifests/{fid}.manifest.json` (state=`defined`).
-- `CONFIG_JSON` shell var (from step-00) → `documentation.platform`,
-  `documentation.paths.{functional_root,prd_root}`, `documentation.workspace.id`.
-  On `--resume`, hydrate from the persisted snapshot (T3) :
+- `CONFIG_JSON` — **always re-loaded** from `snap.config.json` at step entry
+  (config = single source of truth, never snapshotted) :
   ```bash
-  if [ -z "${CONFIG_JSON:-}" ] || [ "$CONFIG_JSON" = "{}" ]; then
-    CONFIG_JSON=$(bash skills/_shared/define-state.sh get-config-snapshot --project-root="$PWD")
-  fi
-  if [ -z "$CONFIG_JSON" ] || [ "$CONFIG_JSON" = "{}" ]; then
-    CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
-  fi
+  CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
   ```
+  Read `documentation.platform`, `documentation.paths.{functional_root,prd_root}`,
+  `documentation.workspace.id`.
 - `.snap/manifests/_taxonomy.json` (cache of domain + journey page IDs).
 
 ## Tasks

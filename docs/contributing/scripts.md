@@ -61,7 +61,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # Subcommands:
 #   prepare --project-root=PATH --manifest=PATH
 #     stdout JSON {fid, skip, skip_reason, story_name, priority, year,
-#                  month_year, prd_path, prd_staging, domains,
+#                  month_year, prd_staging, domains,
 #                  impacted_journeys, domain_titles, journey_titles}.
 #     skip=true ↔ manifest.refs.prd.sync_status == "synced".
 #

@@ -21,7 +21,6 @@ The skill provides a prompt with two payloads :
     "priority": "must",
     "year": "2026",
     "month_year": "05-2026",
-    "prd_path": "{prd_root}/2026/05-2026/01-auth",
     "prd_staging": "/abs/path/.snap/PRDs/01-auth.md",
     "domains": ["auth", "billing"],
     "impacted_journeys": [

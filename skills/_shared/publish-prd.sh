@@ -9,7 +9,7 @@
 # Subcommands:
 #   prepare --project-root=PATH --manifest=PATH
 #       stdout: JSON {fid, skip, story_name, priority, year, month_year,
-#                     prd_path, prd_staging, domains, impacted_journeys,
+#                     prd_staging, domains, impacted_journeys,
 #                     domain_titles, journey_titles}
 #       skip=true when .refs.prd.sync_status == "synced". The caller still
 #       reads the JSON to log/telemetry then continues without invoking the
@@ -142,7 +142,6 @@ cmd_prepare() {
       priority: $priority,
       year: $year,
       month_year: $month_year,
-      prd_path: ("{prd_root}/" + $year + "/" + $month_year + "/" + $fid),
       prd_staging: $prd_staging,
       domains: $domains,
       impacted_journeys: $journeys,
