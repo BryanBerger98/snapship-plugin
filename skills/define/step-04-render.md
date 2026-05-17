@@ -87,49 +87,19 @@ bash skills/_shared/setup-snap-dir.sh \
 ```
 
 Then patch the optional fields collected in step-03 (priority, domains,
-impacted_journeys) :
+impacted_journeys, parent_epic_*) via the dedicated helper :
 
 ```bash
-MANIFEST=".snap/manifests/${fid}.manifest.json"
-DOMAINS_JSON=$(jq -c --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid) | .domains' \
-  .snap/.define-state.json)
-JOURNEYS_JSON=$(jq -c --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid)
-   | .impacted_journeys
-   | map({domain: .domain, journey_slug: .journey_slug})' \
-  .snap/.define-state.json)
-PRIORITY=$(jq -r --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid) | .priority' \
-  .snap/.define-state.json)
-PARENT_EPIC_ID=$(jq -r --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid) | .parent_epic_id // ""' \
-  .snap/.define-state.json)
-PARENT_EPIC_TITLE=$(jq -r --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid) | .parent_epic_title // ""' \
-  .snap/.define-state.json)
-PARENT_EPIC_PENDING=$(jq -r --arg fid "$fid" \
-  '.features[] | select(.story_id == $fid) | .parent_epic_pending // false' \
-  .snap/.define-state.json)
-NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-tmp=$(mktemp)
-jq --arg prio "$PRIORITY" \
-   --argjson domains "$DOMAINS_JSON" \
-   --argjson journeys "$JOURNEYS_JSON" \
-   --arg pepic "$PARENT_EPIC_ID" \
-   --arg petitle "$PARENT_EPIC_TITLE" \
-   --argjson ppending "$PARENT_EPIC_PENDING" \
-   --arg ts "$NOW" '
-  .priority = $prio
-  | .domains = $domains
-  | .impacted_journeys = $journeys
-  | (if $pepic != "" then .parent_epic_id = $pepic else . end)
-  | (if $petitle != "" then .parent_epic_title = $petitle else . end)
-  | (if $ppending == true then .parent_epic_pending = true else . end)
-  | .updated_at = $ts
-' "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
+bash skills/_shared/manifest-state.sh patch-from-define-state \
+  --project-root="$PWD" \
+  --story-id="$fid"
 ```
+
+The helper reads `.snap/.define-state.json`, extracts the feature record
+matching `--story-id`, and patches `.snap/manifests/${fid}.manifest.json`
+(atomic `tmp + mv`) with `updated_at` bumped to UTC now. Empty optional
+fields (`priority`, `parent_epic_title`, `parent_epic_pending`) are
+skipped — never overwrite with empty strings.
 
 The `refs` object stays `{}` until step-05 pushes the PRD and acks via
 `sync-push.sh ack`.

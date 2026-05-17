@@ -31,6 +31,23 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # --story-id + --story-name → also init manifests/{id}.manifest.json
 ```
 
+## manifest-state.sh
+
+```bash
+# Subcommands:
+#   patch-from-define-state --project-root=PATH --story-id=NN-slug
+#     Read .snap/.define-state.json, extract feature fields for STORY_ID
+#     (priority, domains, impacted_journeys, parent_epic_{id,title,pending}),
+#     atomically patch .snap/manifests/{story_id}.manifest.json with
+#     updated_at = UTC now. Empty optionals are skipped (no overwrite with "").
+#
+# Exit codes: 0 ok / 1 runtime (manifest missing, story_id not in state,
+#             jq failure) / 2 usage (missing flag, unknown subcommand).
+#
+# Used by step-04-render to keep step files declarative and the jq plumbing
+# testable in isolation (cf. tests/test-manifest-state.sh).
+```
+
 ## progress.sh
 
 ```bash
