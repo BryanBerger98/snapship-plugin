@@ -229,7 +229,9 @@ string `"null"` and silently poisons downstream state (`refs.prd`,
 # Success: stdout = captured value, rc=0.
 # Usage error (wrong arg count): rc=2.
 #
-# Typical use (in step-05-publish.md and any future MCP-bridging helper):
+# Typical use — combined with retry-policy.sh for transient failures
+# (see retry-policy.sh section below for the full pattern). Standalone
+# use (no retry) is also valid when the caller wants fail-fast semantics:
 #   MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh --action=create …)
 #   if ! PAGE_ID=$(bash skills/_shared/check-mcp-response.sh \
 #        "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
@@ -237,6 +239,75 @@ string `"null"` and silently poisons downstream state (`refs.prd`,
 #       --reason="$(cat /tmp/mcp.err)"
 #     continue
 #   fi
+```
+
+## retry-policy.sh
+
+```bash
+# args: REASON ATTEMPT
+# Decide whether an MCP failure (as reported by check-mcp-response.sh) is
+# retry-able, sleep the backoff if so, and signal retry vs abort to the
+# caller. Pairs with check-mcp-response.sh — REASON is its stderr line,
+# ATTEMPT is the caller-side counter (1-based, incremented before each try).
+#
+# Env:
+#   SNAP_MCP_RETRY_MAX      max retries after the initial attempt (default 2)
+#   SNAP_MCP_RETRY_BASE_MS  base backoff ms, doubled per attempt (default 500)
+#
+# Behaviour (in order):
+#   1. Non-retryable reason → rc=1, stderr "retry-policy: non-retryable: …"
+#   2. Retryable but exhausted (ATTEMPT > MAX) → rc=1, stderr
+#      "retry-policy: exhausted (ATTEMPT/MAX): …"
+#   3. Retryable + within budget → sleep BASE_MS * 2^(ATTEMPT-1) ms, rc=0,
+#      stderr "retry-policy: retry ATTEMPT/MAX in Nms (reason: …)"
+#
+# Retryable reasons (case-insensitive substring): rate-limit, ratelimit,
+# timeout, network, transient, server-error, 5xx, 502, 503, 504.
+# Everything else (auth-fail, not-found, malformed-json, missing/empty <KEY>,
+# schema-fail, …) aborts on the first failure with no backoff.
+#
+# Rationale — keep retry *policy* deterministic and testable while the
+# *mechanism* (re-invoking MCP) stays in the calling step. Subprocesses
+# cannot invoke MCP directly, so policy/mechanism must split.
+```
+
+### Reference pattern — retry-wrapped MCP call
+
+Every MCP write in `/snap:define` step-05 (and any future MCP-bridging
+caller) follows this loop. It combines `check-mcp-response.sh` (envelope
+guard) and `retry-policy.sh` (transient-error backoff). Adapt the
+`continue` depth to the surrounding loop nesting (1 = next iteration of the
+retry-while loop; 2/3 = skip up to outer feature/manifest loops).
+
+```bash
+attempt=0
+while :; do
+  attempt=$((attempt + 1))
+  MCP_RESPONSE=$(bash skills/_shared/docs-adapter.sh --action=create …)
+  if VALUE=$(bash skills/_shared/check-mcp-response.sh \
+       "$MCP_RESPONSE" page_id 2>/tmp/mcp.err); then
+    break
+  fi
+  if ! bash skills/_shared/retry-policy.sh \
+       "$(cat /tmp/mcp.err)" "$attempt" 2>/tmp/retry.err; then
+    bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+      --project-root="$PWD" --reason="$(cat /tmp/retry.err)"
+    bash skills/_shared/progress.sh step --project-root="$PWD" \
+      --skill=define --story-id="$fid" --step-num=05 --step-name=publish \
+      --status=fail
+    continue 2   # skip the retry-while + outer feature/manifest loop
+  fi
+done
+
+# Secondary keys on the SAME envelope (e.g. `url` after `page_id`) are
+# checked post-loop without retry — the resource may already exist; a
+# missing field is a malformed envelope, not a transient failure.
+if ! URL=$(bash skills/_shared/check-mcp-response.sh \
+     "$MCP_RESPONSE" url 2>/tmp/mcp.err); then
+  bash skills/_shared/sync-push.sh fail --kind=prd --story-id="$fid" \
+    --project-root="$PWD" --reason="$(cat /tmp/mcp.err)"
+  continue
+fi
 ```
 
 ## taxonomy-state.sh (domain/journey ↔ page IDs cache)
