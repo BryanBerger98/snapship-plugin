@@ -319,7 +319,7 @@ skills/doc-import/
 
 1. `/snap:init` (bootstrap config)
 2. `/snap:doc-import --source-page=<root>` (this skill) → snap structure populated
-3. `/snap:define --feature=NN-...` (first change post-import) → creates manifest.json
+3. `/snap:define --story=NN-...` (first change post-import) → creates manifest.json
    - PRD + link to existing journey via `_taxonomy.json`
 
 ## Scripts changes

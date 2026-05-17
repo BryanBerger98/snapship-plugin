@@ -44,7 +44,7 @@ terminal: true
 
 5. **Suggest next** :
    - Si user a fetch un PRD pour édition : "Édite `.snap/PRDs/{slug}.md` puis lance
-     `/snap:define --refresh=prd --feature={slug}` pour re-push."
+     `/snap:define --refresh=prd --story={slug}` pour re-push."
    - Si `--check` a marqué dirty : "Re-run `/snap:fetch --feature={slug} --kind={k}` pour
      pull la version remote."
 

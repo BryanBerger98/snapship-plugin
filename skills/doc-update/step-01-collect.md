@@ -39,7 +39,7 @@ Maps to MCP — model executes, captures full page content, writes to:
 ```
 
 If the MCP fetch fails (page deleted, auth lapse) — abort with error pointing to
-`/snap:define --resume --feature=$FEATURE_ID`.
+`/snap:define --resume --story=$FEATURE_ID`.
 
 ### C. Fetch current journey pages
 

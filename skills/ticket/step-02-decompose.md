@@ -109,7 +109,7 @@ Reject any candidate story that:
 
 5. **Cap on `--max-stories`**: if the candidate list exceeds the cap, surface the
    overflow via `AskUserQuestion`:
-   - "Split feature into a follow-up `/define --resume --feature=…` (recommended)"
+   - "Split feature into a follow-up `/define --resume --story=…` (recommended)"
    - "Continue and let me trim manually"
 
 6. **Confirm with user** via `AskUserQuestion` (table preview, multiSelect false):

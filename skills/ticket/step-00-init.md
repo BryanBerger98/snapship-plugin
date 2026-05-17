@@ -100,7 +100,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
      - Manifest exists : `.snap/manifests/${story_id}.manifest.json`.
      - Manifest has `refs.prd.sync_status = "synced"` (PRD already published —
        prerequisite for ticketing). If not synced, abort with pointer to
-       `/snap:define --resume --feature=$story_id`.
+       `/snap:define --resume --story=$story_id`.
    - Tickets-adapter MCP / CLI requirements met :
      ```bash
      bash skills/_shared/check-mcp-required.sh --skill=ticket --project-root="$PWD"

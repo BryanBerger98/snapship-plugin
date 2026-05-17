@@ -70,7 +70,7 @@ entirely.
 
 ```
 /snap:define [--mode=vision|journey|story] [--resume|-r] [--lang=fr|en]
-             [--feature=NN-slug] [--epic=PARENT_EPIC_ID]
+             [--story=NN-slug] [--epic=PARENT_EPIC_ID]
 ```
 
 ## Flags
@@ -80,7 +80,7 @@ entirely.
 | `--mode=vision\|journey\|story`   | Force the mode and skip auto-detection.                                                         |
 | `--resume` / `-r`                 | Resume the last in-flight step from `progress.json` (partial-match on `story_id`).              |
 | `--lang=fr\|en`                   | Force the PRD language (default: detect from an existing PRD, otherwise prompt).                |
-| `--feature=NN-slug`               | `story` mode only — skip greenfield and jump to the PRD of an existing `story_id`.              |
+| `--story=NN-slug`                 | `story` mode only — skip greenfield and jump to the PRD of an existing `story_id`. (Deprecated alias: `--feature=NN-slug`, still accepted with a stderr warning.) |
 | `--epic=PARENT_EPIC_ID`           | `story` mode only — apply this parent Epic ID to every feature captured in the run.             |
 
 ## Pipeline

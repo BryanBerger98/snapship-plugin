@@ -69,7 +69,7 @@ Close out the import run.
      Dry-run: no
 
    Next:
-     /snap:define --feature=NN-…    # first feature post-import
+     /snap:define --story=NN-…      # first feature post-import
                                      # PRD will link to existing journeys via _taxonomy.json
      /snap:doc-import --force        # re-run if you want a different cluster split
    ```
