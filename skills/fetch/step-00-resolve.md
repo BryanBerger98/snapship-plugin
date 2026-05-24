@@ -6,6 +6,33 @@ description: Parse args, enumère features + kinds à fetch, lit chaque manifest
 
 # step-00 — resolve fetch targets
 
+## Communication language (`defaults.lang`)
+
+Resolve the configured language and respond to the user in it for the whole
+skill run (prompts, summaries). Source of truth: `defaults.lang`, fallback `fr`.
+
+```bash
+SNAP_LANG=$(bash skills/_shared/load-config.sh --project-root="$PWD" 2>/dev/null \
+  | jq -r '.defaults.lang // "fr"' 2>/dev/null || echo fr)
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+Resolve `save_mode` once (default `true`):
+
+```bash
+save_mode=$(bash skills/_shared/load-config.sh --project-root="$PWD" 2>/dev/null \
+  | jq -r '.defaults.save_mode // true' 2>/dev/null || echo true)
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to **every** `progress.sh`
+`start`/`step`/`finish` invocation in this skill. When `save_mode=false` the
+helper turns those writes into no-ops; reads (`resume`/`list`) are unaffected.
+
 ## Tâches
 
 1. **Parse args** `/snap:fetch` :

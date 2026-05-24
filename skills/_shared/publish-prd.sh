@@ -17,9 +17,12 @@
 #
 #   build-agent-prompt --brief=JSON --platform=X --workspace-id=Y
 #                      --functional-root=Z --prd-root=W --project-root=PWD
+#                      [--prd-template-id=ID]
 #       stdout: plain text prompt ready to feed the snap-publisher Agent.
 #       The prompt is shell-pure (no MCP) and embeds the prepare brief as
-#       the only contextual payload.
+#       the only contextual payload. --prd-template-id is optional: when set
+#       (config.documentation.templates.prd_feature), the PRD page is cloned
+#       from that template page; when empty the page is created blank.
 #
 # Exit codes:
 #   0 — ok
@@ -41,7 +44,7 @@ Usage:
   publish-prd.sh prepare --project-root=PATH --manifest=PATH
   publish-prd.sh build-agent-prompt --brief=JSON --platform=X --workspace-id=Y \
                                     --functional-root=Z --prd-root=W \
-                                    --project-root=PWD
+                                    --project-root=PWD [--prd-template-id=ID]
 USAGE
 }
 
@@ -152,7 +155,7 @@ cmd_prepare() {
 
 cmd_build_agent_prompt() {
   local brief="" platform="" workspace_id=""
-  local functional_root="" prd_root="" project_root=""
+  local functional_root="" prd_root="" project_root="" prd_template_id=""
   for arg in "$@"; do
     case "$arg" in
       --brief=*)            brief="${arg#*=}" ;;
@@ -161,6 +164,7 @@ cmd_build_agent_prompt() {
       --functional-root=*)  functional_root="${arg#*=}" ;;
       --prd-root=*)         prd_root="${arg#*=}" ;;
       --project-root=*)     project_root="${arg#*=}" ;;
+      --prd-template-id=*)  prd_template_id="${arg#*=}" ;;
       -h|--help)            usage; exit 0 ;;
       *) echo "ERROR: unknown flag: $arg" >&2; usage; exit 2 ;;
     esac
@@ -196,10 +200,11 @@ ${brief}
 - functional_root: ${functional_root}
 - prd_root: ${prd_root}
 - project_root: ${project_root}
+- prd_template_id: ${prd_template_id:-(none — create blank page)}
 
 # Sequence (idempotent — skip on existing refs)
 1. \`create-page-tree\` under \`${prd_root}/{year}/{month_year}\` (idempotent).
-2. \`create\` PRD page under the month parent. Title = \`story_name\`. Body = \`prd_staging\` file content.
+2. \`create\` PRD page under the month parent. Title = \`story_name\` (fixed convention: PRD feature page titled with the story name). Body = \`prd_staging\` file content. When \`prd_template_id\` is set above, pass \`--template-id=${prd_template_id}\` so the page is cloned from the user's template; when it is none, omit \`--template-id\` and create a blank page.
 3. \`set-page-tags\` on the PRD page with \`domains\`.
 4. \`lookup-or-create-page\` for \`functional_root\` under workspace root.
 5. For each \`domain_titles[]\` not in taxonomy : \`lookup-or-create-page\` under functional_root, then \`taxonomy-state.sh add-domain\`.

@@ -17,6 +17,11 @@ worktree_json=$(bash skills/_shared/cache-runtime.sh read "$SUBJECT_ID" worktree
                 --project-root="$PWD")
 branch=$(jq -r '.branch' <<<"$worktree_json")
 
+# Base branch for the PR — cached by step-02 from repository.default_branch
+# (// "main"). Fall back here too in case the cache predates this field.
+base_branch=$(jq -r '.base_branch // empty' <<<"$worktree_json")
+[ -n "$base_branch" ] || base_branch=$(jq -r '.repository.default_branch // "main"' <<<"$CONFIG_JSON")
+
 remote=$(git remote | head -n1)
 [ -n "$remote" ] || { echo "ERROR: no git remote"; exit 1; }
 
@@ -70,7 +75,12 @@ Render and push :
   `pr-context.json`.
 
 - Existing PR → `--action=update-pr` with rendered body.
-- None → `--action=create-pr` with title = `${commit_type}: ${title} (${platform_id})`.
+- None → `--action=create-pr` with title = `${commit_type}: ${title} (${platform_id})`
+  and **base = `$base_branch`** (the configured `repository.default_branch`,
+  defaulting to `main`). On GitHub pass it through as `gh pr create --base "$base_branch"`;
+  on GitLab as `glab mr create --target-branch "$base_branch"`. Never assume the
+  remote default — honour the config so repos whose default is e.g. `develop`
+  target the right branch.
 
 ### C. Post review thread (best-effort)
 

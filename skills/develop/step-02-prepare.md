@@ -11,6 +11,30 @@ gated by `story_type` (decision #11) and resolved by `worktree-helper.sh`.
 
 ## Tasks
 
+### `branch_mode` gate
+
+`branch_mode` (default `true`, resolved in step-00 from `defaults.branch_mode`)
+controls whether `/develop` creates/checks-out a dedicated branch. When
+`false`, **skip sections A and B entirely** — do not call `worktree-helper.sh`,
+do not run `git checkout`/`git checkout -b`. Work on the **current** branch and
+set:
+
+```bash
+if [ "$branch_mode" = "false" ]; then
+  strategy="current-branch"
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  wt_path="$PWD"
+  echo "WARN: branch_mode=false — developing on current branch '$branch' (no branch created)."
+  # Still refuse a protected branch (commits land here):
+  echo "$CONFIG_JSON" | jq -e --arg b "$branch" \
+    '(.repository.protected_branches // []) | index($b) | not' >/dev/null \
+    || { echo "ERROR: current branch $branch is protected; checkout a feature branch first"; exit 1; }
+fi
+```
+
+Then jump straight to section C (cache the resolved values). Sections A and B
+below run **only when `branch_mode=true`** (the default).
+
 ### A. Worktree resolve
 
 ```bash
@@ -44,7 +68,13 @@ echo "$CONFIG_JSON" | jq -e --arg b "$branch" \
 
 ### B. Branch checkout (strategy-aware)
 
+Resolve the configured base branch — new branches fork from it instead of
+whatever happens to be checked out. Falls back to `main` when
+`repository.default_branch` is absent.
+
 ```bash
+base_branch=$(jq -r '.repository.default_branch // "main"' <<<"$CONFIG_JSON")
+
 case "$strategy" in
   reuse)
     # Task child of US — reuse parent worktree. Branch must already exist.
@@ -58,10 +88,13 @@ case "$strategy" in
     ;;
 
   dedicated)
-    # New worktree or new branch on shared tree.
+    # New worktree or new branch on shared tree, forked from the configured base.
     if git rev-parse --verify "$branch" >/dev/null 2>&1; then
       git checkout "$branch"
+    elif git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
+      git checkout -b "$branch" "$base_branch"
     else
+      echo "WARN: base branch $base_branch not found locally — forking from current HEAD" >&2
       git checkout -b "$branch"
     fi
     ;;
@@ -75,9 +108,15 @@ esac
 
 ### C. Track worktree path in cache
 
+`base_branch` is resolved in section B when `branch_mode=true`. When
+`branch_mode=false` (sections A/B skipped) resolve it here so the value is
+always cached for step-04 :
+
 ```bash
-jq -nc --arg s "$strategy" --arg b "$branch" --arg p "$wt_path" \
-  '{strategy:$s, branch:$b, worktree_path:$p}' \
+base_branch="${base_branch:-$(jq -r '.repository.default_branch // "main"' <<<"$CONFIG_JSON")}"
+
+jq -nc --arg s "$strategy" --arg b "$branch" --arg p "$wt_path" --arg base "$base_branch" \
+  '{strategy:$s, branch:$b, worktree_path:$p, base_branch:$base}' \
   | bash skills/_shared/cache-runtime.sh write "$SUBJECT_ID" worktree.json \
       --project-root="$PWD"
 ```
@@ -115,18 +154,23 @@ fi
 ### F. Test commands
 
 ```bash
+format_cmd=$(jq -r '.testing.format_command // empty' <<<"$CONFIG_JSON")
 test_cmd=$(jq -r '.testing.test_command // empty' <<<"$CONFIG_JSON")
 lint_cmd=$(jq -r '.testing.lint_command // empty' <<<"$CONFIG_JSON")
 type_cmd=$(jq -r '.testing.typecheck_command // empty' <<<"$CONFIG_JSON")
 ```
 
-If absent, fall through to `detect-test-commands.sh` and persist into config.
+Each command is optional: when its key is absent or empty, `// empty` yields an
+empty string and the command is **skipped silently** (no default is invented,
+no error). If absent, fall through to `detect-test-commands.sh` and persist into
+config.
 
 ### G. Append progress
 
 ```bash
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --save-mode="$save_mode" \
   --skill=develop \
   --story-id="$TICKET_ID" \
   --step-num=02 \
@@ -136,10 +180,11 @@ bash skills/_shared/progress.sh step \
 
 ## Acceptance check
 
-- `git rev-parse --abbrev-ref HEAD` matches `$branch`.
+- `git rev-parse --abbrev-ref HEAD` matches `$branch` (when `branch_mode=true`;
+  when `false`, stays on the pre-run branch and no branch was created).
 - `worktree.json` cached with `{strategy, branch, worktree_path}`.
 - Conventions captured (or empty — fine).
-- Test / lint / typecheck commands resolved.
+- Format / lint / typecheck / test commands resolved (any may be empty — fine).
 
 ## Next step
 

@@ -8,6 +8,32 @@ description: Parse args, resolve story_id, load tickets.json + config, resolve w
 
 Bootstrap a `/wireframe` run for a single feature.
 
+## Communication language (`defaults.lang`)
+
+Once `CONFIG_JSON` is loaded below, resolve the configured language and respond
+to the user in it for the whole skill run (prompts, questions, summaries):
+
+```bash
+SNAP_LANG=$(jq -r '.defaults.lang // "fr"' <<<"$CONFIG_JSON")
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+Resolve `save_mode` once (default `true`) right after `CONFIG_JSON` is loaded:
+
+```bash
+save_mode=$(jq -r '.defaults.save_mode // true' <<<"$CONFIG_JSON")
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to **every** `progress.sh`
+`start`/`step`/`finish` invocation in this skill. When `save_mode=false` the
+helper turns those writes into no-ops (no `.snap/progress.json`); reads
+(`resume`/`list`) are unaffected.
+
 The skill supports multiple wireframe MCP platforms. Step-00 resolves which
 one (`frame0` | `penpot` | `figma`), runs the platform-specific preflight, and
 persists `wf_platform` + `$helper` + resolved platform config (api_port,

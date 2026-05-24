@@ -13,9 +13,40 @@ amends the ticket commit, then we re-collect (step-01) and re-interpret
 ## Skip conditions
 
 - `severity < severity_threshold` AND `flaky_verdict != real` → step is a no-op.
-- `auto_apply_qa_feedback=false` → surface `qa_feedback_md` to user, mark
-  ticket `blocked`, jump to step-05.
 - `--dry-run` → log findings, do not amend.
+
+## Confirmation gate (`auto_apply_qa_feedback`)
+
+Mirrors `/develop`'s `auto_apply_review_feedback` (step-03a-standalone). Resolve
+the flag once (embedded defaults guarantee the key; the `//` fallback is
+belt-and-suspenders so a missing/partial config never breaks the cycle):
+
+```bash
+CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+auto_apply=$(jq -r '.qa.auto_apply_qa_feedback // true' <<<"$CONFIG_JSON")
+```
+
+Before spawning the developer agent (task A below) for **each** fix cycle:
+
+- `auto_apply == true` (default) → apply the QA feedback **without asking**.
+- `auto_apply == false` → ask the user first, via `ask-or-default.sh` (auto-mode
+  mirrors the read flag, so `false` always prompts; default answer `apply`):
+
+  ```bash
+  ans=$(bash skills/_shared/ask-or-default.sh \
+    --auto-mode="$auto_apply" \
+    --question-id=apply-qa-feedback \
+    --question="Appliquer les retours QA (cycle $((cycles_used + 1))) ?" \
+    --options=apply,skip \
+    --default=apply \
+    --header="Revue QA")
+  # auto_apply=false → $ans is a JSON {action:"ask",...} : surface it through
+  #   AskUserQuestion, then read the user's choice.
+  # auto_apply=true  → $ans is "apply" (raw) : proceed silently.
+  ```
+
+  If the user picks `skip`, do **not** spawn the developer: surface
+  `qa_feedback_md` to the user, mark the ticket `blocked`, and jump to step-05.
 
 ## Tasks
 
@@ -42,8 +73,9 @@ Task({
 })
 ```
 
-The agent edits files, runs `lint_command` + `typecheck_command` + scoped
-`test_command` itself, retries up to 3x internally (mirrors /develop Phase 1).
+The agent edits files, runs `format_command` + `lint_command` +
+`typecheck_command` + scoped `test_command` itself (skipping any unset), retries
+up to 3x internally (mirrors /develop Phase 1).
 
 ### B. Amend the ticket commit
 

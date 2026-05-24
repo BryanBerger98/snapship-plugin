@@ -8,6 +8,32 @@ description: Détecte version courante workspace, version cible plugin, résout 
 
 Identifie où on part, où on va, et quelles migrations enchaîner.
 
+## Communication language (`defaults.lang`)
+
+`/snap:upgrade` reads a possibly outdated config — read `defaults.lang` directly
+from the existing file with a `fr` fallback, then respond to the user in that
+language for the whole skill run:
+
+```bash
+SNAP_LANG=$(jq -r '.defaults.lang // "fr"' "$PWD/snap.config.json" 2>/dev/null || echo fr)
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+Read `save_mode` from the existing (possibly outdated) config, default `true`:
+
+```bash
+save_mode=$(jq -r '.defaults.save_mode // true' "$PWD/snap.config.json" 2>/dev/null || echo true)
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to every `progress.sh`
+`start`/`step`/`finish` call in this skill (`_global` story-id). When
+`save_mode=false` those writes become no-ops.
+
 ## Tâches
 
 1. **Parse args** `/snap:upgrade` : `--target=VERSION`, `--dry-run`, `--auto`, `--from=VERSION`.

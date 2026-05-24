@@ -10,6 +10,32 @@ Bootstrap a `/qa` run. Targets one ticket via `--ticket=<platform_id>` (the
 v1.2 contract — same as `/develop`). Tracker is the single source of truth :
 no `.snap/tickets/` reads.
 
+## Communication language (`defaults.lang`)
+
+Once `CONFIG_JSON` is loaded below, resolve the configured language and respond
+to the user in it for the whole skill run (prompts, questions, summaries):
+
+```bash
+SNAP_LANG=$(jq -r '.defaults.lang // "fr"' <<<"$CONFIG_JSON")
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+Resolve `save_mode` once (default `true`) right after `CONFIG_JSON` is loaded:
+
+```bash
+save_mode=$(jq -r '.defaults.save_mode // true' <<<"$CONFIG_JSON")
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to **every** `progress.sh`
+`start`/`step`/`finish` invocation in this skill. When `save_mode=false` the
+helper turns those writes into no-ops (no `.snap/progress.json`); reads
+(`resume`/`list`) are unaffected.
+
 ## Tasks
 
 1. **Parse args**: `--ticket=<platform_id>` mandatory (regex per-platform —

@@ -271,6 +271,92 @@ bash "$SCRIPT" --project-root="$DIR" >/dev/null 2>&1
 assert_exit "15.1 bad-templates exit 1" 1 $?
 trash "$DIR" 2>/dev/null || true
 
+# 16. economy_mode from config → forces reduced parallelism + cycles
+echo ""
+echo "[16] economy_mode=true from config"
+DIR=$(setup_dir)
+cat > "${DIR}/snap.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "ai": { "max_parallel_agents": 5 },
+  "develop": { "review_cycles_max": 3 },
+  "qa": { "qa_cycles_max": 2 },
+  "defaults": { "economy_mode": true }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
+assert_eq "16.1 economy_mode true" "true" "$(echo "$out" | jq -r '.defaults.economy_mode')"
+assert_eq "16.2 max_parallel_agents forced 1" "1" "$(echo "$out" | jq -r '.ai.max_parallel_agents')"
+assert_eq "16.3 review_cycles_max forced 1" "1" "$(echo "$out" | jq -r '.develop.review_cycles_max')"
+assert_eq "16.4 qa_cycles_max forced 1" "1" "$(echo "$out" | jq -r '.qa.qa_cycles_max')"
+trash "$DIR" 2>/dev/null || true
+
+# 17. economy default false → values untouched
+echo ""
+echo "[17] economy_mode default false → untouched"
+DIR=$(setup_dir)
+cat > "${DIR}/snap.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "ai": { "max_parallel_agents": 5 },
+  "develop": { "review_cycles_max": 3 },
+  "qa": { "qa_cycles_max": 2 }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate 2>/dev/null)
+assert_eq "17.1 economy_mode false" "false" "$(echo "$out" | jq -r '.defaults.economy_mode')"
+assert_eq "17.2 max_parallel_agents kept" "5" "$(echo "$out" | jq -r '.ai.max_parallel_agents')"
+assert_eq "17.3 review_cycles_max kept" "3" "$(echo "$out" | jq -r '.develop.review_cycles_max')"
+assert_eq "17.4 qa_cycles_max kept" "2" "$(echo "$out" | jq -r '.qa.qa_cycles_max')"
+trash "$DIR" 2>/dev/null || true
+
+# 18. CLI -e overrides config economy_mode=false → forced
+echo ""
+echo "[18] CLI -e overrides config (false → forced)"
+DIR=$(setup_dir)
+cat > "${DIR}/snap.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "ai": { "max_parallel_agents": 5 },
+  "develop": { "review_cycles_max": 3 },
+  "qa": { "qa_cycles_max": 2 }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate -e 2>/dev/null)
+assert_eq "18.1 -e forces economy_mode true" "true" "$(echo "$out" | jq -r '.defaults.economy_mode')"
+assert_eq "18.2 -e forces max_parallel_agents 1" "1" "$(echo "$out" | jq -r '.ai.max_parallel_agents')"
+out2=$(bash "$SCRIPT" --project-root="$DIR" --no-validate --economy=true 2>/dev/null)
+assert_eq "18.3 --economy=true forces review_cycles_max 1" "1" "$(echo "$out2" | jq -r '.develop.review_cycles_max')"
+trash "$DIR" 2>/dev/null || true
+
+# 19. CLI --economy=false overrides config economy_mode=true → disabled
+echo ""
+echo "[19] CLI --economy=false disables config economy_mode=true"
+DIR=$(setup_dir)
+cat > "${DIR}/snap.config.json" <<'EOF'
+{
+  "version": "1.0",
+  "ai": { "max_parallel_agents": 5 },
+  "develop": { "review_cycles_max": 3 },
+  "qa": { "qa_cycles_max": 2 },
+  "defaults": { "economy_mode": true }
+}
+EOF
+out=$(bash "$SCRIPT" --project-root="$DIR" --no-validate --economy=false 2>/dev/null)
+assert_eq "19.1 --economy=false disables" "false" "$(echo "$out" | jq -r '.defaults.economy_mode')"
+assert_eq "19.2 max_parallel_agents kept" "5" "$(echo "$out" | jq -r '.ai.max_parallel_agents')"
+assert_eq "19.3 review_cycles_max kept" "3" "$(echo "$out" | jq -r '.develop.review_cycles_max')"
+trash "$DIR" 2>/dev/null || true
+
+# 20. invalid --economy value → exit 1
+echo ""
+echo "[20] invalid --economy value rejected"
+DIR=$(setup_dir)
+echo '{"version":"1.0"}' > "${DIR}/snap.config.json"
+bash "$SCRIPT" --project-root="$DIR" --no-validate --economy=maybe >/dev/null 2>&1
+assert_exit "20.1 --economy=maybe exit 1" 1 $?
+trash "$DIR" 2>/dev/null || true
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

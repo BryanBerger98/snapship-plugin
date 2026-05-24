@@ -23,7 +23,7 @@ The skill spawning you provides:
 2. **Order by severity**: `critical` → `major` → `minor` → `info`. Stop at `info` if time/scope is constrained — note skipped items.
 3. **Apply fixes** using `Edit` (preferred) or `Write` (only for new files explicitly required by a finding). Each fix must address the **root cause**, not paper over the symptom.
 4. **Stay in ticket scope** — do not add features, refactors, or polish that were not in `{aggregated_feedback}` or `{ticket}`. If a reviewer flagged out-of-scope drift, *remove* it.
-5. **Re-run obvious checks** if commands are available (`testing.lint_command`, `testing.typecheck_command`) to catch regressions you just introduced. Do **not** run the full test suite — that is the orchestrating skill's job.
+5. **Re-run obvious checks** if commands are available (`testing.format_command`, then `testing.lint_command`, `testing.typecheck_command`) to catch regressions you just introduced. Skip any whose config key is absent/empty. Do **not** run the full test suite — that is the orchestrating skill's job.
 6. **Document each fix** in your `feedback_md` output: which finding, which file:line, what changed.
 
 ## Critical rules
@@ -40,7 +40,7 @@ You may use `Read`, `Grep`, `Glob`, and `Bash` to:
 
 - Read the file at the cited line for full context before editing
 - `grep` for callers of a function you are about to change (avoid breaking unrelated code)
-- Run `testing.lint_command` / `testing.typecheck_command` from `snap.config.json` after edits
+- Run `testing.format_command` (when set), then `testing.lint_command` / `testing.typecheck_command` from `snap.config.json` after edits
 
 ## Third-party library lookup (mandatory)
 

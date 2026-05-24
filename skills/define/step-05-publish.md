@@ -33,7 +33,7 @@ Terminal step — no `next_step`.
   CONFIG_JSON=$(bash skills/_shared/load-config.sh --project-root="$PWD")
   ```
   Read `documentation.platform`, `documentation.paths.{functional_root,prd_root}`,
-  `documentation.workspace.id`.
+  `documentation.workspace.id`, `documentation.templates.prd_feature`.
 - `.snap/manifests/_taxonomy.json` (cache of domain + journey page IDs).
 
 ## Tasks
@@ -53,10 +53,20 @@ PLATFORM=$(jq -r '.documentation.platform // "none"' <<<"$CONFIG_JSON")
 FUNCTIONAL_ROOT=$(jq -r '.documentation.paths.functional_root' <<<"$CONFIG_JSON")
 PRD_ROOT=$(jq -r '.documentation.paths.prd_root' <<<"$CONFIG_JSON")
 WORKSPACE_ID=$(jq -r '.documentation.workspace.id // ""' <<<"$CONFIG_JSON")
+PRD_TEMPLATE_ID=$(jq -r '.documentation.templates.prd_feature // ""' <<<"$CONFIG_JSON")
 ```
 
 Both roots are guaranteed non-empty when `$PLATFORM != "none"` (load-config
 injects defaults).
+
+`PRD_TEMPLATE_ID` is **optional**. When the user sets
+`documentation.templates.prd_feature` (a remote page ID in their workspace),
+the PRD page is cloned from that template. When it is null/absent,
+`PRD_TEMPLATE_ID` resolves to the empty string and the page is created blank
+(default behavior — absence never breaks publishing).
+
+The PRD feature page title follows a **fixed convention** (`story_name`); it is
+not configurable.
 
 ### C. Per feature — dispatch to snap-publisher
 
@@ -87,6 +97,7 @@ For each manifest in `.snap/manifests/*.manifest.json` (skip `_taxonomy.json`) :
      --brief="$BRIEF" \
      --platform="$PLATFORM" --workspace-id="$WORKSPACE_ID" \
      --functional-root="$FUNCTIONAL_ROOT" --prd-root="$PRD_ROOT" \
+     --prd-template-id="$PRD_TEMPLATE_ID" \
      --project-root="$PWD")
    ```
 

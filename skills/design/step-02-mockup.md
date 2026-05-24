@@ -56,8 +56,30 @@ For each screen in `.snap/designs/${story_id}.draft.json`, for each state in `st
 
 ### 1. Create page
 
+The page title (and therefore the exported file base-name) is rendered from
+`design.naming_pattern` so users can customize the layout. Tokens:
+`{story_id}` (the story slug), `{screen_name}` (the screen id), plus
+`{state}`. The pattern is read from config (default
+`{story_id}-{screen_name}-design` — the `-design` suffix is plain literal
+text, not a token) and rendered by the shared `screen-naming.sh` helper so
+substitution stays consistent and testable with `/wireframe`:
+
 ```bash
-page_title="${story_slug}-${screen_id}-${state}"
+naming_pattern=$(jq -r '.design.naming_pattern // "{story_id}-{screen_name}-design"' <<<"$CONFIG_JSON")
+page_title=$(bash skills/_shared/screen-naming.sh \
+  --pattern="$naming_pattern" \
+  --context="$(jq -nc \
+    --arg sid "$story_slug" \
+    --arg scr "$screen_id" \
+    --arg st "$state" \
+    '{story_id:$sid, screen_name:$scr, state:$st}')" \
+  --project-root="$PWD")
+# Guarantee per-state uniqueness: if the pattern omits {state}, append it so
+# the two states never collide into the same file (the legacy default was
+# "${story_slug}-${screen_id}-${state}").
+if [[ "$naming_pattern" != *'{state}'* ]]; then
+  page_title="${page_title}-${state}"
+fi
 bash "$helper" create-page \
   --title="$page_title" \
   --project-root="$PWD"

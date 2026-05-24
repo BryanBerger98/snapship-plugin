@@ -27,7 +27,7 @@
 | Tickets sync          | Local draft → batch review → push                                                                                                   |
 | Config                | `snap.config.json` at project root (extends bundled defaults)                                                                   |
 | Auth                  | None in config — MCP/CLI handle it (gh auth, glab auth, $AFFINE_API_TOKEN)                                                          |
-| Config sections       | `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `defaults` |
+| Config sections       | `repository`, `tickets`, `documentation`, `wireframes`, `testing`, `naming`, `ai`, `develop`, `qa`, `defaults` |
 
 ## Design decisions
 
@@ -54,12 +54,6 @@
 ### JIRA-only fields
 
 **Choice:** nest JIRA-only fields (`project_key`, `workflow_states`, `transitions`, `epic_link_field`, `estimation_field`) under `tickets.jira.*`. Stderr warning if `platform != "jira"` AND `tickets.jira.*` set.
-
-### `lifecycle_scripts` (vs native CC `hooks`)
-
-**Choice:** config key `lifecycle_scripts` (not `hooks`) + script file `_shared/run-lifecycle-script.sh` + flag `--no-fail-lifecycle`.
-
-**Why:** avoid semantic collision with native Claude Code hooks (`SessionStart`, `PreToolUse`). Clarity workflow vs native CC.
 
 ### Plugin distribution
 

@@ -80,8 +80,10 @@ when all its children are done.
   - `stop` — dump `aggregated_feedback`, halt.
   - `retry` — re-run Phase 1 once with `retry_strategy_hint`, then fall through
     to `--retry-fallback`.
-- Reviewer `severity_threshold` — finding at this level or above blocks the
-  cycle from completing.
+- Reviewer `severity_threshold` — each reviewer (technical/functional/security)
+  blocks the cycle on **its own** threshold: a finding at that level or above
+  (ordering `none < info < minor < major < critical`) blocks completion. The
+  comparison lives in `skills/_shared/severity-gate.sh`.
 
 ## Outputs
 

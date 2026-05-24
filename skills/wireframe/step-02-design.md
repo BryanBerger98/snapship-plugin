@@ -27,25 +27,51 @@ v0.5 helpers are context-agnostic: pass resolved config values (`$api_port`,
 `$export_format`, `$figma_file_key`, …) explicitly — step-00 already resolved
 them from `snap.config.json` and persisted them to skill state.
 
-## Resolve export format (once, at start of step)
+## Resolve export settings (once, at start of step)
 
 ```bash
 fmt=$(jq -r '.wireframes.export_format // "png"' <<<"$CONFIG_JSON")
 # fmt ∈ {png, svg, pdf} per config schema; helpers validate per-platform support.
+
+export_scale=$(jq -r '.wireframes.export_scale // 2' <<<"$CONFIG_JSON")
+# export_scale ∈ {1,2,3} per config schema. Honored only by the figma export
+# path (node.exportAsync constraint:{type:"SCALE"}). frame0's HTTP
+# `file:export-image` API and penpot's `export_shape` tool expose no scale
+# parameter, so the value is read but is a no-op on those platforms.
 ```
 
 `$fmt` is the **sole source of truth** for the output extension and helper
 format. Do not hardcode `png` in filenames or `--format` flags. Do not call
-`export-png` more than once per page.
+`export-png` more than once per page. Likewise `$export_scale` is the sole
+source for the `--scale` flag — never hardcode `2`.
 
 ## Per-screen loop
 
 For each screen draft from step-01, and for each state in `states[]`:
 
-1. **Create page**: title encodes feature + screen + state so the resulting
-   PNG filename stays unique and self-describing:
+1. **Create page**: the title (and therefore the exported file base-name)
+   is rendered from `config.wireframes.naming_pattern` so users can
+   customize the layout. Tokens: `{story_id}` (the story slug),
+   `{screen_name}` (the screen id), plus `{state}` for parity with the
+   legacy `${story_slug}-${screen_id}-${state}` form. The pattern is read
+   from config (default `{story_id}-{screen_name}`) and rendered by the
+   shared helper so substitution stays consistent and testable:
    ```bash
-   page_title="${story_slug}-${screen_id}-${state}"
+   naming_pattern=$(jq -r '.wireframes.naming_pattern // "{story_id}-{screen_name}"' <<<"$CONFIG_JSON")
+   page_title=$(bash skills/_shared/screen-naming.sh \
+     --pattern="$naming_pattern" \
+     --context="$(jq -nc \
+       --arg sid "$story_slug" \
+       --arg scr "$screen_id" \
+       --arg st "$state" \
+       '{story_id:$sid, screen_name:$scr, state:$st}')" \
+     --project-root="$PWD")
+   # Guarantee per-state uniqueness: if the pattern omits {state}, append it
+   # so the two states never collide into the same file (the legacy default
+   # was "${story_slug}-${screen_id}-${state}").
+   if [[ "$naming_pattern" != *'{state}'* ]]; then
+     page_title="${page_title}-${state}"
+   fi
    bash "$helper" create-page \
      --title="$page_title" \
      --project-root="$PWD"
@@ -80,6 +106,9 @@ For each screen draft from step-01, and for each state in `states[]`:
    HTTP API and decodes the base64 locally. Output path may be relative.
    Supported `$fmt` values: `png|jpeg|webp` (Frame0's HTTP API surface — no
    `svg`/`pdf`; switch to `wireframes.platform = "penpot"` for SVG).
+   `wireframes.export_scale` is honored elsewhere but a no-op here: Frame0's
+   `file:export-image` API has no scale parameter, so `$export_scale` is not
+   passed.
    ```bash
    target=".snap/wireframes/${story_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
@@ -96,6 +125,8 @@ For each screen draft from step-01, and for each state in `states[]`:
    writes the asset itself. The helper emits the MCP descriptor; the
    dispatcher invokes the tool. Output path must be absolute. Supported
    `$fmt` values: `png|svg` (no `jpeg`/`webp`/`pdf`).
+   `wireframes.export_scale` is a no-op here: the Penpot `export_shape` tool
+   exposes no scale parameter, so `$export_scale` is not passed.
    ```bash
    target="$PWD/.snap/wireframes/${story_id}/${page_title}.${fmt}"
    bash "$helper" export-png \
@@ -112,7 +143,9 @@ For each screen draft from step-01, and for each state in `states[]`:
    `node.exportAsync({format, constraint:{type:"SCALE", value:scl}})` and
    returns `{node_id, format, data: figma.base64Encode(bytes)}` inline.
    The skill then invokes `save-export` to decode the base64 to disk.
-   Supported `$fmt` values: `png|svg|jpg|pdf`. Default scale is `2`.
+   Supported `$fmt` values: `png|svg|jpg|pdf`. Scale comes from
+   `$export_scale` (resolved above from `config.wireframes.export_scale`,
+   default `2`).
    ```bash
    target=".snap/wireframes/${story_id}/${page_title}.${fmt}"
 
@@ -121,7 +154,7 @@ For each screen draft from step-01, and for each state in `states[]`:
      --shape-id="$page_id" \
      --output-path="$target" \
      --format="$fmt" \
-     --scale=2 \
+     --scale="$export_scale" \
      --file-key="$figma_file_key")
    # → dispatcher invokes figma_execute, captures result.data (base64 string).
 

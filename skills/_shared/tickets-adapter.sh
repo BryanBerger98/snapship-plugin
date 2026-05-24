@@ -202,12 +202,18 @@ fi
 
 case "$MODE" in auto|cli|mcp) ;; *) echo "ERROR: bad --mode: $MODE" >&2; exit 2 ;; esac
 
-# Resolve platform from config when omitted
-if [ -z "$PLATFORM" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ]; then
-  if [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
+# Resolve platform from config when omitted. Cache the loaded config so we
+# can also extract the jira block below without shelling out twice.
+CFG=""
+load_cfg_once() {
+  if [ -z "$CFG" ] && [ -f "${PROJECT_ROOT}/snap.config.json" ] && [ -x "${SCRIPT_DIR}/load-config.sh" ]; then
     CFG=$(bash "${SCRIPT_DIR}/load-config.sh" --project-root="$PROJECT_ROOT" --no-validate 2>/dev/null || echo '{}')
-    PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
   fi
+}
+
+if [ -z "$PLATFORM" ]; then
+  load_cfg_once
+  [ -n "$CFG" ] && PLATFORM=$(echo "$CFG" | jq -r '.tickets.platform // ""')
 fi
 
 [ -z "$PLATFORM" ] && { echo "ERROR: --platform required (or set tickets.platform in config)" >&2; exit 2; }
@@ -216,6 +222,14 @@ case "$PLATFORM" in
   github|gitlab|jira|linear) ;;
   *) echo "ERROR: unsupported platform: $PLATFORM" >&2; exit 2 ;;
 esac
+
+# Load the jira config block whenever the resolved platform is jira, so the
+# MCP descriptor can carry project_key / issue type / state + transition maps.
+JIRA_CFG='{}'
+if [ "$PLATFORM" = "jira" ]; then
+  load_cfg_once
+  [ -n "$CFG" ] && JIRA_CFG=$(echo "$CFG" | jq -c '.tickets.jira // {}')
+fi
 
 # CSV → JSON array helper
 csv_to_array() {
@@ -389,8 +403,10 @@ emit_mcp_descriptor() {
     --arg milestone "$MILESTONE" \
     --arg version_name "$VERSION_NAME" \
     --arg story_type "$STORY_TYPE" \
+    --arg issue_type "$ISSUE_TYPE" \
     --argjson labels    "$(csv_to_array "$LABELS_CSV")" \
-    --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" '
+    --argjson assignees "$(csv_to_array "$ASSIGNEES_CSV")" \
+    --argjson jira "$JIRA_CFG" '
     {
       ok:false, mode:"mcp", reason:"mcp_required",
       descriptor: {
@@ -412,6 +428,19 @@ emit_mcp_descriptor() {
           | if ($labels    | length) > 0 then .labels    = $labels    else . end
           | if ($assignees | length) > 0 then .assignees = $assignees else . end
           | if $act == "list" then .limit = ($limit | tonumber) else . end
+          # --- jira config wiring (graceful: omit absent keys) ---------------
+          | if ($plat == "jira" and ($jira.project_key // "") != "")
+              then .project_key = $jira.project_key else . end
+          | if ($plat == "jira" and $act == "create")
+              then (
+                if $issue_type != "" then .issue_type = $issue_type
+                elif ($jira.default_issue_type // "") != "" then .issue_type = $jira.default_issue_type
+                else . end
+              ) else . end
+          | if ($plat == "jira" and (($jira.workflow_states // {}) | length) > 0)
+              then .workflow_states = $jira.workflow_states else . end
+          | if ($plat == "jira" and (($jira.transitions // {}) | length) > 0)
+              then .transitions = $jira.transitions else . end
         )
       }
     }')

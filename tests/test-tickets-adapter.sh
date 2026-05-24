@@ -873,6 +873,61 @@ out=$(bash "$SCRIPT" --action=set-version --platform=jira --ticket-id=PROJ-9 --v
 [ $? -eq 10 ] && ok "69.1 exit 10" || ko "69.1"
 [ "$(echo "$out" | jq -r '.descriptor.params.version_name')" = "1.4.0" ] && ok "69.2 version_name" || ko "69.2"
 
+# --- jira config wiring (tickets.jira.*) ----------------------------------
+
+echo ""
+echo "[71] jira create reads tickets.jira config from snap.config.json"
+TMP=$(mktemp -d)
+cp "${ROOT}/tests/fixtures/valid/config/full-jira.json" "$TMP/snap.config.json"
+out=$(bash "$SCRIPT" --action=create --title="x" --project-root="$TMP")
+rc=$?
+[ $rc -eq 10 ]                                                                   && ok "71.1 exit 10"          || ko "71.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.platform')" = "jira" ]                     && ok "71.2 platform jira"    || ko "71.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.project_key')" = "PROJ" ]           && ok "71.3 project_key"      || ko "71.3"
+[ "$(echo "$out" | jq -r '.descriptor.params.issue_type')" = "Story" ]           && ok "71.4 issue_type default" || ko "71.4"
+[ "$(echo "$out" | jq -r '.descriptor.params.transitions.start')" = "Start Progress" ] && ok "71.5 transitions.start" || ko "71.5"
+[ "$(echo "$out" | jq -r '.descriptor.params.workflow_states.done')" = "Done" ]  && ok "71.6 workflow_states.done" || ko "71.6"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[72] explicit --issue-type overrides config default"
+TMP=$(mktemp -d)
+cp "${ROOT}/tests/fixtures/valid/config/full-jira.json" "$TMP/snap.config.json"
+out=$(bash "$SCRIPT" --action=create --title="x" --issue-type=Bug --project-root="$TMP")
+[ "$(echo "$out" | jq -r '.descriptor.params.issue_type')" = "Bug" ]             && ok "72.1 explicit wins"    || ko "72.1"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[73] tickets.jira absent → none of the jira params injected (graceful)"
+TMP=$(mktemp -d)
+cat > "$TMP/snap.config.json" <<'JSON'
+{
+  "$schema": "./skills/_shared/schemas/config.schema.json",
+  "version": "1.0",
+  "tickets": { "platform": "jira" }
+}
+JSON
+out=$(bash "$SCRIPT" --action=create --title="x" --project-root="$TMP")
+rc=$?
+[ $rc -eq 10 ]                                                            && ok "73.1 exit 10"               || ko "73.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.params | has("project_key")')" = "false" ]     && ok "73.2 no project_key"     || ko "73.2"
+[ "$(echo "$out" | jq -r '.descriptor.params | has("issue_type")')" = "false" ]      && ok "73.3 no issue_type"      || ko "73.3"
+[ "$(echo "$out" | jq -r '.descriptor.params | has("workflow_states")')" = "false" ] && ok "73.4 no workflow_states" || ko "73.4"
+[ "$(echo "$out" | jq -r '.descriptor.params | has("transitions")')" = "false" ]     && ok "73.5 no transitions"     || ko "73.5"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
+echo ""
+echo "[74] github create unaffected by jira wiring (no jira params)"
+TMP=$(mktemp -d)
+mk_gh_stub "$TMP/gh"
+out=$(SNAP_GH_BIN="$TMP/gh" bash "$SCRIPT" --action=create --platform=github --title="T")
+rc=$?
+[ $rc -eq 0 ]                                                  && ok "74.1 exit 0 cli path"   || ko "74.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.mode')" = "cli" ]                   && ok "74.2 mode cli"          || ko "74.2"
+[ "$(echo "$out" | jq -r '.result.platform_id')" = "42" ]      && ok "74.3 platform_id"       || ko "74.3"
+[ "$(echo "$out" | jq -r 'has("descriptor")')" = "false" ]     && ok "74.4 no descriptor"     || ko "74.4"
+trash "$TMP" 2>/dev/null || rm -rf "$TMP"
+
 # --- gitlab close-epic ----------------------------------------------------
 
 echo ""

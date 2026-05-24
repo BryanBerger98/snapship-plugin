@@ -71,7 +71,16 @@ empty.
    - Skip `milestone` step when `supports_milestone=false`.
    - Skip `target_version` step when `supports_version=false` OR draft is
      `story_type=epic`.
-   - Apply interactive or auto path per the mode flag.
+   - Apply interactive or auto path per `auto_mode` (resolved in step-00 from
+     `defaults.auto_mode` ∨ `--auto`/`-a`). Route the final confirmation
+     through `ask-or-default.sh` so a truthy `auto_mode` auto-accepts:
+     ```bash
+     choice=$(bash skills/_shared/ask-or-default.sh \
+       --auto-mode="$auto_mode" \
+       --question-id=confirm-metadata \
+       --question="Metadata proposée OK ?" \
+       --options="accept,edit" --default=accept --header="Metadata")
+     ```
 3. **Write updated drafts** back to
    `.snap/.runtime/<SUBJECT_ID>/drafts.json` with `milestone` and
    `target_version` populated where applicable.

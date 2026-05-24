@@ -30,7 +30,6 @@ AVAILABLE_CSV="${SNAP_MCP_AVAILABLE:-}"
 FROM_ANSWERS_JSON=""
 
 REPO_PLATFORM=""
-REPO_URL=""
 TICKETS_PLATFORM=""
 DOCS_PLATFORM=""
 WIRE_PLATFORM=""
@@ -52,7 +51,6 @@ Options:
   --available=CSV          Override MCP detection (test hook; defaults to \$SNAP_MCP_AVAILABLE)
   --from-answers=JSON      JSON object merged on top of detected defaults
   --repository-platform=github|gitlab
-  --repository-url=URL
   --tickets-platform=github|gitlab|jira
   --docs-platform=affine|notion
   --wireframes-platform=frame0|penpot|figma
@@ -74,7 +72,6 @@ while [ $# -gt 0 ]; do
     --available=*)               AVAILABLE_CSV="${1#--available=}" ;;
     --from-answers=*)            FROM_ANSWERS_JSON="${1#--from-answers=}" ;;
     --repository-platform=*)     REPO_PLATFORM="${1#--repository-platform=}" ;;
-    --repository-url=*)          REPO_URL="${1#--repository-url=}" ;;
     --tickets-platform=*)        TICKETS_PLATFORM="${1#--tickets-platform=}" ;;
     --docs-platform=*)           DOCS_PLATFORM="${1#--docs-platform=}" ;;
     --wireframes-platform=*)     WIRE_PLATFORM="${1#--wireframes-platform=}" ;;
@@ -125,24 +122,6 @@ infer_repo_platform() {
   esac
 }
 
-# Convert SSH URL to HTTPS (best effort).
-ssh_to_https() {
-  local url="$1"
-  case "$url" in
-    git@*:*)
-      # git@github.com:owner/repo.git → https://github.com/owner/repo
-      local host path
-      host="${url#git@}"; host="${host%%:*}"
-      path="${url#*:}"; path="${path%.git}"
-      echo "https://${host}/${path}"
-      ;;
-    https://*|http://*)
-      echo "${url%.git}"
-      ;;
-    *) echo "" ;;
-  esac
-}
-
 # Check MCP availability against AVAILABLE_CSV.
 mcp_present() {
   [ -z "$AVAILABLE_CSV" ] && { echo "false"; return 0; }
@@ -159,8 +138,6 @@ mcp_present() {
 
 raw_remote_url=$(detect_git_remote_url)
 detected_repo_platform=$(infer_repo_platform "$raw_remote_url")
-detected_repo_http=""
-[ -n "$raw_remote_url" ] && detected_repo_http=$(ssh_to_https "$raw_remote_url")
 
 # Tickets default: prefer linear / jira if MCP detected, else repo platform
 detected_tickets_platform=""
@@ -200,8 +177,6 @@ fi
 
 DETECTED=$(jq -nc \
   --arg repo_platform "$detected_repo_platform" \
-  --arg repo_http     "$detected_repo_http" \
-  --arg repo_ssh      "$raw_remote_url" \
   --arg tickets       "$detected_tickets_platform" \
   --arg docs          "$detected_docs_platform" \
   --arg design        "$detected_design_platform" \
@@ -211,8 +186,6 @@ DETECTED=$(jq -nc \
     repository: (
       {}
       | if $repo_platform != "" then .platform = $repo_platform else . end
-      | if $repo_http     != "" then .http_url = $repo_http     else . end
-      | if ($repo_ssh != "" and ($repo_ssh | startswith("git@"))) then .ssh_url = $repo_ssh else . end
     ),
     tickets:       (if $tickets != "" then {platform: $tickets} else {} end),
     documentation: (if $docs    != "" then {platform: $docs}    else {} end),
@@ -240,7 +213,6 @@ fi
 # Build override JSON from explicit flags
 OVERRIDES=$(jq -nc \
   --arg rp "$REPO_PLATFORM" \
-  --arg ru "$REPO_URL" \
   --arg tp "$TICKETS_PLATFORM" \
   --arg dp "$DOCS_PLATFORM" \
   --arg wp "$WIRE_PLATFORM" \
@@ -248,7 +220,6 @@ OVERRIDES=$(jq -nc \
   --arg lg "$LANG_OVERRIDE" '
   {}
   | if $rp != "" then .repository      = (.repository // {}      | .platform = $rp) else . end
-  | if $ru != "" then .repository      = (.repository // {}      | .http_url = $ru) else . end
   | if $tp != "" then .tickets         = (.tickets // {}         | .platform = $tp) else . end
   | if $dp != "" then .documentation   = (.documentation // {}   | .platform = $dp) else . end
   | if $wp != "" then .wireframes      = (.wireframes // {}      | .platform = $wp) else . end

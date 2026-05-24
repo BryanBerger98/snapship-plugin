@@ -44,7 +44,7 @@ fi
 | analyze  | Read `payload_json` + impact_radius + conventions ; identify call sites, tests, types touched. |
 | plan     | Produce A/P/C menu (Approach / Parts / Concerns). Surface to user only if `--ask-plan`. |
 | execute  | Edit/Write files. Stop at `--max-files` if set. |
-| validate | Run `lint_command`, `typecheck_command`, scoped `test_command` (only files touched). |
+| validate | Run `format_command`, then `lint_command`, `typecheck_command`, scoped `test_command` (only files touched). Each command is skipped silently when its config key is absent/empty. |
 
 Phase 1 retries up to 3 times if `validate` fails (fix loop internal to the
 agent). Hard error after 3 → emit progress `fail`, surface diff, stop.
@@ -56,7 +56,7 @@ agent). Hard error after 3 → emit progress `fail`, surface diff, stop.
   "phase": 1,
   "files_changed": ["src/auth/signup.ts", ...],
   "diff_summary": "...",
-  "validate": {"lint": "ok", "typecheck": "ok", "test": "ok"}
+  "validate": {"format": "ok", "lint": "ok", "typecheck": "ok", "test": "ok"}
 }
 ```
 
@@ -74,15 +74,52 @@ prompt (verbatim copy of `digest.json` when available, otherwise the merged
 critiques reference the same source of truth as the developer.
 
 ```
-{ "severity": "minor|major|critical|none", "feedback_md": "..." }
+{ "severity": "none|info|minor|major|critical", "feedback_md": "..." }
 ```
 
-### Severity aggregation
+### Read review config (per-reviewer thresholds + auto-apply)
 
+Resolve the develop config once (embedded defaults guarantee these keys exist;
+the `//` fallbacks below are belt-and-suspenders so a missing/partial config
+never breaks the cycle).
+
+```bash
+cfg=$(bash skills/_shared/load-config.sh --project-root="$PWD")
+
+thr_technical=$(jq  -r '.develop.reviews.technical.severity_threshold  // "minor"' <<<"$cfg")
+thr_functional=$(jq -r '.develop.reviews.functional.severity_threshold // "minor"' <<<"$cfg")
+thr_security=$(jq   -r '.develop.reviews.security.severity_threshold    // "info"'  <<<"$cfg")
+auto_apply=$(jq     -r '.develop.auto_apply_review_feedback             // true'    <<<"$cfg")
 ```
-overall = max(technical.severity, functional.severity, security.severity)
-blocked = any(reviewer.severity >= reviewer.severity_threshold)
+
+### Severity gating (per-reviewer threshold)
+
+Each reviewer blocks the cycle on **its own** threshold — `severity-gate.sh`
+holds the comparison (severity ordering `none < info < minor < major <
+critical`; blocks when `severity >= threshold`). Feed each reviewer's reported
+`severity` against its configured threshold:
+
+```bash
+# verdict prints "block" | "pass"
+verdict_technical=$(bash  skills/_shared/severity-gate.sh \
+  --severity="$technical_severity"  --threshold="$thr_technical")
+verdict_functional=$(bash skills/_shared/severity-gate.sh \
+  --severity="$functional_severity" --threshold="$thr_functional")
+verdict_security=$(bash   skills/_shared/severity-gate.sh \
+  --severity="$security_severity"   --threshold="$thr_security")
+
+blocked=false
+for v in "$verdict_technical" "$verdict_functional" "$verdict_security"; do
+  [[ "$v" = "block" ]] && blocked=true
+done
+
+# overall severity (max) is informational only — for the aggregated-feedback header.
 ```
+
+The per-reviewer `block|pass` verdicts populate the `{{review_*_blocking}}`
+columns of `aggregated-feedback.md`; `blocked` drives the cycle-exit decision
+below. A reviewer with a high finding but a high threshold (e.g. `major`
+finding under a `critical` threshold) passes and does not block on its own.
 
 ### Cycle loop
 
@@ -90,8 +127,8 @@ blocked = any(reviewer.severity >= reviewer.severity_threshold)
    review-thread payload for step-04 to post on the PR).
 2. `blocked == true` and `cycles_used < review_cycles_max` :
    - Build the review context JSON (per-reviewer severity + threshold +
-     blocking + findings grouped by file + cross-cutting + suggested fix
-     order).
+     blocking verdicts above + findings grouped by file + cross-cutting +
+     suggested fix order).
    - Render `aggregated_feedback` via the resolved template :
      ```bash
      agg_tpl=$(bash skills/_shared/resolve-template.sh \
@@ -99,6 +136,25 @@ blocked = any(reviewer.severity >= reviewer.severity_threshold)
      aggregated_feedback=$(bash skills/_shared/render-template.sh \
        --template="$agg_tpl" --vars="$review_context_json")
      ```
+   - **Confirmation gate (`auto_apply_review_feedback`)** :
+     - `auto_apply == true` (default) → apply feedback **without asking**.
+     - `auto_apply == false` → ask the user before applying, via
+       `ask-or-default.sh` (auto-mode mirrors the read flag, so `false` always
+       prompts ; default answer `apply`) :
+       ```bash
+       ans=$(bash skills/_shared/ask-or-default.sh \
+         --auto-mode="$auto_apply" \
+         --question-id=apply-review-feedback \
+         --question="Appliquer les retours des reviewers (cycle $((cycles_used + 1))) ?" \
+         --options=apply,skip \
+         --default=apply \
+         --header="Revue code")
+       # auto_apply=false → $ans is a JSON {action:"ask",...} : surface it
+       #   through AskUserQuestion, then read the user's choice.
+       # auto_apply=true  → $ans is "apply" (raw) : proceed silently.
+       ```
+       If the user picks `skip`, do **not** spawn the developer for this cycle :
+       jump to the cycles-exhausted branch (`fail_strategy`).
    - Spawn `snap-developer` (write tools enabled) with
      `{payload_json, aggregated_feedback, diff, conventions, repo_root}`.
    - Re-run Phase 2 fresh.

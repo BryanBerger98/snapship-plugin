@@ -2,7 +2,6 @@
   "version": "1.0",
   "repository": {
     "platform": "github",
-    "http_url": "https://github.com/org/repo.git",
     "default_branch": "main"
   },
   "tickets": {

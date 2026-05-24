@@ -10,6 +10,20 @@ Bootstrap a `/develop` run. **v1.2 contract** : one ticket per call, identified
 by its remote `platform_id`. No PRD lookup, no local `feature_id`, no
 session-loop.
 
+## Communication language (`defaults.lang`)
+
+Once `CONFIG_JSON` is loaded below (task 3), resolve the configured language and
+respond to the user in it for the whole skill run (prompts, questions,
+summaries):
+
+```bash
+SNAP_LANG=$(jq -r '.defaults.lang // "fr"' <<<"$CONFIG_JSON")
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
 ## Tasks
 
 ### 1. Parse args
@@ -69,7 +83,18 @@ PLATFORM=$(jq -r '.tickets.platform // empty' <<<"$CONFIG_JSON")
 }
 review_cycles_max=$(jq '.develop.review_cycles_max // 3' <<<"$CONFIG_JSON")
 fail_strategy=$(jq -r '.develop.fail_strategy // "next-ticket"' <<<"$CONFIG_JSON")
+# defaults toggles — resolve once, reuse in later steps.
+save_mode=$(jq -r '.defaults.save_mode // true' <<<"$CONFIG_JSON")
+branch_mode=$(jq -r '.defaults.branch_mode // true' <<<"$CONFIG_JSON")
 ```
+
+**`save_mode`** (default `true`) — when `false`, progress persistence is
+disabled. Pass `--save-mode="$save_mode"` to **every** `progress.sh`
+`start`/`step`/`finish` call in this skill (the helper turns them into no-ops
+when `false`). Reads (`resume`/`list`) are unaffected.
+
+**`branch_mode`** (default `true`) — when `false`, step-02 must skip git branch
+creation and work on the current branch (see step-02).
 
 ### 4. Pre-flight
 
@@ -135,6 +160,7 @@ Network failure / 404 / retry exhaustion → fail clean (no offline fallback).
 ```bash
 bash skills/_shared/progress.sh step \
   --project-root="$PWD" \
+  --save-mode="$save_mode" \
   --skill=develop \
   --story-id="$TICKET_ID" \
   --step-num=00 \

@@ -180,6 +180,46 @@ bash "$SCRIPT" 2>/dev/null; [ $? -eq 1 ] && ok "15.1 no args = exit 1" || ko "15
 bash "$SCRIPT" --help >/dev/null; [ $? -eq 0 ] && ok "15.2 --help = 0" || ko "15.2"
 bash "$SCRIPT" bogus 2>/dev/null; [ $? -eq 1 ] && ok "15.3 unknown subcmd = 1" || ko "15.3"
 
+# 16. save-mode=false → start/step/finish are no-ops (no file written)
+echo ""
+echo "[16] save-mode=false no-ops"
+DIR=$(setup_dir)
+bash "$SCRIPT" start --skill=define --story-id=01-auth --save-mode=false --project-root="$DIR"
+F="${DIR}/.snap/progress.json"
+[ ! -f "$F" ] && ok "16.1 start no-op (no file)" || ko "16.1 file written"
+bash "$SCRIPT" step --skill=define --story-id=01-auth --step-num=01 --step-name=init --status=ok --save-mode=false --project-root="$DIR"
+[ ! -f "$F" ] && ok "16.2 step no-op (no file)" || ko "16.2 file written"
+bash "$SCRIPT" finish --skill=define --story-id=01-auth --status=ok --save-mode=false --project-root="$DIR"
+[ ! -f "$F" ] && ok "16.3 finish no-op (no file)" || ko "16.3 file written"
+trash "$DIR" 2>/dev/null || true
+
+# 17. save-mode=false still allows reads (resume/list)
+echo ""
+echo "[17] save-mode=false reads still work"
+DIR=$(setup_dir)
+out=$(bash "$SCRIPT" list --save-mode=false --project-root="$DIR")
+[ "$out" = "[]" ] && ok "17.1 list works under save-mode=false" || ko "17.1 got: $out"
+out=$(bash "$SCRIPT" resume --skill=define --story-id=01-auth --save-mode=false --project-root="$DIR")
+[ -z "$out" ] && ok "17.2 resume works under save-mode=false" || ko "17.2 got: $out"
+trash "$DIR" 2>/dev/null || true
+
+# 18. save-mode=true (default) writes normally
+echo ""
+echo "[18] save-mode=true writes"
+DIR=$(setup_dir)
+bash "$SCRIPT" start --skill=define --story-id=01-auth --save-mode=true --project-root="$DIR"
+F="${DIR}/.snap/progress.json"
+[ -f "$F" ] && ok "18.1 save-mode=true persists" || ko "18.1 no file"
+trash "$DIR" 2>/dev/null || true
+
+# 19. invalid save-mode → exit 1
+echo ""
+echo "[19] invalid save-mode"
+DIR=$(setup_dir)
+bash "$SCRIPT" start --skill=define --story-id=01-auth --save-mode=maybe --project-root="$DIR" 2>/dev/null
+[ $? -eq 1 ] && ok "19.1 bad save-mode = exit 1" || ko "19.1"
+trash "$DIR" 2>/dev/null || true
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

@@ -30,15 +30,41 @@ The summary table (section E) is the final user-visible artefact.
 
 Normal mode :
 
+The platform-returned `url` (e.g. GitHub via `gh`) is **authoritative** — when
+present it always wins. Only when it is empty (e.g. the Jira MCP path may not
+echo a browse URL) do we fall back to `tickets.url` from `snap.config.json`.
+
+`tickets.url` is the tracker base URL (e.g.
+`https://company.atlassian.net/browse/PROJ`). The browse link for a ticket is
+built by stripping the trailing path segment (the project key) from that base
+and appending the ticket's full `platform_id`:
+
+- base `https://company.atlassian.net/browse/PROJ` + `platform_id=PROJ-3`
+  → `https://company.atlassian.net/browse/PROJ-3`.
+
+If `tickets.url` is **absent** AND the platform url is empty, the link stays
+empty exactly as before — no link is fabricated.
+
 ```bash
 drafts=$(bash skills/_shared/cache-runtime.sh read \
   "$SUBJECT_ID" drafts.json --project-root="$PWD")
 dst=".snap/tickets/${story_id}.json"
 NOW=$(date -u +%FT%TZ)
 
+# tracker base URL (fallback only); empty string when unset
+tickets_base=$(jq -r '.tickets.url // ""' <<<"$CONFIG_JSON")
+
 printf '%s' "$drafts" | jq --arg fid "$story_id" \
    --arg plat "$platform" \
-   --arg ts "$NOW" '
+   --arg ts "$NOW" \
+   --arg base "$tickets_base" '
+  # Build a browse URL from the tracker base + platform_id.
+  # Strip the trailing path segment (project key) off the base, then append
+  # the full platform_id: ".../browse/PROJ" + "PROJ-3" → ".../browse/PROJ-3".
+  def browse_url(pid):
+    if ($base | length) == 0 or (pid // "" | length) == 0 then ""
+    else ($base | sub("/[^/]*$"; "")) + "/" + pid
+    end;
   {
     story_id: $fid,
     platform: $plat,
@@ -47,7 +73,7 @@ printf '%s' "$drafts" | jq --arg fid "$story_id" \
       .[] | {
         local_id,
         platform_id,
-        url,
+        url: (if (.url // "") == "" then browse_url(.platform_id) else .url end),
         title,
         description,
         story_type,

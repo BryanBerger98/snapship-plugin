@@ -6,13 +6,15 @@
 #   1 = invalid JSON / failed schema validation / unresolved inheritance
 #   2 = unsupported config version
 #
-# Usage: load-config.sh [--project-root=PATH] [--no-validate]
+# Usage: load-config.sh [--project-root=PATH] [--no-validate] [-e|--economy[=true|false]]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${SNAP_PROJECT_ROOT:-$(pwd)}"
 NO_VALIDATE=false
+# Economy override: empty = use config value, true/false = CLI override wins.
+ECONOMY_OVERRIDE=""
 
 usage() {
   cat <<EOF
@@ -24,6 +26,8 @@ schema, resolves inheritance, outputs normalized JSON to stdout.
 Options:
   --project-root=PATH  Project root (default: \$PWD or \$SNAP_PROJECT_ROOT)
   --no-validate        Skip JSON Schema validation
+  -e, --economy[=BOOL] Force economy mode (overrides defaults.economy_mode).
+                       Bare -e/--economy = true; --economy=false disables it.
   -h, --help           Show this help
 EOF
 }
@@ -32,11 +36,18 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --project-root=*) PROJECT_ROOT="${1#--project-root=}" ;;
     --no-validate)    NO_VALIDATE=true ;;
+    --economy=*)      ECONOMY_OVERRIDE="${1#--economy=}" ;;
+    -e|--economy)     ECONOMY_OVERRIDE="true" ;;
     -h|--help)        usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
   esac
   shift
 done
+
+case "$ECONOMY_OVERRIDE" in
+  ""|true|false) ;;
+  *) echo "ERROR: --economy must be true|false (got: ${ECONOMY_OVERRIDE})" >&2; exit 1 ;;
+esac
 
 CONFIG_FILE="${PROJECT_ROOT}/snap.config.json"
 SCHEMA_FILE="${SCRIPT_DIR}/schemas/config.schema.json"
@@ -87,7 +98,6 @@ DEFAULTS=$(cat <<'JSON'
     "naming_pattern": "{story_id}-{screen_name}",
     "frame0": { "api_port": 58320 }
   },
-  "lifecycle_scripts": {},
   "templates": {
     "use_repo_native": true,
     "tickets": {
@@ -242,6 +252,28 @@ RESOLVED=$(echo "$MERGED" | jq '
     else . end)
 ')
 
+# --- Economy mode override ---
+# Effective economy = CLI override if provided, else defaults.economy_mode (default false).
+# When active: force reduced parallelism + cycles so every downstream consumer
+# (which reads the resolved JSON) sees the lowered values.
+if [ -n "$ECONOMY_OVERRIDE" ]; then
+  ECONOMY_EFFECTIVE="$ECONOMY_OVERRIDE"
+else
+  ECONOMY_EFFECTIVE=$(echo "$RESOLVED" | jq -r '.defaults.economy_mode // false')
+fi
+
+if [ "$ECONOMY_EFFECTIVE" = "true" ]; then
+  RESOLVED=$(echo "$RESOLVED" | jq '
+    .defaults.economy_mode = true
+    | .ai.max_parallel_agents = 1
+    | .develop.review_cycles_max = 1
+    | .qa.qa_cycles_max = 1
+  ')
+else
+  # Reflect a CLI --economy=false back into the resolved config for transparency.
+  RESOLVED=$(echo "$RESOLVED" | jq '.defaults.economy_mode = false')
+fi
+
 # Inherit unresolved → fail
 if echo "$RESOLVED" | jq -e '(.tickets // null) != null and (.tickets.platform // null) == null' >/dev/null; then
   echo "ERROR: tickets.platform=inherit but repository.platform absent" >&2
@@ -253,16 +285,5 @@ if echo "$RESOLVED" | jq -e '(.tickets // null) != null and .tickets.platform !=
   plat=$(echo "$RESOLVED" | jq -r '.tickets.platform')
   echo "WARN: tickets.jira section ignored on platform='${plat}'" >&2
 fi
-
-while IFS=$'\t' read -r key path; do
-  [ -z "$path" ] && continue
-  case "$path" in
-    /*) abs="$path" ;;
-    *)  abs="${PROJECT_ROOT}/${path}" ;;
-  esac
-  if [ ! -f "$abs" ]; then
-    echo "WARN: lifecycle_scripts.${key} → '${path}' not found" >&2
-  fi
-done < <(echo "$RESOLVED" | jq -r '(.lifecycle_scripts // {}) | to_entries[] | "\(.key)\t\(.value // "")"')
 
 printf '%s\n' "$RESOLVED"

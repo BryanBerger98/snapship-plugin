@@ -92,17 +92,31 @@ branch=$(bash "$NAMING" --type=branch \
   --project-root="$DIR")
 assert_eq "02.1 branch from naming" "feat/auth" "$branch"
 
+# step-02 resolves the base branch from repository.default_branch (// "main").
+CONFIG_JSON=$(bash "$LOAD_CFG" --project-root="$DIR")
+base_branch=$(jq -r '.repository.default_branch // "main"' <<<"$CONFIG_JSON")
+assert_eq "02.1b base branch from config" "main" "$base_branch"
+
+# step-02 "dedicated" strategy: fork the new branch from the configured base.
 if git rev-parse --verify "$branch" >/dev/null 2>&1; then
   git checkout -q "$branch"
+elif git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
+  git checkout -q -b "$branch" "$base_branch"
 else
   git checkout -q -b "$branch"
 fi
 git rev-parse --abbrev-ref HEAD | grep -q "^${branch}$" \
   && ok "02.2 first run creates branch" || ko "02.2" "branch=$(git rev-parse --abbrev-ref HEAD)"
 
+# The new branch must have forked from the base branch (shared HEAD).
+assert_eq "02.2b branch forked from base" \
+  "$(git rev-parse "$base_branch")" "$(git rev-parse "$branch")"
+
 git checkout -q main
 if git rev-parse --verify "$branch" >/dev/null 2>&1; then
   git checkout -q "$branch"
+elif git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
+  git checkout -q -b "$branch" "$base_branch"
 else
   git checkout -q -b "$branch"
 fi
@@ -111,6 +125,11 @@ git rev-parse --abbrev-ref HEAD | grep -q "^${branch}$" \
 
 n=$(git branch --list "$branch" | wc -l | tr -d ' ')
 assert_eq "02.4 no duplicate branch" "1" "$n"
+
+# Config-absent fallback: with no repository.default_branch the read defaults to "main".
+no_branch_cfg='{"repository":{"platform":"github"}}'
+assert_eq "02.5 default_branch absent falls back to main" \
+  "main" "$(jq -r '.repository.default_branch // "main"' <<<"$no_branch_cfg")"
 
 # --- step-03a commit format + sha patch into tickets/{id}.json ------------
 echo ""

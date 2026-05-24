@@ -107,7 +107,6 @@ All scripts in `skills/_shared/`. Reusable across skills.
 # Warnings (stderr, non-blocking):
 #   - tickets.platform != "jira" + tickets.jira.* set
 #     → "tickets.jira section ignored on platform Y"
-#   - lifecycle_scripts.<name> pointing to non-existent script → "script X invalid path"
 # Cache resolution in .snap/.config-resolved.json (invalidated when mtime changes)
 ```
 
@@ -125,17 +124,6 @@ All scripts in `skills/_shared/`. Reusable across skills.
      - Validate via load-config.sh schema
    - Skill resumes step-00 with complete config
 3. If flag `-a` AND section missing → fail explicitly (no AskUserQuestion in autonomous mode)
-```
-
-## run-lifecycle-script.sh
-
-```bash
-# Execute a CUSTOM workflow lifecycle_script (≠ native Claude Code hook).
-# args: script_name (pre_define|post_ticket|...), context_json
-# Reads config.lifecycle_scripts.<script_name>
-# If key missing OR null → silently skip
-# If defined (string path) → exec script with context_json on stdin
-# Capture exit code: non-zero = stop workflow (or warning if --no-fail-lifecycle)
 ```
 
 ## ask-or-default.sh
@@ -160,7 +148,7 @@ All scripts in `skills/_shared/`. Reusable across skills.
 
 ```bash
 # Auto-generate snap.config.json at project root
-# 1. Parse .git/config → repository.{http_url, ssh_url, platform}
+# 1. Parse .git/config → repository.platform (clone URLs deductible from `git remote`, not persisted)
 # 2. Detect active MCP servers (affine, notion, frame0, atlassian, github, gitlab)
 # 3. AskUserQuestion progressive per section:
 #    - tickets: platform + url + (if JIRA: jira.project_key + jira.workflow_states/transitions)

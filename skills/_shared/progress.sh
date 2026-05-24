@@ -9,6 +9,9 @@
 #   resume --skill=X --story-id=Y               # stdout: last step status (started|fail|retry) or empty
 #   list                                          # stdout: JSON in_flight[]
 #
+# Persistence gate: pass --save-mode=false (config defaults.save_mode) to make
+# the write subcommands (start/step/finish) no-ops. Reads (resume/list) ignore it.
+#
 # Exit codes: 0=ok, 1=invalid arg, 2=jq/file error.
 
 set -euo pipefail
@@ -31,6 +34,7 @@ Subcommands:
 
 Common:
   --project-root=PATH    Default: \$PWD or \$SNAP_PROJECT_ROOT
+  --save-mode=true|false When false, start/step/finish are no-ops (default true)
   -h, --help
 
 Status values:
@@ -51,6 +55,7 @@ STEP_NAME=""
 STATUS=""
 NOTE=""
 EXTRA=""
+SAVE_MODE="true"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -62,11 +67,24 @@ while [ $# -gt 0 ]; do
     --status=*)       STATUS="${1#--status=}" ;;
     --note=*)         NOTE="${1#--note=}" ;;
     --extra=*)        EXTRA="${1#--extra=}" ;;
+    --save-mode=*)    SAVE_MODE="${1#--save-mode=}" ;;
     -h|--help)        usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage >&2; exit 1 ;;
   esac
   shift
 done
+
+case "$SAVE_MODE" in
+  true|false) ;;
+  *) echo "ERROR: --save-mode must be true|false" >&2; exit 1 ;;
+esac
+
+# save_mode=false → progress persistence disabled: write subcommands no-op.
+if [ "$SAVE_MODE" = "false" ]; then
+  case "$CMD" in
+    start|step|finish) exit 0 ;;
+  esac
+fi
 
 SNAP_DIR="${PROJECT_ROOT}/.snap"
 PROGRESS_FILE="${SNAP_DIR}/progress.json"

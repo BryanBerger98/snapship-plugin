@@ -82,7 +82,6 @@ snapship-plugin/  (plugin repo)
 │       ├── tickets-adapter.sh              # ticket CRUD (route MCP|CLI based on config.tickets.platform)
 │       ├── docs-adapter.sh                 # docs CRUD (route AFFiNE|Notion based on config.documentation.platform)
 │       ├── frame0-helper.sh                # Frame0 MCP wrapper
-│       ├── run-lifecycle-script.sh         # exec custom lifecycle_scripts (pre_/post_) — ≠ native CC hooks
 │       ├── ask-or-default.sh               # AskUserQuestion wrapper: short-circuit in -a mode to explicit default
 │       ├── apply-naming.sh                 # render branch/commit/story_id based on naming.*
 │       ├── check-mcp-required.sh           # validate ai.mcp_servers_required (fail) + mcp_servers_optional (warn) at startup

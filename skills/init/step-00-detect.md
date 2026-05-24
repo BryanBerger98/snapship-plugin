@@ -8,6 +8,34 @@ description: Parse args, detect MCP availability, probe project structure, rende
 
 Probe the environment and resolve answers for every required config field.
 
+## Communication language (`defaults.lang`)
+
+`/snap:init` may run before `snap.config.json` exists. Resolve the language from
+the `--lang=` arg if given, else from an existing config, else fall back to
+`fr`, then respond to the user in it for the whole skill run:
+
+```bash
+SNAP_LANG="${lang_arg:-$(jq -r '.defaults.lang // "fr"' "$PWD/snap.config.json" 2>/dev/null || echo fr)}"
+SNAP_LANG="${SNAP_LANG:-fr}"
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+`/snap:init` runs before the config exists, so `save_mode` is the default
+`true` here (read from any existing config as a courtesy, else `true`):
+
+```bash
+save_mode=$(jq -r '.defaults.save_mode // true' "$PWD/snap.config.json" 2>/dev/null || echo true)
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to every `progress.sh`
+`start`/`step`/`finish` call in this skill (`_global` story-id). When
+`save_mode=false` those writes become no-ops.
+
 ## Tasks
 
 1. **Parse args** from `/snap:init`. Recognize `--auto`/`-a`, `--lang=fr|en`,

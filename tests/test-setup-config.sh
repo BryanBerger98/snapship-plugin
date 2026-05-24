@@ -40,8 +40,7 @@ TMP=$(mktemp -d)
 mk_repo "$TMP" "git@github.com:owner/repo.git"
 out=$(bash "$SCRIPT" --detect --project-root="$TMP" --available=affine,frame0)
 [ "$(echo "$out" | jq -r '.repository.platform')" = "github" ] && ok "1.1 platform" || ko "1.1"
-[ "$(echo "$out" | jq -r '.repository.http_url')" = "https://github.com/owner/repo" ] && ok "1.2 http_url" || ko "1.2 got $(echo "$out" | jq -r '.repository.http_url')"
-[ "$(echo "$out" | jq -r '.repository.ssh_url')" = "git@github.com:owner/repo.git" ] && ok "1.3 ssh_url" || ko "1.3"
+echo "$out" | jq -e '.repository | (has("http_url") or has("ssh_url")) | not' >/dev/null && ok "1.2 no clone urls emitted" || ko "1.2 unexpected clone urls"
 [ "$(echo "$out" | jq -r '.tickets.platform')" = "github" ] && ok "1.4 tickets default github" || ko "1.4"
 [ "$(echo "$out" | jq -r '.documentation.platform')" = "affine" ] && ok "1.5 affine MCP" || ko "1.5"
 [ "$(echo "$out" | jq -r '.wireframes.platform')" = "frame0" ] && ok "1.6 frame0" || ko "1.6"
@@ -55,8 +54,7 @@ TMP=$(mktemp -d)
 mk_repo "$TMP" "https://gitlab.com/group/proj.git"
 out=$(bash "$SCRIPT" --detect --project-root="$TMP")
 [ "$(echo "$out" | jq -r '.repository.platform')" = "gitlab" ] && ok "2.1 gitlab" || ko "2.1"
-[ "$(echo "$out" | jq -r '.repository.http_url')" = "https://gitlab.com/group/proj" ] && ok "2.2 http stripped .git" || ko "2.2"
-echo "$out" | jq -e '.repository | has("ssh_url") | not' >/dev/null && ok "2.3 no ssh on https" || ko "2.3"
+echo "$out" | jq -e '.repository | (has("http_url") or has("ssh_url")) | not' >/dev/null && ok "2.2 no clone urls emitted" || ko "2.2 unexpected clone urls"
 trash "$TMP" 2>/dev/null || rm -rf "$TMP"
 
 # 3. detect: docs prefer affine over notion

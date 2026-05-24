@@ -33,6 +33,7 @@ TITLE=""
 CONTENT=""
 CONTENT_FILE=""
 TEMPLATE_NAME=""
+TEMPLATE_ID=""
 TEMPLATE_VARS_JSON=""
 BLOB_PATH=""
 QUERY=""
@@ -47,7 +48,7 @@ Usage: docs-adapter.sh --action=ACTION [OPTIONS]
 
 Actions:
   get                    --page-id
-  create                 --title  (--parent-id, --content[-file] optional)
+  create                 --title  (--parent-id, --content[-file], --template-id optional)
   apply-template         --template-name --page-id|--parent-id (--template-vars JSON)
   upload-blob            --blob-path
   update                 --page-id (any of --title / --content[-file])
@@ -74,6 +75,9 @@ Options:
   --content=TEXT                 Markdown body (mutually exclusive with --content-file)
   --content-file=PATH            Read body from file
   --template-name=NAME           Bundled template key (e.g. prd_feature)
+  --template-id=ID               Remote page ID to clone from when creating a page.
+                                 Sourced from config.documentation.templates.<key>.
+                                 Absent/empty = create a blank page (default behavior).
   --template-vars=JSON           JSON object of template substitutions
   --blob-path=PATH               File to upload (PNG, etc.)
   --query=TEXT                   Search query
@@ -97,6 +101,7 @@ while [ $# -gt 0 ]; do
     --content=*)        CONTENT="${1#--content=}" ;;
     --content-file=*)   CONTENT_FILE="${1#--content-file=}" ;;
     --template-name=*)  TEMPLATE_NAME="${1#--template-name=}" ;;
+    --template-id=*)    TEMPLATE_ID="${1#--template-id=}" ;;
     --template-vars=*)  TEMPLATE_VARS_JSON="${1#--template-vars=}" ;;
     --blob-path=*)      BLOB_PATH="${1#--blob-path=}" ;;
     --query=*)          QUERY="${1#--query=}" ;;
@@ -209,6 +214,7 @@ if [ "$DRY_RUN" = "true" ] && is_write_action "$ACTION"; then
     --arg parent "${PARENT_ID}" \
     --arg title "${TITLE}" \
     --arg tpl "${TEMPLATE_NAME}" \
+    --arg tplid "${TEMPLATE_ID}" \
     --arg blob "${BLOB_PATH}" \
     --arg ws "${WORKSPACE_ID}" \
     --arg ptree "${PATH_TREE}" \
@@ -217,6 +223,7 @@ if [ "$DRY_RUN" = "true" ] && is_write_action "$ACTION"; then
     | if $parent != "" then .parent_id = $parent else . end
     | if $title  != "" then .title     = $title  else . end
     | if $tpl    != "" then .template  = $tpl    else . end
+    | if $tplid  != "" then .template_id = $tplid else . end
     | if $blob   != "" then .blob_path = $blob   else . end
     | if $ws     != "" then .workspace = $ws     else . end
     | if $ptree  != "" then .path      = $ptree  else . end
@@ -233,6 +240,7 @@ PARAMS=$(jq -nc \
   --arg title   "$TITLE" \
   --arg content "$CONTENT" \
   --arg tpl     "$TEMPLATE_NAME" \
+  --arg tplid   "$TEMPLATE_ID" \
   --arg blob    "$BLOB_PATH" \
   --arg query   "$QUERY" \
   --arg limit   "$LIMIT" \
@@ -246,6 +254,7 @@ PARAMS=$(jq -nc \
   | if $title   != "" then .title         = $title               else . end
   | if $content != "" then .content       = $content             else . end
   | if $tpl     != "" then .template_name = $tpl                 else . end
+  | if $tplid   != "" then .template_id   = $tplid               else . end
   | if $blob    != "" then .blob_path     = $blob                else . end
   | if $query   != "" then .query         = $query               else . end
   | if $ptree   != "" then .path          = $ptree               else . end

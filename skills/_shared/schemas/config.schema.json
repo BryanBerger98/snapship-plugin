@@ -23,7 +23,6 @@
     "ai": { "$ref": "#/$defs/ai" },
     "develop": { "$ref": "#/$defs/develop" },
     "qa": { "$ref": "#/$defs/qa" },
-    "lifecycle_scripts": { "$ref": "#/$defs/lifecycle_scripts" },
     "templates": { "$ref": "#/$defs/templates" },
     "defaults": { "$ref": "#/$defs/defaults" }
   },
@@ -71,15 +70,6 @@
           "type": "string",
           "enum": ["github", "gitlab"],
           "description": "Plateforme hébergeur dépôt. Pilote choix CLI (gh/glab) et résolution templates repo-native (.github/.gitlab)."
-        },
-        "http_url": {
-          "type": "string",
-          "format": "uri",
-          "description": "URL HTTPS clone (informationnel, affichée dans corps PR/MR)."
-        },
-        "ssh_url": {
-          "type": "string",
-          "description": "URL SSH clone (informationnel)."
         },
         "default_branch": {
           "type": "string",
@@ -272,26 +262,6 @@
             "wireframes_gallery": {
               "type": "string",
               "description": "Page ID template galerie wireframes pré-créé. Cloné par /wireframe lors du premier export."
-            }
-          }
-        },
-        "auto_publish": {
-          "type": "boolean",
-          "default": true,
-          "description": "Si true, /define publie automatiquement la PRD sur le workspace doc en fin de skill. Sinon utilisateur doit lancer /doc-import manuellement."
-        },
-        "page_naming": {
-          "type": "object",
-          "additionalProperties": { "type": "string" },
-          "description": "Patterns nommage pages doc. Tokens: {story_id}, {feature_title}, {YYYY}, {MM}, {DD}.",
-          "properties": {
-            "prd_feature": {
-              "type": "string",
-              "description": "Pattern nommage page PRD feature."
-            },
-            "wireframes_gallery": {
-              "type": "string",
-              "description": "Pattern nommage page galerie wireframes."
             }
           }
         }
@@ -714,25 +684,6 @@
             }
           }
         }
-      }
-    },
-    "lifecycle_scripts": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Scripts custom workflow (≠ hooks Claude Code natifs). Chaque valeur = chemin (relatif racine projet ou absolu) vers un script exécutable lancé avant/après le skill correspondant. Échec script = halt skill.",
-      "properties": {
-        "pre_define": { "type": "string", "description": "Script lancé avant /define." },
-        "post_define": { "type": "string", "description": "Script lancé après /define (state=defined)." },
-        "pre_ticket": { "type": "string", "description": "Script lancé avant /ticket." },
-        "post_ticket": { "type": "string", "description": "Script lancé après /ticket (state=ticketed)." },
-        "pre_wireframe": { "type": "string", "description": "Script lancé avant /wireframe." },
-        "post_wireframe": { "type": "string", "description": "Script lancé après /wireframe (state=wireframed)." },
-        "pre_design": { "type": "string", "description": "Script lancé avant /design." },
-        "post_design": { "type": "string", "description": "Script lancé après /design (state=designed)." },
-        "pre_develop": { "type": "string", "description": "Script lancé avant /develop." },
-        "post_develop": { "type": "string", "description": "Script lancé après /develop (state=developed)." },
-        "pre_qa": { "type": "string", "description": "Script lancé avant /qa." },
-        "post_qa": { "type": "string", "description": "Script lancé après /qa (state=qa-validated)." }
       }
     },
     "templates": {

@@ -87,7 +87,8 @@ asset must exist on disk; richer visual diff is a follow-up.
 ```bash
 dc_enabled=$(jq -r '.qa.design_check.enabled // false' <<<"$CONFIG_JSON")
 dc_mode=$(jq -r '.qa.design_check.mode // "asset-presence"' <<<"$CONFIG_JSON")
-dc_sev=$(jq -r '.qa.design_check.severity_on_mismatch // "minor"' <<<"$CONFIG_JSON")
+dc_sev=$(jq -r '.qa.design_check.severity_on_mismatch // "major"' <<<"$CONFIG_JSON")
+sev_thr=${sev_thr:-$(jq -r '.qa.severity_threshold // "minor"' <<<"$CONFIG_JSON")}
 
 if [ "$dc_enabled" = "true" ]; then
   asset=$(jq -r --arg lid "$lid" \
@@ -95,13 +96,11 @@ if [ "$dc_enabled" = "true" ]; then
      | (.design_screen // "")' "$tickets_file")
   if [ -n "$asset" ]; then
     design_dir=".snap/designs/${story_id}"
+    design_mismatch=false
     case "$dc_mode" in
       asset-presence)
         if ! find "$design_dir" -maxdepth 1 -name "${asset}*" -print -quit 2>/dev/null | grep -q .; then
-          # Promote overall severity if asset missing.
-          overall=$(printf '%s\n%s\n' "$overall" "$dc_sev" | \
-            awk 'BEGIN{r={"none":0,"info":1,"minor":2,"major":3,"critical":4}}
-                 {if(!seen)s=$0;else{if(r[$0]>r[s])s=$0}seen=1}END{print s}')
+          design_mismatch=true
           design_check_fail="asset missing for screen '$asset' in $design_dir"
         fi
         ;;
@@ -110,6 +109,20 @@ if [ "$dc_enabled" = "true" ]; then
         :
         ;;
     esac
+
+    # On mismatch, the finding's severity is the configured severity_on_mismatch.
+    # Run it through severity-gate.sh against qa.severity_threshold (reuses the
+    # shared comparison — none < info < minor < major < critical; blocks when
+    # severity >= threshold). Only promote `overall` when the finding blocks.
+    if [ "$design_mismatch" = "true" ]; then
+      design_verdict=$(bash skills/_shared/severity-gate.sh \
+        --severity="$dc_sev" --threshold="$sev_thr")
+      if [ "$design_verdict" = "block" ]; then
+        overall=$(printf '%s\n%s\n' "$overall" "$dc_sev" | \
+          awk 'BEGIN{r["none"]=0;r["info"]=1;r["minor"]=2;r["major"]=3;r["critical"]=4}
+               {if(!seen)s=$0;else{if(r[$0]>r[s])s=$0}seen=1}END{print s}')
+      fi
+    fi
   fi
 fi
 ```

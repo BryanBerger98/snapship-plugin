@@ -66,11 +66,50 @@ supports_milestone=$(jq -r '.supports_milestone' <<<"$caps")
 supports_version=$(jq -r '.supports_version'   <<<"$caps")
 ```
 
-### B. Tier 1 — Epics
+### A.5. Merge `tickets.default_labels` into every draft
 
-For each `story_type=epic` draft :
+Before any tier pushes, fold the config-level `tickets.default_labels`
+into each draft's per-story `labels` array. The union is deduplicated and
+order-stable (per-story labels first, then any default labels not already
+present). When `tickets.default_labels` is **absent or empty**, this is a
+no-op — no extra labels are added.
+
+`CONFIG_JSON` is the resolved config emitted by `load-config.sh`.
 
 ```bash
+# Config-level defaults as a JSON array ([] when the key is absent → no-op).
+defaults_json=$(jq -c '.tickets.default_labels // []' <<<"$CONFIG_JSON")
+
+# Union per-story labels with the defaults. Order-stable: per-story labels
+# stay first, defaults are appended only when not already present (reduce
+# preserves first-seen order; jq's `unique` would re-sort, so avoid it).
+drafts_json=$(jq \
+  --argjson defaults "$defaults_json" '
+    .drafts |= map(
+      .labels = (
+        (.labels // []) as $own
+        | reduce $defaults[] as $d ($own;
+            if index($d) == null then . + [$d] else . end)
+      )
+    )
+  ' <<<"$drafts_json")
+```
+
+Every downstream tier (B–D `create`, G GitHub native routing) now reads
+the enriched `.labels`, so default labels reach both the `--labels` CSV on
+non-GitHub `create` and the residual-label fallback on GitHub. When
+`tickets.default_labels` is absent/empty, `$defaults` is `[]` and the
+`reduce` leaves every draft's labels untouched.
+
+### B. Tier 1 — Epics
+
+For each `story_type=epic` draft, build the `--labels` CSV from the
+enriched `.labels` array and pass it to `create` (omit the flag when the
+array is empty) :
+
+```bash
+labels_csv=$(jq -r '.labels // [] | join(",")' <<<"$draft")
+
 adapter_out=$(bash skills/_shared/tickets-adapter.sh \
   --action=create \
   --project-root="$PWD" \
@@ -78,6 +117,7 @@ adapter_out=$(bash skills/_shared/tickets-adapter.sh \
   --story-type=epic \
   --title="$title" \
   --body="$body_rendered" \
+  ${labels_csv:+--labels="$labels_csv"} \
   --idempotency-check=true \
   ${SNAP_DRY_RUN:+--dry-run})
 rc=$?
@@ -104,8 +144,11 @@ For each `story_type=user-story` draft, sorted by `depends_on` :
    - If `parent_epic_id` already references a tracker Epic (from
      `tracker-context.epics[]`) → use as-is.
 
-2. **Create** with `--parent-id=<resolved>` :
+2. **Create** with `--parent-id=<resolved>` and the enriched `--labels`
+   CSV (omitted when empty) :
    ```bash
+   labels_csv=$(jq -r '.labels // [] | join(",")' <<<"$draft")
+
    adapter_out=$(bash skills/_shared/tickets-adapter.sh \
      --action=create \
      --project-root="$PWD" \
@@ -114,6 +157,7 @@ For each `story_type=user-story` draft, sorted by `depends_on` :
      --title="$title" \
      --body="$body_rendered" \
      --parent-id="$parent_platform_id" \
+     ${labels_csv:+--labels="$labels_csv"} \
      --idempotency-check=true \
      ${SNAP_DRY_RUN:+--dry-run})
    ```
@@ -126,7 +170,10 @@ For each `story_type ∈ {task, bug}` draft, sorted by `depends_on` :
 
 1. **Resolve parent** — `parent_story_id` first, else `parent_epic_id`,
    else standalone (no `--parent-id`). Same gating as Tier 2.
-2. **Create** with `--story-type=task|bug` and `--parent-id` when resolved.
+2. **Create** with `--story-type=task|bug`, `--parent-id` when resolved,
+   and the enriched `--labels` CSV from the draft's `.labels`
+   (`${labels_csv:+--labels="$labels_csv"}`, omitted when empty) — same
+   as Tier 2.
 3. Cache `platform_id` + `url`.
 
 Note : Bugs in v1.2 are **always flat** per the parent-child matrix (no

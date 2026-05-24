@@ -21,6 +21,11 @@ Behavior:
 - If `--auto-mode=false` → delegates to `AskUserQuestion` (skill orchestrates tool call)
 - If `--auto-mode=true` AND `--default` absent → explicit fail (`auto-mode without default: question-id={id}`)
 
+**Resolution of `{auto_mode}`:** each skill's step-00 reads `defaults.auto_mode`
+from the resolved config (default `false`); the per-run flag `-a` / `--auto`
+overrides it to `true`. The resolved value is what gets passed as
+`--auto-mode=` to every `ask-or-default.sh` call.
+
 **Benefit:** clean separation between machine-readable default and UI label. No fragile parsing of "(Recommended)".
 
 **Skill responsibility:** define an explicit `default` per question to support `-a`. If a question is genuinely ambiguous without a sane default → don't pass it in autonomous mode (fail-fast guides user).
@@ -32,7 +37,7 @@ Behavior:
 - **Parallelism:** `ai.max_parallel_agents` forced to `1` (config override)
 - **Review cycle:** `develop.review_cycles_max` forced to `1`
 - **QA cycle:** `qa.qa_cycles_max` forced to `1`
-- Rest of config unchanged (testing, naming, lifecycle_scripts)
+- Rest of config unchanged (testing, naming, templates)
 
 Note: economy does NOT swap the model (CC does not support cross-subagents runtime swap — `model:` frozen in frontmatter). To reduce global model cost: user runs `/model haiku` or `/effort low`.
 

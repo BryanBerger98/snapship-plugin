@@ -65,6 +65,32 @@ ticket in `.snap/queues/${story_id}.qa-collect-${run_id}.json`.
 
 Skip if `wireframe_enabled=false` or the ticket has no `wireframe_url`.
 
+Resolve the `wireframe_check` sub-settings once (embedded defaults guarantee the
+keys; the `//` fallbacks are belt-and-suspenders so a missing/partial config
+never breaks the run):
+
+```bash
+wf_mode=$(jq        -r '.qa.wireframe_check.mode                // "playwright"' <<<"$CONFIG_JSON")
+wf_threshold=$(jq   -r '.qa.wireframe_check.diff_threshold_pct  // 5'            <<<"$CONFIG_JSON")
+wf_sev=$(jq         -r '.qa.wireframe_check.severity_on_mismatch // "major"'     <<<"$CONFIG_JSON")
+# severity_threshold resolved in step-00 as $sev_thr; re-resolve here so the
+# step is self-contained when invoked standalone.
+sev_thr=${sev_thr:-$(jq -r '.qa.severity_threshold // "minor"' <<<"$CONFIG_JSON")}
+```
+
+Respect `wf_mode` — today only `playwright` is implemented; read the value
+rather than hardcoding so future modes branch here:
+
+```bash
+case "$wf_mode" in
+  playwright) ;;  # only mode implemented today
+  *)
+    echo "WARN: wireframe_check.mode='$wf_mode' unsupported — skipping wireframe diff." >&2
+    wireframe_enabled=false
+    ;;
+esac
+```
+
 ```bash
 # Discover the route to render. Convention: ticket.files[0] under pages/ →
 # derive URL from path, else AskUserQuestion.
@@ -77,15 +103,41 @@ route=$(echo "$files" | grep -E '^(src/)?(pages|app|routes)/' | head -1 | \
 ```
 
 Compare the screenshots to the cached Frame0 PNGs at
-`.snap/wireframes/${story_id}/${screen_id}-${state}.png`:
+`.snap/wireframes/${story_id}/${screen_id}-${state}.png`. Feed the resolved
+`$wf_threshold` into the structural diff so a diff **below** the threshold
+passes and a diff **at/above** it is a mismatch:
 
 ```bash
 # structural-diff: pixel-diff after edge detection (resilient to colour drift).
 # Use perceptual lib (e.g. 'pixelmatch' via npx) — descriptor-emit so user/IDE
-# runs it. Threshold from config.qa.wireframe_check.diff_threshold_pct.
+# runs it. Tolerance = $wf_threshold (from config.qa.wireframe_check.diff_threshold_pct).
+# $diff_pct comes back from the diff descriptor.
+
+if awk -v d="$diff_pct" -v t="$wf_threshold" 'BEGIN{exit !(d > t)}'; then
+  wireframe_mismatch=true   # diff above tolerance → mismatch
+else
+  wireframe_mismatch=false  # within tolerance → pass
+fi
 ```
 
-Persist `wireframe: {screen_id, diff_pct, threshold_pct, png_local, png_ref}`.
+On mismatch, the finding's severity is the configured `severity_on_mismatch`,
+run through `severity-gate.sh` against `qa.severity_threshold` to decide whether
+it blocks (reuses the shared comparison — `none < info < minor < major <
+critical`; blocks when `severity >= threshold`):
+
+```bash
+if [ "$wireframe_mismatch" = "true" ]; then
+  wireframe_severity="$wf_sev"
+  wireframe_verdict=$(bash skills/_shared/severity-gate.sh \
+    --severity="$wireframe_severity" --threshold="$sev_thr")
+  # wireframe_verdict = "block" | "pass" — surfaced to the reviewer in step-02.
+else
+  wireframe_severity="none"
+  wireframe_verdict="pass"
+fi
+```
+
+Persist `wireframe: {screen_id, mode, diff_pct, threshold_pct, severity, verdict, png_local, png_ref}`.
 
 ## C. Flaky retry (regression only)
 
@@ -107,7 +159,7 @@ Final `.snap/queues/${story_id}.qa-collect-${run_id}.json`:
 {
   "ticket_id": "t-001",
   "regression": {"scope":"impacted","exit_code":0,"log_path":"...","retried_for_flake":false},
-  "wireframe":  {"enabled":true,"screen_id":"signup-screen","diff_pct":2.1,"threshold_pct":5}
+  "wireframe":  {"enabled":true,"mode":"playwright","screen_id":"signup-screen","diff_pct":2.1,"threshold_pct":5,"severity":"none","verdict":"pass"}
 }
 ```
 

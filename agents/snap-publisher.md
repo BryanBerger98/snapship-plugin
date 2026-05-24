@@ -85,15 +85,23 @@ Capture `page_id` → `MONTH_PARENT_ID`.
 
 ### 2. PRD page (always new, `story_id` unique)
 
+Title follows the fixed convention `story_name`. When the resolved paths
+include a non-empty `prd_template_id` (from `config.documentation.templates.prd_feature`),
+pass `--template-id` so the page is cloned from the user's template. When it is
+`(none ...)` / empty, omit `--template-id` and create a blank page (default).
+
 ```bash
 docs-adapter.sh --action=create \
   --platform=$PLATFORM \
   --parent-id=$MONTH_PARENT_ID \
   --title=$story_name \
-  --content-file=$prd_staging
+  --content-file=$prd_staging \
+  ${prd_template_id:+--template-id=$prd_template_id}
 ```
 
-Capture `page_id` → `PRD_PAGE_ID` and `url` → `PRD_URL`.
+The `create` descriptor then carries `params.template_id`; map it to the
+template/clone argument of the active platform's create-page MCP tool. Capture
+`page_id` → `PRD_PAGE_ID` and `url` → `PRD_URL`.
 
 ### 3. Tag PRD page with impacted domains
 

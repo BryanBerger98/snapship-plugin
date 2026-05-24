@@ -290,6 +290,28 @@ echo "[33] lookup-page does NOT short-circuit on dry-run (read action)"
 out=$(bash "$SCRIPT" --action=lookup-page --platform=affine --title="X" --workspace-id=ws-1 --dry-run); rc=$?
 [ $rc -eq 10 ] && ok "33.1 lookup-page still hits MCP" || ko "33.1 rc=$rc"
 
+# --- create --template-id pass-through (clone-from-template) --------------
+
+echo ""
+echo "[34] create with --template-id forwards template_id in descriptor"
+out=$(bash "$SCRIPT" --action=create --platform=affine --title="PRD - Foo" \
+  --parent-id=month-1 --template-id=tpl-prd-2); rc=$?
+[ $rc -eq 10 ]                                                           && ok "34.1 exit 10"    || ko "34.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.descriptor.action')" = "create" ]            && ok "34.2 action"     || ko "34.2"
+[ "$(echo "$out" | jq -r '.descriptor.params.template_id')" = "tpl-prd-2" ] && ok "34.3 template_id" || ko "34.3"
+[ "$(echo "$out" | jq -r '.descriptor.params.title')" = "PRD - Foo" ]   && ok "34.4 title"      || ko "34.4"
+
+echo ""
+echo "[35] create WITHOUT --template-id omits template_id (blank-page fallback)"
+out=$(bash "$SCRIPT" --action=create --platform=affine --title="PRD - Bar" --parent-id=month-1)
+[ "$(echo "$out" | jq -r '.descriptor.params | has("template_id")')" = "false" ] && ok "35.1 no template_id key" || ko "35.1"
+
+echo ""
+echo "[36] create --template-id dry-run surfaces template_id in result"
+out=$(bash "$SCRIPT" --action=create --platform=notion --title="T" --template-id=tpl-9 --dry-run); rc=$?
+[ $rc -eq 0 ]                                                            && ok "36.1 exit 0"     || ko "36.1 rc=$rc"
+[ "$(echo "$out" | jq -r '.result.template_id')" = "tpl-9" ]            && ok "36.2 template_id" || ko "36.2"
+
 echo ""
 echo "=== Summary ==="
 echo "Passed: ${PASS}"

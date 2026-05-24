@@ -2,7 +2,7 @@
 
 **Location:** project root (committable, shared with team).
 
-**Sections:** `repository`, `tickets`, `documentation`, `wireframes`, `design`, `testing`, `naming`, `ai`, `develop`, `qa`, `lifecycle_scripts`, `templates`, `defaults`.
+**Sections:** `repository`, `tickets`, `documentation`, `wireframes`, `design`, `testing`, `naming`, `ai`, `develop`, `qa`, `templates`, `defaults`.
 
 ## Full schema
 
@@ -14,8 +14,6 @@
   // load-config.sh validates config against schema (Ajv or jsonschema CLI). Explicit fail if invalid.
   "repository": {
     "platform": "github",                  // github | gitlab
-    "http_url": "https://github.com/org/repo.git",
-    "ssh_url": "git@github.com:org/repo.git",
     "default_branch": "main",
     "protected_branches": ["main", "develop"]   // refuses direct commit/push
     // merge_method dropped in v1 — user merges PR manually post-creation
@@ -48,16 +46,9 @@
       "id": "ws-abc",
       "root_page_id": "page-xyz"
     },
-    "templates": {
-      "prd_global": "tpl-id-1",
-      "prd_feature": "tpl-id-2",
-      "wireframes_gallery": "tpl-id-3"
-    },
-    "auto_publish": true,                  // publish vs draft
-    "page_naming": {
-      "prd_global": "PRD - {product_name}",
-      "prd_feature": "{story_id} - {story_name}",
-      "wireframes_gallery": "Wireframes - {story_name}"
+    "templates": {                         // optional remote page IDs to clone when creating doc pages
+      "prd_feature": "tpl-id-2",           // cloned by /define for each new PRD page (null = blank page)
+      "wireframes_gallery": "tpl-id-3"     // cloned by /wireframe on first export (null = blank page)
     }
   },
   "wireframes": {                          // optional, absent = /wireframe disabled
@@ -157,19 +148,6 @@
       "severity_on_mismatch": "major"
     }
   },
-  "lifecycle_scripts": {                   // CUSTOM lifecycle scripts (≠ Claude Code hooks)
-    // ⚠️ These lifecycle_scripts are SCRIPTS SPECIFIC TO THIS WORKFLOW.
-    //    They are NOT interpreted by Claude Code (not in native
-    //    SessionStart/PreToolUse/etc events). They are executed explicitly by
-    //    each skill via _shared/run-lifecycle-script.sh at skill lifecycle points.
-    // Define only useful scripts. Absent keys = implicit skip.
-    // Supported scripts: pre_define, post_define, pre_ticket, post_ticket,
-    //                    pre_wireframe, post_wireframe, pre_design, post_design,
-    //                    pre_develop, post_develop, pre_qa, post_qa
-    // Value = path to executable script (receives context JSON on stdin).
-    // Example:
-    // "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
-  },
   "templates": {                           // template resolution (see ../contributing/templates.md)
     "use_repo_native": true,               // reuse .github/.gitlab templates
     "tickets": {
@@ -191,11 +169,23 @@
     // Override pointing to non-existent file → resolve-template.sh exits 2.
   },
   "defaults": {
-    "lang": "fr",                          // fr | en
-    "auto_mode": false,
-    "save_mode": true,
-    "branch_mode": true,
-    "economy_mode": false
+    "lang": "fr",                          // fr | en — every skill's step-00
+                                           //   instructs the model to reply to
+                                           //   the user in this language.
+    "auto_mode": false,                    // standing default for prompts; the
+                                           //   per-run -a/--auto flag overrides.
+                                           //   Passed as --auto-mode= to
+                                           //   ask-or-default.sh.
+    "save_mode": true,                     // false → progress.sh start/step/
+                                           //   finish become no-ops (no
+                                           //   .snap/progress.json writes).
+    "branch_mode": true,                   // false → /develop skips git branch
+                                           //   creation, works on current branch.
+    "economy_mode": false                  // true (or -e/--economy) → forces
+                                           //   ai.max_parallel_agents=1,
+                                           //   develop.review_cycles_max=1,
+                                           //   qa.qa_cycles_max=1 in load-config.
+                                           //   --economy=false disables it.
   }
 }
 ```
@@ -321,14 +311,6 @@ comes from `design.figma.token_env` / `wireframes.figma.token_env` (default
 **Generate a Figma PAT:** Figma → Settings → Personal access tokens → Generate
 new token. Scope: read + edit the file.
 
-## Custom lifecycle scripts (≠ Claude Code hooks)
-
-`pre_<skill>` executed before step-00, `post_<skill>` after the last step. Supported scripts: `pre_define`, `post_define`, `pre_ticket`, `post_ticket`, `pre_wireframe`, `post_wireframe`, `pre_design`, `post_design`, `pre_develop`, `post_develop`, `pre_qa`, `post_qa`.
-
-Orchestrated explicitly by each skill via `_shared/run-lifecycle-script.sh` — user shell scripts, **not** native Claude Code hooks (which operate at session/tool level: `SessionStart`, `PreToolUse`, etc.).
-
-Skill passes JSON context via stdin (story_id, ticket_ids, etc.).
-
 ## Runtime validation (JSON Schema)
 
 `load-config.sh` validates config against `_shared/schemas/config.schema.json`:
@@ -337,6 +319,5 @@ Skill passes JSON context via stdin (story_id, ticket_ids, etc.).
 - Schema errors → exit 1 + field path + reason
 - Non-blocking stderr warnings:
   - `tickets.platform != "jira"` + `tickets.jira.*` set → "tickets.jira section ignored on platform Y"
-  - `lifecycle_scripts.<name>` set to non-existent script → "script X invalid path"
 
 Resolution cache in `.snap/.config-resolved.json` (invalidated if mtime changes).

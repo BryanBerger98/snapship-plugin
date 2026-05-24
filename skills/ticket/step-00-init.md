@@ -8,6 +8,32 @@ description: Parse args, resolve story_id, load resolved config, block if ticket
 
 Bootstrap a `/snap:ticket` run for a single feature.
 
+## Communication language (`defaults.lang`)
+
+Once `CONFIG_JSON` is loaded below, resolve the configured language and respond
+to the user in it for the whole skill run (prompts, questions, summaries):
+
+```bash
+SNAP_LANG=$(jq -r '.defaults.lang // "fr"' <<<"$CONFIG_JSON")
+```
+
+**Directive**: communicate with the user in `$SNAP_LANG` (`fr` = français,
+`en` = English, …). Presentation directive only — never translate config keys,
+file paths, or code identifiers.
+
+## Progress persistence (`defaults.save_mode`)
+
+Resolve `save_mode` once (default `true`) right after `CONFIG_JSON` is loaded:
+
+```bash
+save_mode=$(jq -r '.defaults.save_mode // true' <<<"$CONFIG_JSON")
+```
+
+**Directive**: pass `--save-mode="$save_mode"` to **every** `progress.sh`
+`start`/`step`/`finish` invocation in this skill. When `save_mode=false` the
+helper turns those writes into no-ops (no `.snap/progress.json`); reads
+(`resume`/`list`) are unaffected.
+
 ## Tasks
 
 1. **Parse args**: `--resume`/`-r`, `--feature=PARTIAL`, `--platform=…`,
@@ -31,6 +57,15 @@ Bootstrap a `/snap:ticket` run for a single feature.
    platform=$(jq -r '.tickets.platform' <<<"$CONFIG_JSON")
    ```
    `--platform=` arg overrides the resolved value.
+
+   **Resolve `auto_mode`** — config is the standing default, the `--auto`/`-a`
+   CLI flag overrides it for this run:
+   ```bash
+   auto_mode=$(jq -r '.defaults.auto_mode // false' <<<"$CONFIG_JSON")
+   [ "$auto_arg" = "true" ] && auto_mode=true   # --auto / -a forces it on
+   ```
+   Pass `--auto-mode="$auto_mode"` to every `ask-or-default.sh` invocation in
+   later steps (step-03b clustering, step-03c metadata).
 
 3. **Block if no tracker** (v1.0 hard-block) :
    ```bash
@@ -147,7 +182,7 @@ Bootstrap a `/snap:ticket` run for a single feature.
 | `max_stories`  | arg (default 12) | step-02 |
 | `dry_run`      | arg / env | step-05 |
 | `standalone`   | `--standalone` arg | step-01 (skip PRD), step-04 (refuse epic), step-05 |
-| `auto_mode`    | `--auto` arg | step-03b, step-03c (clustering / metadata) |
+| `auto_mode`    | `defaults.auto_mode` (config) ∨ `--auto`/`-a` arg | step-03b, step-03c (clustering / metadata) — passed as `--auto-mode=` to `ask-or-default.sh` |
 | `keep_runtime` | `--keep-runtime` arg | step-06 (skip purge) |
 | `SUBJECT_ID`   | `cache-runtime.sh id-gen` | step-01..06 (ephemeral state) |
 | `CONFIG_JSON`  | `load-config.sh` stdout | step-04 (templates config), step-05 |

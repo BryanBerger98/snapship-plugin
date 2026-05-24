@@ -101,7 +101,18 @@ forbidden.
 
 1. **Read drafts + tracker context** from the ephemeral cache.
 2. **Compute proposed clustering** (heuristics above ; LLM in `--auto`).
-3. **Resolve relationships** through interactive or auto path.
+3. **Resolve relationships** through interactive or auto path. Route the
+   confirmation through `ask-or-default.sh` so that `auto_mode` (resolved in
+   step-00 from `defaults.auto_mode` ∨ `--auto`/`-a`) auto-accepts the proposed
+   clustering when truthy:
+   ```bash
+   choice=$(bash skills/_shared/ask-or-default.sh \
+     --auto-mode="$auto_mode" \
+     --question-id=confirm-clustering \
+     --question="Clustering proposé OK pour les N tickets ?" \
+     --options="accept,edit" --default=accept --header="Clustering")
+   ```
+   `accept` → keep the proposed mapping; `edit` → fall back to interactive.
 4. **Validate parent-child matrix** — fail-clean on violation.
 5. **Write updated drafts** back to
    `.snap/.runtime/<SUBJECT_ID>/drafts.json` with `parent_epic_id` /

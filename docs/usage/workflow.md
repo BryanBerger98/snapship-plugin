@@ -5,7 +5,7 @@
 `_shared/setup-config.sh` auto-discovery:
 
 ```
-1. Parse .git/config → repository.{platform, http_url, ssh_url, default_branch}
+1. Parse .git/config → repository.{platform, default_branch}
 2. List active MCP servers (parse claude_desktop_config / .claude/settings.json)
    → look for: atlassian, github, gitlab, affine, notion, frame0
 3. For each section required by the current skill:

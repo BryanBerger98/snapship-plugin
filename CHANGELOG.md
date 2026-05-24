@@ -5,6 +5,81 @@ All notable changes to snapship-plugin documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] — 2026-05-23
+
+### Removed
+
+- **Schema** : section `lifecycle_scripts` (12 hooks `pre_/post_` define→qa)
+  retirée de `config.schema.json` — infrastructure orpheline. Le helper
+  `run-lifecycle-script.sh` existait et validait, mais n'était appelé par
+  aucun skill : zéro chemin d'exécution. Helper supprimé, défaut
+  `load-config.sh`, boucle de warning et fixture `full-jira.json` nettoyés.
+  Configs downstream contenant `lifecycle_scripts` : exécuter
+  `jq 'del(.lifecycle_scripts)'` sur `snap.config.json`, sinon la validation
+  schéma (`additionalProperties: false`) échouera.
+- **Schema** : `documentation.auto_publish` et `documentation.page_naming`
+  retirés de `config.schema.json` — clés jamais lues par un skill. La
+  publication reste systématique et le nommage des pages suit désormais une
+  convention fixe. Configs downstream : exécuter
+  `jq 'del(.documentation.auto_publish, .documentation.page_naming)'` sur
+  `snap.config.json`.
+- **Schema** : `repository.http_url` et `repository.ssh_url` retirés de
+  `config.schema.json` — purement informationnels, jamais consommés et
+  déductibles de `git remote`. `setup-config.sh` cesse de les produire (flag
+  `--repository-url` et helper `ssh_to_https()` supprimés). Configs downstream :
+  exécuter `jq 'del(.repository.http_url, .repository.ssh_url)'` sur
+  `snap.config.json`.
+
+### Changed
+
+- **Config désormais lue à l'exécution** — clés `🟠 Medium` de l'audit
+  `audit-config-dead-keys` qui existaient au schéma mais n'étaient jamais
+  consommées sont maintenant câblées dans les skills, avec valeurs par défaut
+  documentées si la config est absente :
+  - `defaults.lang` (`// "fr"`) — directive de langue de communication
+    injectée dans chaque `step-00`.
+  - `defaults.auto_mode` / `defaults.save_mode` / `defaults.branch_mode` /
+    `defaults.economy_mode` — câblés via `ask-or-default.sh`, le gate
+    `--save-mode` de `progress.sh`, et l'override `-e`/`--economy` de
+    `load-config.sh` (force `ai.max_parallel_agents=1`,
+    `develop.review_cycles_max=1`, `qa.qa_cycles_max=1`).
+  - `develop.reviews.{technical,functional,security}.severity_threshold` —
+    seuil par reviewer appliqué via le nouveau `severity-gate.sh`.
+  - `develop.auto_apply_review_feedback` / `qa.auto_apply_qa_feedback`
+    (`// true`) — branche auto-apply vs confirmation interactive.
+  - `qa.wireframe_check.{mode,diff_threshold_pct,severity_on_mismatch}` et
+    `qa.design_check.severity_on_mismatch` — appliqués via `severity-gate.sh`.
+  - `wireframes.export_scale` (passé à `--scale` Figma, no-op frame0/penpot)
+    et `wireframes.naming_pattern` / `design.naming_pattern` — rendus par le
+    nouveau `screen-naming.sh`.
+  - `documentation.templates.prd_feature` — chemin de template utilisateur
+    propagé jusqu'au MCP via `docs-adapter.sh --template-id`.
+  - `repository.default_branch` (`// "main"`) — branche de base des feature
+    branches (`/develop` step-02) et cible PR/MR (`gh pr --base` /
+    `glab mr --target-branch`, step-04), au lieu d'un `main` codé en dur.
+  - `tickets.default_labels` (`// []`) — fusionnés (union dédupliquée) avec les
+    labels par story à la création de tickets (`/ticket` step-05).
+  - `testing.format_command` (skip si vide) — exécuté avant lint dans la
+    boucle de validation `/develop` (step-02/03a) et le fix-loop `/qa`.
+  - `tickets.jira.{project_key,default_issue_type,workflow_states,transitions}`
+    — injectés dans le descriptor MCP Jira par `tickets-adapter.sh` (l'explicite
+    `--issue-type` prime sur `default_issue_type` ; clés absentes omises).
+  - `tickets.url` — fallback de lien browse dans l'index tickets (`/ticket`
+    step-06) quand la plateforme ne renvoie pas d'URL (cas Jira MCP) ; l'URL
+    réelle d'une plateforme (GitHub) prime toujours.
+
+### Added
+
+- **Helper** `severity-gate.sh` — comparaison testable de sévérités
+  (`none<info<minor<major<critical`), modes `--mode=verdict|gate`.
+- **Helper** `screen-naming.sh` (ex-`wireframe-naming.sh`) — rendu de nom de
+  fichier depuis un `naming_pattern` (`{story_id}`, `{screen_name}`,
+  `{state}`).
+- **CLI** `load-config.sh -e` / `--economy[=true|false]` — override du
+  `economy_mode`.
+- **CLI** `progress.sh --save-mode=true|false` — `false` rend `start`/`step`/
+  `finish` no-op (mode sans persistance).
+
 ## [1.2.1] — 2026-05-17
 
 ### Removed

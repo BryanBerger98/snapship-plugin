@@ -2,8 +2,6 @@
   "version": "1.0",
   "repository": {
     "platform": "github",
-    "http_url": "https://github.com/org/repo.git",
-    "ssh_url": "git@github.com:org/repo.git",
     "default_branch": "main",
     "protected_branches": ["main", "develop"]
   },
@@ -37,11 +35,6 @@
     "templates": {
       "prd_feature": "tpl-2",
       "wireframes_gallery": "tpl-3"
-    },
-    "auto_publish": true,
-    "page_naming": {
-      "prd_feature": "{story_id} - {story_name}",
-      "wireframes_gallery": "Wireframes - {story_name}"
     }
   },
   "wireframes": {
@@ -92,9 +85,6 @@
       "diff_threshold_pct": 5,
       "severity_on_mismatch": "major"
     }
-  },
-  "lifecycle_scripts": {
-    "post_ticket": ".claude/lifecycle_scripts/notify-slack.sh"
   },
   "defaults": {
     "lang": "fr",
