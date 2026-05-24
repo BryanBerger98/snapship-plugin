@@ -27,6 +27,22 @@
     "defaults": { "$ref": "#/$defs/defaults" }
   },
   "$defs": {
+    "db_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Référence à une base Notion/AFFiNE (id + URL directe).",
+      "properties": {
+        "db_id": {
+          "type": "string",
+          "description": "ID base Notion (UUID) ou AFFiNE."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL d'accès directe à la base (informationnel)."
+        }
+      }
+    },
     "severity": {
       "type": "string",
       "enum": ["info", "minor", "major", "critical"]
@@ -262,6 +278,37 @@
             "wireframes_gallery": {
               "type": "string",
               "description": "Page ID template galerie wireframes pré-créé. Cloné par /wireframe lors du premier export."
+            }
+          }
+        },
+        "databases": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "IDs des bases Notion/AFFiNE créées par scaffold-docs.sh. Optionnel — rempli automatiquement au premier scaffold.",
+          "properties": {
+            "domains":       { "$ref": "#/$defs/db_ref" },
+            "features":      { "$ref": "#/$defs/db_ref" },
+            "outcomes":      { "$ref": "#/$defs/db_ref" },
+            "personas":      { "$ref": "#/$defs/db_ref" },
+            "opportunities": { "$ref": "#/$defs/db_ref" },
+            "decisions":     { "$ref": "#/$defs/db_ref" },
+            "releases":      { "$ref": "#/$defs/db_ref" }
+          }
+        },
+        "scaffold": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "État du scaffold DB. Écrit par scaffold-docs.sh au premier run.",
+          "properties": {
+            "done": {
+              "type": "boolean",
+              "default": false,
+              "description": "true = scaffold DB déjà exécuté — scaffold-docs.sh passe en mode idempotent."
+            },
+            "scaffolded_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Horodatage ISO 8601 du scaffold initial."
             }
           }
         }
