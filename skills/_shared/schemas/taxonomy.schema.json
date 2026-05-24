@@ -2,19 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BryanBerger98/snapship-plugin/schemas/taxonomy.schema.json",
   "title": "_taxonomy.json",
-  "description": "Catalogue partagé .snap/manifests/_taxonomy.json — workspace (vision/principles/north_star/remote root) + domains + journeys (steps/outcomes). v1.1.",
+  "description": "Catalogue partagé .snap/manifests/_taxonomy.json — axe organisation v1.3 : workspace + outcomes + personas + opportunities + domains + user_flows + features + decisions (ADR). Axe delivery (epics/board_url) géré par la skill ticket.",
   "type": "object",
   "required": ["schema_version"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      "pattern": "^1\\.\\d+\\.\\d+$"
     },
     "workspace": {
       "type": "object",
-      "additionalProperties": true,
-      "description": "Racine documentation distante + métadonnées produit (vision, principles, north_star). Édité par /define --mode=vision.",
+      "additionalProperties": false,
+      "description": "Racine documentation distante + métadonnées produit (vision PR-FAQ, principes, plateforme).",
       "properties": {
         "platform": {
           "type": "string",
@@ -25,61 +25,196 @@
         "root_url":     { "type": "string", "format": "uri" },
         "synced_at":    { "type": "string", "format": "date-time" },
         "vision": {
-          "type": "string",
-          "description": "Énoncé de vision produit (paragraphe). Édité via /define --mode=vision.",
-          "minLength": 1
+          "description": "Vision produit au format PR-FAQ. Fallback string toléré pour migration depuis v1.x.",
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["headline"],
+              "properties": {
+                "headline": { "type": "string", "minLength": 1 },
+                "problem":  { "type": "string" },
+                "solution": { "type": "string" },
+                "faq": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["q", "a"],
+                    "properties": {
+                      "q": { "type": "string", "minLength": 1 },
+                      "a": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         },
         "principles": {
           "type": "array",
-          "description": "Principes produit guidant les décisions. Édité via /define --mode=vision.",
+          "description": "Principes produit guidant les décisions.",
           "items": { "type": "string", "minLength": 1 },
           "uniqueItems": true
-        },
-        "north_star": {
-          "type": "object",
-          "description": "Métrique north-star + valeurs cibles. Édité via /define --mode=vision.",
-          "additionalProperties": false,
-          "required": ["metric"],
-          "properties": {
-            "metric":   { "type": "string", "minLength": 1 },
-            "current":  { "type": "string" },
-            "target":   { "type": "string" },
-            "horizon":  { "type": "string" }
-          }
         }
       }
+    },
+    "outcomes": {
+      "type": "array",
+      "description": "Résultats produit mesurables (NorthStar / Supporting / Guardrail). Remplace north_star v1.x.",
+      "items": { "$ref": "#/$defs/outcome" }
+    },
+    "personas": {
+      "type": "array",
+      "description": "Personas utilisateurs (proto ou validés).",
+      "items": { "$ref": "#/$defs/persona" }
+    },
+    "opportunities": {
+      "type": "array",
+      "description": "Opportunités produit formulées côté client (OST).",
+      "items": { "$ref": "#/$defs/opportunity" }
     },
     "domains": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/domain" },
-      "description": "Domaines fonctionnels — slug kebab en clé."
+      "description": "Domaines fonctionnels — slug kebab en clé.",
+      "additionalProperties": { "$ref": "#/$defs/domain" }
     },
-    "journeys": {
+    "user_flows": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/journey" },
-      "description": "User journeys top-level — slug kebab en clé. Pour journeys rattachés à un domain, voir domains[slug].journeys."
+      "description": "User flows top-level — slug kebab en clé. Pour flows rattachés à un domain, voir domains[slug].user_flows.",
+      "additionalProperties": { "$ref": "#/$defs/user_flow" }
+    },
+    "features": {
+      "type": "object",
+      "description": "Catalogue features stub-level — clé FEAT-NNN.",
+      "patternProperties": {
+        "^FEAT-\\d+$": { "$ref": "#/$defs/feature" }
+      },
+      "additionalProperties": false
+    },
+    "decisions": {
+      "type": "object",
+      "description": "ADR (Architecture Decision Records) — clé ADR-NNN.",
+      "patternProperties": {
+        "^ADR-\\d+$": { "$ref": "#/$defs/decision" }
+      },
+      "additionalProperties": false
     }
   },
   "$defs": {
-    "domain": {
+    "outcome": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["page_id"],
+      "required": ["key", "label", "type"],
       "properties": {
-        "title":     { "type": "string" },
-        "page_id":   { "type": "string" },
-        "url":       { "type": "string", "format": "uri" },
-        "synced_at": { "type": "string", "format": "date-time" },
-        "journeys": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/journey" }
+        "key":     { "type": "string", "pattern": "^OUT-\\d+$" },
+        "label":   { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["NorthStar", "Supporting", "Guardrail"]
+        },
+        "metric":  { "type": "string" },
+        "current": { "type": "string" },
+        "target":  { "type": "string" },
+        "horizon": { "type": "string" }
+      }
+    },
+    "persona": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "type"],
+      "properties": {
+        "key":  { "type": "string", "pattern": "^PER-\\d+$" },
+        "name": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["proto", "valide"]
+        },
+        "jtbd":  { "type": "string" },
+        "pains": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "gains": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
         }
       }
     },
-    "journey": {
+    "opportunity": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Journey peut exister localement (édité via /define --mode=journey) sans page_id tant que /doc-update n'a pas publié.",
+      "required": ["key", "label"],
+      "properties": {
+        "key":          { "type": "string", "pattern": "^OPP-\\d+$" },
+        "label":        { "type": "string", "minLength": 1 },
+        "persona_key":  { "type": "string", "pattern": "^PER-\\d+$" },
+        "outcome_key":  { "type": "string", "pattern": "^OUT-\\d+$" }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nom"],
+      "properties": {
+        "nom": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["core", "supporting", "generic"]
+        },
+        "stabilite": { "type": "string" },
+        "overview": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Page overview du domaine (invariants + index features).",
+          "properties": {
+            "invariants": { "type": "string" },
+            "page_id":    { "type": "string" },
+            "url":        { "type": "string", "format": "uri" }
+          }
+        },
+        "page_id":   { "type": "string" },
+        "url":       { "type": "string", "format": "uri" },
+        "synced_at": { "type": "string", "format": "date-time" },
+        "subdomains": {
+          "type": "object",
+          "description": "Sous-domaines — slug kebab en clé.",
+          "additionalProperties": { "$ref": "#/$defs/subdomain" }
+        },
+        "user_flows": {
+          "type": "object",
+          "description": "User flows rattachés à ce domaine — slug kebab en clé.",
+          "additionalProperties": { "$ref": "#/$defs/user_flow" }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Clés ADR-NNN des décisions portant sur les invariants du domaine.",
+          "items": { "type": "string", "pattern": "^ADR-\\d+$" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "subdomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nom"],
+      "properties": {
+        "nom":           { "type": "string", "minLength": 1 },
+        "langage_propre": { "type": "string" },
+        "page_id":       { "type": "string" },
+        "url":           { "type": "string", "format": "uri" },
+        "synced_at":     { "type": "string", "format": "date-time" }
+      }
+    },
+    "user_flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "User flow (ex-journey) — cheminement fonctionnel dessiné en Mermaid. Peut exister localement sans page_id tant que non publié.",
       "properties": {
         "title":     { "type": "string" },
         "page_id":   { "type": "string" },
@@ -92,7 +227,7 @@
         },
         "steps": {
           "type": "array",
-          "description": "Étapes du parcours, ordre = séquence.",
+          "description": "Étapes du flow, ordre = séquence.",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -105,7 +240,7 @@
         },
         "outcomes": {
           "type": "array",
-          "description": "Résultats attendus du parcours.",
+          "description": "Résultats attendus du flow (strings libres, distincts des outcome produit).",
           "items": { "type": "string", "minLength": 1 },
           "uniqueItems": true
         }
@@ -116,6 +251,79 @@
           "then": { "required": ["page_id"] }
         }
       ]
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "nom", "domain_key", "priority", "depth", "horizon", "status"],
+      "properties": {
+        "key":            { "type": "string", "pattern": "^FEAT-\\d+$" },
+        "nom":            { "type": "string", "minLength": 1 },
+        "domain_key":     { "type": "string", "minLength": 1 },
+        "subdomain_key":  { "type": "string" },
+        "priority": {
+          "type": "string",
+          "enum": ["must", "should", "could"]
+        },
+        "depth": {
+          "type": "string",
+          "enum": ["stub", "specified"]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["discovered", "inventoried"]
+        },
+        "horizon": {
+          "type": "string",
+          "enum": ["Now", "Next", "Later"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["idea", "discovery", "ready", "building", "shipped", "deprecated"]
+        },
+        "persona_key":      { "type": "string", "pattern": "^PER-\\d+$" },
+        "opportunity_key":  { "type": "string", "pattern": "^OPP-\\d+$" },
+        "outcome_key":      { "type": "string", "pattern": "^OUT-\\d+$" },
+        "value_hypothesis": { "type": "string" },
+        "user_flows": {
+          "type": "array",
+          "description": "Slugs des user flows impactés par cette feature.",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Clés ADR-NNN des décisions liées à cette feature.",
+          "items": { "type": "string", "pattern": "^ADR-\\d+$" },
+          "uniqueItems": true
+        },
+        "page_id":   { "type": "string" },
+        "url":       { "type": "string", "format": "uri" },
+        "synced_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "titre", "statut"],
+      "description": "Architecture Decision Record (ADR).",
+      "properties": {
+        "key":          { "type": "string", "pattern": "^ADR-\\d+$" },
+        "titre":        { "type": "string", "minLength": 1 },
+        "statut": {
+          "type": "string",
+          "enum": ["actee", "supersedee"]
+        },
+        "supersedes": { "type": "string", "pattern": "^ADR-\\d+$" },
+        "target": {
+          "type": "string",
+          "description": "Slug du domaine ou clé FEAT-NNN de la feature concernée."
+        },
+        "date":         { "type": "string", "format": "date" },
+        "contexte":     { "type": "string" },
+        "decision":     { "type": "string" },
+        "consequences": { "type": "string" }
+      }
     }
   }
 }
